@@ -1,0 +1,5 @@
+# Internal design/alignment records — not part of the published package.
+unknowns/
+output/
+*.iml
+CLAUDE.md
