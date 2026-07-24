@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-`crux_ui` is a Flutter UI kit **package** (not an app), intended for publication on pub.dev. As of 0.1.0 it ships design tokens only — `CruxColors`, `CruxSpacing`, `CruxTypography`, `CruxThemeData`, and the `CruxTheme` InheritedWidget — plus a token-showcase app in `example/`. No widgets yet.
+`crux_ui` is a Flutter UI kit **package** (not an app), intended for publication on pub.dev. As of 0.2.0 it ships the design token layer — `CruxColors`, `CruxSpacing`, `CruxTypography`, `CruxThemeData`, and the `CruxTheme` InheritedWidget — plus `CruxButton`, its first widget atom (with the `CruxMotion` press-spring token it uses), and a showcase app in `example/`.
 
 ## Commands
 
@@ -21,6 +21,10 @@ Requires Dart SDK `^3.12.2` (i.e. a Flutter SDK shipping a Dart in that range).
 
 `flutter test` binds a local socket (127.0.0.1) for its test runner; in a sandboxed shell that bind is rejected with "Operation not permitted" — run it outside the sandbox.
 
+## Opening HTML
+
+When opening an HTML file (reports, previews, etc.), open it in Orca's built-in browser instead of `open`: `orca goto --url "file:///abs/path" --json` (use `orca tab create --url ...` to keep existing tabs). Fall back to `open` only if the `orca` CLI is unavailable or Orca is not running.
+
 ## Architecture
 
 - **Single public entry point**: `lib/crux_ui.dart` is the only file consumers import (`import 'package:crux_ui/crux_ui.dart';`). Every new component must be `export`ed from it; implementation files belong under `lib/src/` and are never imported directly by consumers.
@@ -28,7 +32,7 @@ Requires Dart SDK `^3.12.2` (i.e. a Flutter SDK shipping a Dart in that range).
 - **The package never touches Material theming**: no `ThemeData` generation or modification (agreed decision; a Material adapter may come later as a separate opt-in layer). Components resolve tokens via `CruxTheme.of(context)`, which falls back to light when no theme is provided. Dark mode is `CruxThemeData.dark()`.
 - Per the README, the first component (and each one after) lands together with its tests — tests are written before the implementation.
 - When adding a component, also record it in `CHANGELOG.md`.
-- Design decisions and their rationale are recorded in `unknowns/design-tokens-first/` (`ledger.md` for agreed facts, `handoff.md` for the current milestone's spec). Consult the ledger before changing token names or values.
+- Design decisions and their rationale are recorded per milestone under `unknowns/` — `unknowns/design-tokens-first/` for the token layer, `unknowns/button-atom/` for `CruxButton`/`CruxMotion` — each with a `ledger.md` for agreed facts and a `handoff.md` for that milestone's spec. Consult the relevant ledger before changing token names/values or existing component behavior.
 
 ## Analysis rules that will bite you
 
