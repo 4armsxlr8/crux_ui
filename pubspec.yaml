@@ -1,0 +1,22 @@
+name: crux_ui
+description: >-
+  A playful Flutter UI kit. Under development; no components are exported
+  yet.
+version: 0.0.1
+
+topics:
+  - ui
+  - widgets
+  - design-system
+
+environment:
+  sdk: ^3.12.2
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0

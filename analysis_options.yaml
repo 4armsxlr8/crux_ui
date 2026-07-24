@@ -1,0 +1,16 @@
+# Lint and analysis rules for the Crux UI package.
+# See https://dart.dev/guides/language/analysis-options
+include: package:flutter_lints/flutter.yaml
+
+analyzer:
+  language:
+    strict-casts: true
+    strict-inference: true
+    strict-raw-types: true
+
+linter:
+  rules:
+    # This package is intended for publication, so every exported member needs documentation.
+    - public_member_api_docs
+    - prefer_final_locals
+    - unawaited_futures
