@@ -64,7 +64,8 @@ class CruxThemeData {
         other.colors.muted == colors.muted &&
         other.colors.separator == colors.separator &&
         other.colors.success == colors.success &&
-        other.colors.error == colors.error;
+        other.colors.error == colors.error &&
+        other.colors.onAccent == colors.onAccent;
   }
 
   @override
@@ -82,6 +83,7 @@ class CruxThemeData {
     colors.separator,
     colors.success,
     colors.error,
+    colors.onAccent,
   );
 }
 

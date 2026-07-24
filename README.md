@@ -6,10 +6,11 @@ Crux UI likes people who like Crux UI.
 
 **Under development.** The design token layer is implemented: colors,
 spacing, and typography, plus a `CruxTheme` / `CruxThemeData` pair that
-makes them available to a widget subtree. Higher-level widgets (buttons,
-cards, chips, and so on) have not been built yet — for now, screens are
-composed from plain Flutter widgets plus Crux's tokens, as shown in
-`example/`.
+makes them available to a widget subtree. The first widget atom,
+`CruxButton`, is also implemented (pill-shaped, three variants, three
+sizes, spring press feedback). Other widgets (cards, chips, and so on) have
+not been built yet — for now, the rest of a screen is composed from plain
+Flutter widgets plus Crux's tokens, as shown in `example/`.
 
 Crux never rewrites Material's `ThemeData`; providing a `CruxTheme` does
 not change the look of `Material`, `Scaffold`, or other Material widgets.
@@ -38,7 +39,14 @@ void main() {
           return Container(
             color: theme.colors.background,
             padding: const EdgeInsets.all(CruxSpacing.s16),
-            child: Text('Hello, Crux', style: theme.typography.headline),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Hello, Crux', style: theme.typography.headline),
+                const SizedBox(height: CruxSpacing.s16),
+                CruxButton(label: 'はじめる', onPressed: () {}),
+              ],
+            ),
           );
         },
       ),
@@ -47,8 +55,15 @@ void main() {
 }
 ```
 
+`CruxButton` is a pill-shaped button with three variants
+(`CruxButtonVariant.filled` / `tonal` / `ghost`) and three sizes
+(`CruxButtonSize.small` / `medium` / `large`). Pass `onPressed: null` to
+disable it. Its label is a plain `String`, always rendered on a single line
+with an ellipsis, so it can never overflow no matter how narrow its
+constraints or how long the label is.
+
 See `example/lib/main.dart` for a full showcase of the color palette, type
-scale, spacing scale, and a light/dark toggle.
+scale, spacing scale, button variants/sizes, and a light/dark toggle.
 
 ## Getting started
 
@@ -64,9 +79,9 @@ flutter test
 
 ## Roadmap
 
-The widget set has not been decided yet. Once the first widget's appearance
-and behavior are specified, it will land here along with its tests and
-documentation, following the same tokens introduced in this release.
+`CruxButton` is the first widget atom; the rest of the widget set has not
+been decided yet. Each future component will land here along with its tests
+and documentation, following the same tokens introduced in 0.1.0.
 
 ## License
 

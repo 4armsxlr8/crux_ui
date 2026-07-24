@@ -11,6 +11,10 @@ import 'dart:ui' show Color;
 /// changes in the future, this is the single file that needs to change.
 class CruxColors {
   /// Creates a set of semantic color tokens.
+  ///
+  /// [onAccent] defaults to `#26251E` (fixed in both palettes) so existing
+  /// call sites that construct [CruxColors] manually keep compiling
+  /// unchanged.
   const CruxColors({
     required this.background,
     required this.surface,
@@ -23,6 +27,7 @@ class CruxColors {
     required this.separator,
     required this.success,
     required this.error,
+    this.onAccent = const Color(0xFF26251E),
   });
 
   /// The light color palette.
@@ -90,4 +95,10 @@ class CruxColors {
 
   /// The color used to indicate an error or destructive state.
   final Color error;
+
+  /// The text/icon color to use on top of [accent] (for example a filled
+  /// button's label). Fixed to `#26251E` in both palettes — measured at a
+  /// 4.89:1 contrast ratio against [accent], above WCAG AA's 4.5:1 for
+  /// normal text.
+  final Color onAccent;
 }

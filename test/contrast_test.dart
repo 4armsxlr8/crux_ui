@@ -6,8 +6,8 @@
 // compute things. It exists so that swapping the (currently provisional)
 // color values for a future palette cannot silently break legibility.
 import 'dart:math' as math;
-import 'dart:ui';
 
+import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:crux_ui/crux_ui.dart';
 
@@ -99,6 +99,76 @@ void main() {
         expect(
           _contrastRatio(effective, c.background),
           greaterThanOrEqualTo(3.0),
+        );
+      },
+    );
+
+    test('light and dark onAccent vs accent is at least 4.5', () {
+      // onAccent is the filled CruxButton's label color: it must stay
+      // legible against the accent fill it sits on, in both palettes (it is
+      // fixed to the same value in both, but accent could diverge later).
+      expect(
+        _contrastRatio(CruxColors.light.onAccent, CruxColors.light.accent),
+        greaterThanOrEqualTo(4.5),
+      );
+      expect(
+        _contrastRatio(CruxColors.dark.onAccent, CruxColors.dark.accent),
+        greaterThanOrEqualTo(4.5),
+      );
+    });
+
+    testWidgets(
+      'filled CruxButton pressed-state background vs onAccent stays at '
+      'least 4.5 (light and dark)',
+      (WidgetTester tester) async {
+        // Composited-state regression guard: CruxButton's pressed-state
+        // state layer darkens/lightens the filled variant's background
+        // toward CruxColors.textPrimary, but its label color
+        // (CruxColors.onAccent) never changes while pressed. Because
+        // onAccent and textPrimary happen to be the exact same value in
+        // both palettes, an overlay that is too strong pulls the pressed
+        // background straight toward the label color and can silently push
+        // contrast under the AA floor even though the unpressed state is
+        // fine. This reads the actual rendered pressed background off a
+        // real CruxButton (not a hardcoded expectation of the overlay
+        // opacity), so it fails if a future change to the pressed-state
+        // treatment regresses this again.
+        Future<double> pressedContrast(CruxThemeData theme) async {
+          await tester.pumpWidget(
+            Directionality(
+              textDirection: TextDirection.ltr,
+              child: CruxTheme(
+                data: theme,
+                child: CruxButton(label: 'Go', onPressed: () {}),
+              ),
+            ),
+          );
+
+          final TestGesture gesture = await tester.startGesture(
+            tester.getCenter(find.byType(CruxButton)),
+          );
+          await tester.pump();
+
+          final Container container = tester.widget<Container>(
+            find.byType(Container),
+          );
+          final BoxDecoration decoration =
+              container.decoration! as BoxDecoration;
+          final Color pressedBackground = decoration.color!;
+
+          await gesture.up();
+          await tester.pumpAndSettle();
+
+          return _contrastRatio(theme.colors.onAccent, pressedBackground);
+        }
+
+        expect(
+          await pressedContrast(CruxThemeData.light()),
+          greaterThanOrEqualTo(4.5),
+        );
+        expect(
+          await pressedContrast(CruxThemeData.dark()),
+          greaterThanOrEqualTo(4.5),
         );
       },
     );
