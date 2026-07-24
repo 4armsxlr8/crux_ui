@@ -114,8 +114,12 @@ class TokenShowcasePage extends StatelessWidget {
                       const SizedBox(height: CruxSpacing.s16),
                       _SpacingList(colors: colors, type: type),
                       const SizedBox(height: CruxSpacing.s40),
+                      _SectionHeading('04', 'ボタン', colors: colors, type: type),
+                      const SizedBox(height: CruxSpacing.s16),
+                      _ButtonShowcase(colors: colors, type: type),
+                      const SizedBox(height: CruxSpacing.s40),
                       _SectionHeading(
-                        '04',
+                        '05',
                         '実戦サンプル',
                         colors: colors,
                         type: type,
@@ -381,6 +385,57 @@ String _swatchValueLabel(Color color) {
 String _hex2(int value) =>
     value.toRadixString(16).padLeft(2, '0').toUpperCase();
 
+/// Section (b'): every [CruxButtonVariant] at every [CruxButtonSize],
+/// plus a disabled example, so all 3×3+1 combinations are visible and
+/// pressable at once (press them to see the spring/state-layer feedback).
+class _ButtonShowcase extends StatelessWidget {
+  const _ButtonShowcase({required this.colors, required this.type});
+
+  final CruxColors colors;
+  final CruxTypography type;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        for (final CruxButtonVariant variant
+            in CruxButtonVariant.values) ...[
+          Text(variant.name, style: type.caption.copyWith(color: colors.muted)),
+          const SizedBox(height: CruxSpacing.s8),
+          Wrap(
+            spacing: CruxSpacing.s12,
+            runSpacing: CruxSpacing.s12,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              CruxButton(
+                label: 'S',
+                variant: variant,
+                size: CruxButtonSize.small,
+                onPressed: () {},
+              ),
+              CruxButton(
+                label: 'M',
+                variant: variant,
+                size: CruxButtonSize.medium,
+                onPressed: () {},
+              ),
+              CruxButton(
+                label: 'L',
+                variant: variant,
+                size: CruxButtonSize.large,
+                onPressed: () {},
+              ),
+              CruxButton(label: '無効', variant: variant, onPressed: null),
+            ],
+          ),
+          const SizedBox(height: CruxSpacing.s24),
+        ],
+      ],
+    );
+  }
+}
+
 /// Section (b): the six [CruxTypography] styles, each rendered with a
 /// Japanese sample sentence.
 class _TypeScaleList extends StatelessWidget {
@@ -533,48 +588,14 @@ class _DemoCard extends StatelessWidget {
           const SizedBox(height: CruxSpacing.s16),
           Align(
             alignment: Alignment.centerLeft,
-            child: _AccentPillButton(label: 'はじめる', colors: colors, type: type),
+            child: CruxButton(
+              label: 'はじめる',
+              variant: CruxButtonVariant.tonal,
+              onPressed: () {},
+            ),
           ),
         ],
       ),
-    );
-  }
-}
-
-/// A button-look element styled the same way the reference mock styles its
-/// pill-shaped affordances (accent-tinted fill, accent-line border) rather
-/// than a solid accent fill, so it only ever needs the officially defined
-/// [CruxColors] tokens (no extra "on-accent" color).
-///
-/// The label uses [CruxColors.textPrimary] rather than [CruxColors.accent]
-/// for the text: over the low-opacity [CruxColors.accentTint] fill, accent
-/// text only reaches about 2.53:1 in light mode (fails WCAG AA's 4.5:1 for
-/// normal text), while textPrimary reaches well over 12:1 in both light and
-/// dark. See implementation-notes.md for the measured contrast values.
-class _AccentPillButton extends StatelessWidget {
-  const _AccentPillButton({
-    required this.label,
-    required this.colors,
-    required this.type,
-  });
-
-  final String label;
-  final CruxColors colors;
-  final CruxTypography type;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: CruxSpacing.s16,
-        vertical: CruxSpacing.s8,
-      ),
-      decoration: BoxDecoration(
-        color: colors.accentTint,
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: colors.accentLine),
-      ),
-      child: Text(label, style: type.label.copyWith(color: colors.textPrimary)),
     );
   }
 }
@@ -617,7 +638,8 @@ class _Chip extends StatelessWidget {
     final Color background = muted ? colors.surface : colors.accentTint;
     final Color border = muted ? colors.separator : colors.accentLine;
     // Non-muted chips use textPrimary (not accent) for the label, for the
-    // same WCAG AA contrast reason as _AccentPillButton above.
+    // same WCAG AA contrast reason CruxColors.onAccent documents (see
+    // test/contrast_test.dart).
     final Color textColor = muted ? colors.textSecondary : colors.textPrimary;
     return Container(
       padding: const EdgeInsets.symmetric(
