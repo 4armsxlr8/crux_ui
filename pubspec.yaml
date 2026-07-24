@@ -1,8 +1,8 @@
 name: crux_ui
 description: >-
-  A playful Flutter UI kit. Under development; no components are exported
-  yet.
-version: 0.0.1
+  A playful Flutter UI kit. Ships design tokens (colors, spacing,
+  typography) and a theme layer today; widgets are still to come.
+version: 0.1.0
 
 topics:
   - ui
