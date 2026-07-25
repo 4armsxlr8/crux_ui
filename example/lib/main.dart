@@ -36,9 +36,9 @@ class _CruxExampleAppState extends State<CruxExampleApp> {
     return CruxTheme(
       data: _cruxTheme,
       child: MaterialApp(
-        title: 'Crux UI Tokens',
+        title: 'Crux UI Sample',
         debugShowCheckedModeBanner: false,
-        home: TokenShowcasePage(
+        home: SampleHomePage(
           isDark: _cruxTheme.brightness == Brightness.dark,
           onDarkChanged: _setDark,
         ),
@@ -47,11 +47,18 @@ class _CruxExampleAppState extends State<CruxExampleApp> {
   }
 }
 
-/// The single showcase screen: color swatches, type scale, spacing scale,
-/// and a small real-world sample composed only from Crux tokens.
-class TokenShowcasePage extends StatelessWidget {
-  /// Creates the showcase page.
-  const TokenShowcasePage({
+/// The single showcase screen: a header (with the light/dark toggle) and
+/// one real-world sample composed only from Crux atoms.
+///
+/// This app is deliberately a "this is what it looks like in a real
+/// screen" demo, not a token or atom-state catalog — those full listings
+/// (color/type/spacing tables, per-variant × per-state grids, edge cases)
+/// live in `widgetbook/` instead. See root `CLAUDE.md`'s catalog operating
+/// rule: every new component gets its widgetbook use-cases + goldens there,
+/// while this app only ever grows the one contextual sample below.
+class SampleHomePage extends StatelessWidget {
+  /// Creates the sample home page.
+  const SampleHomePage({
     super.key,
     required this.isDark,
     required this.onDarkChanged,
@@ -85,50 +92,8 @@ class TokenShowcasePage extends StatelessWidget {
                 width: double.infinity,
                 color: colors.background,
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: CruxSpacing.s20,
-                    vertical: CruxSpacing.s24,
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      _SectionHeading('01', 'カラー', colors: colors, type: type),
-                      const SizedBox(height: CruxSpacing.s16),
-                      _ColorSwatchGrid(colors: colors, type: type),
-                      const SizedBox(height: CruxSpacing.s40),
-                      _SectionHeading(
-                        '02',
-                        'タイプスケール',
-                        colors: colors,
-                        type: type,
-                      ),
-                      const SizedBox(height: CruxSpacing.s16),
-                      _TypeScaleList(colors: colors, type: type),
-                      const SizedBox(height: CruxSpacing.s40),
-                      _SectionHeading(
-                        '03',
-                        'スペーシング',
-                        colors: colors,
-                        type: type,
-                      ),
-                      const SizedBox(height: CruxSpacing.s16),
-                      _SpacingList(colors: colors, type: type),
-                      const SizedBox(height: CruxSpacing.s40),
-                      _SectionHeading('04', 'ボタン', colors: colors, type: type),
-                      const SizedBox(height: CruxSpacing.s16),
-                      _ButtonShowcase(colors: colors, type: type),
-                      const SizedBox(height: CruxSpacing.s40),
-                      _SectionHeading(
-                        '05',
-                        '実戦サンプル',
-                        colors: colors,
-                        type: type,
-                      ),
-                      const SizedBox(height: CruxSpacing.s16),
-                      _SampleScreen(colors: colors, type: type),
-                      const SizedBox(height: CruxSpacing.s48),
-                    ],
-                  ),
+                  padding: const EdgeInsets.all(CruxSpacing.s20),
+                  child: _SampleScreen(colors: colors, type: type),
                 ),
               ),
             ),
@@ -177,17 +142,16 @@ class _Header extends StatelessWidget {
         children: [
           Expanded(
             child: Text(
-              'Crux UI Tokens',
+              'Crux UI Sample',
               style: type.headline.copyWith(color: colors.textPrimary),
             ),
           ),
           const SizedBox(width: CruxSpacing.s12),
           Icon(Icons.light_mode, size: 18, color: colors.textSecondary),
           const SizedBox(width: CruxSpacing.s8),
-          _ThemeToggle(
-            colors: colors,
-            isDark: isDark,
-            onChanged: onDarkChanged,
+          Semantics(
+            label: 'ダーク表示の切り替え',
+            child: CruxSwitch(value: isDark, onChanged: onDarkChanged),
           ),
           const SizedBox(width: CruxSpacing.s8),
           Icon(Icons.dark_mode, size: 18, color: colors.textSecondary),
@@ -197,341 +161,10 @@ class _Header extends StatelessWidget {
   }
 }
 
-/// A light/dark toggle built only from plain widgets and [CruxColors]
-/// tokens, replacing Material's [Switch].
-///
-/// [Switch] paints itself with the ambient Material `ThemeData`'s default
-/// accent (purple), independent of the active [CruxThemeData]. This
-/// widget instead animates a pill-shaped track (accent when on, separator
-/// when off) with a surface-colored thumb, so its colors come entirely from
-/// the current [CruxColors] and follow the toggle like everything else on
-/// the page.
-class _ThemeToggle extends StatelessWidget {
-  const _ThemeToggle({
-    required this.colors,
-    required this.isDark,
-    required this.onChanged,
-  });
-
-  final CruxColors colors;
-  final bool isDark;
-  final ValueChanged<bool> onChanged;
-
-  static const double _trackWidth = 52;
-  static const double _trackHeight = 28;
-  static const double _thumbSize = 22;
-  static const double _thumbInset = 3;
-  static const Duration _duration = Duration(milliseconds: 180);
-
-  @override
-  Widget build(BuildContext context) {
-    return Semantics(
-      toggled: isDark,
-      label: 'ダーク表示の切り替え',
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: () => onChanged(!isDark),
-        child: AnimatedContainer(
-          duration: _duration,
-          curve: Curves.easeOut,
-          width: _trackWidth,
-          height: _trackHeight,
-          padding: const EdgeInsets.symmetric(horizontal: _thumbInset),
-          decoration: BoxDecoration(
-            color: isDark ? colors.accent : colors.separator,
-            borderRadius: BorderRadius.circular(_trackHeight / 2),
-          ),
-          alignment: isDark ? Alignment.centerRight : Alignment.centerLeft,
-          child: AnimatedContainer(
-            duration: _duration,
-            curve: Curves.easeOut,
-            width: _thumbSize,
-            height: _thumbSize,
-            decoration: BoxDecoration(
-              color: colors.surface,
-              shape: BoxShape.circle,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// A "NN Title" section heading, styled with Crux's label + headline
-/// tokens.
-class _SectionHeading extends StatelessWidget {
-  const _SectionHeading(
-    this.number,
-    this.label, {
-    required this.colors,
-    required this.type,
-  });
-
-  final String number;
-  final String label;
-  final CruxColors colors;
-  final CruxTypography type;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.baseline,
-      textBaseline: TextBaseline.alphabetic,
-      children: [
-        Text(number, style: type.label.copyWith(color: colors.accent)),
-        const SizedBox(width: CruxSpacing.s12),
-        Text(label, style: type.headline.copyWith(color: colors.textPrimary)),
-      ],
-    );
-  }
-}
-
-/// Section (a): every [CruxColors] semantic token as a swatch + name +
-/// hex/rgba value.
-class _ColorSwatchGrid extends StatelessWidget {
-  const _ColorSwatchGrid({required this.colors, required this.type});
-
-  final CruxColors colors;
-  final CruxTypography type;
-
-  @override
-  Widget build(BuildContext context) {
-    final List<(String, Color)> entries = <(String, Color)>[
-      ('background', colors.background),
-      ('surface', colors.surface),
-      ('accent', colors.accent),
-      ('accentTint', colors.accentTint),
-      ('accentLine', colors.accentLine),
-      ('textPrimary', colors.textPrimary),
-      ('textSecondary', colors.textSecondary),
-      ('muted', colors.muted),
-      ('separator', colors.separator),
-      ('success', colors.success),
-      ('error', colors.error),
-    ];
-
-    return Wrap(
-      spacing: CruxSpacing.s12,
-      runSpacing: CruxSpacing.s12,
-      children: [
-        for (final (name, color) in entries)
-          _ColorSwatchTile(
-            name: name,
-            color: color,
-            colors: colors,
-            type: type,
-          ),
-      ],
-    );
-  }
-}
-
-class _ColorSwatchTile extends StatelessWidget {
-  const _ColorSwatchTile({
-    required this.name,
-    required this.color,
-    required this.colors,
-    required this.type,
-  });
-
-  final String name;
-  final Color color;
-  final CruxColors colors;
-  final CruxTypography type;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: 152,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            height: 56,
-            decoration: BoxDecoration(
-              color: color,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: colors.separator),
-            ),
-          ),
-          const SizedBox(height: CruxSpacing.s8),
-          Text(name, style: type.label.copyWith(color: colors.textPrimary)),
-          Text(
-            _swatchValueLabel(color),
-            style: type.caption.copyWith(color: colors.textSecondary),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// Formats [color] as it is documented in the design token ledger: an
-/// opaque color as `#RRGGBB`, a semi-transparent one as `rgba(r, g, b, a)`.
-/// Derived from the [Color]'s own channel values so the ledger's raw
-/// numbers never need to be duplicated here.
-String _swatchValueLabel(Color color) {
-  final int alpha255 = (color.a * 255).round();
-  final int r = (color.r * 255).round();
-  final int g = (color.g * 255).round();
-  final int b = (color.b * 255).round();
-  if (alpha255 >= 255) {
-    return '#${_hex2(r)}${_hex2(g)}${_hex2(b)}';
-  }
-  return 'rgba($r, $g, $b, ${color.a.toStringAsFixed(2)})';
-}
-
-String _hex2(int value) =>
-    value.toRadixString(16).padLeft(2, '0').toUpperCase();
-
-/// Section (b'): every [CruxButtonVariant] at every [CruxButtonSize],
-/// plus a disabled example, so all 3×3+1 combinations are visible and
-/// pressable at once (press them to see the spring/state-layer feedback).
-class _ButtonShowcase extends StatelessWidget {
-  const _ButtonShowcase({required this.colors, required this.type});
-
-  final CruxColors colors;
-  final CruxTypography type;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        for (final CruxButtonVariant variant
-            in CruxButtonVariant.values) ...[
-          Text(variant.name, style: type.caption.copyWith(color: colors.muted)),
-          const SizedBox(height: CruxSpacing.s8),
-          Wrap(
-            spacing: CruxSpacing.s12,
-            runSpacing: CruxSpacing.s12,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            children: [
-              CruxButton(
-                label: 'S',
-                variant: variant,
-                size: CruxButtonSize.small,
-                onPressed: () {},
-              ),
-              CruxButton(
-                label: 'M',
-                variant: variant,
-                size: CruxButtonSize.medium,
-                onPressed: () {},
-              ),
-              CruxButton(
-                label: 'L',
-                variant: variant,
-                size: CruxButtonSize.large,
-                onPressed: () {},
-              ),
-              CruxButton(label: '無効', variant: variant, onPressed: null),
-            ],
-          ),
-          const SizedBox(height: CruxSpacing.s24),
-        ],
-      ],
-    );
-  }
-}
-
-/// Section (b): the six [CruxTypography] styles, each rendered with a
-/// Japanese sample sentence.
-class _TypeScaleList extends StatelessWidget {
-  const _TypeScaleList({required this.colors, required this.type});
-
-  final CruxColors colors;
-  final CruxTypography type;
-
-  @override
-  Widget build(BuildContext context) {
-    final List<(String, TextStyle, String)> entries =
-        <(String, TextStyle, String)>[
-          ('display', type.display, 'はじめまして、ミモザです'),
-          ('headline', type.headline, 'マイページ'),
-          ('title', type.title, '今週のハイライト'),
-          (
-            'body',
-            type.body,
-            '通知の設定はあとからいつでも変更できます。まずは気になるトピックだけをオンにして、様子を見ながら調整していきましょう。',
-          ),
-          ('label', type.label, 'はじめる'),
-          ('caption', type.caption, '3分前に更新'),
-        ];
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        for (final (name, style, sample) in entries) ...[
-          Text(name, style: type.caption.copyWith(color: colors.muted)),
-          const SizedBox(height: CruxSpacing.s4),
-          Text(sample, style: style.copyWith(color: colors.textPrimary)),
-          const SizedBox(height: CruxSpacing.s20),
-        ],
-      ],
-    );
-  }
-}
-
-/// Section (c): the ten [CruxSpacing] steps, each shown as a name, its
-/// pixel value, and a bar whose width is proportional to that value.
-class _SpacingList extends StatelessWidget {
-  const _SpacingList({required this.colors, required this.type});
-
-  final CruxColors colors;
-  final CruxTypography type;
-
-  // A fixed multiplier applied to every step, purely so the smallest steps
-  // (2px, 4px) still render as a visible bar; the widths stay proportional
-  // to each other either way.
-  static const double _barScale = 3;
-
-  @override
-  Widget build(BuildContext context) {
-    final List<(String, double)> entries = <(String, double)>[
-      ('s2', CruxSpacing.s2),
-      ('s4', CruxSpacing.s4),
-      ('s8', CruxSpacing.s8),
-      ('s12', CruxSpacing.s12),
-      ('s16', CruxSpacing.s16),
-      ('s20', CruxSpacing.s20),
-      ('s24', CruxSpacing.s24),
-      ('s32', CruxSpacing.s32),
-      ('s40', CruxSpacing.s40),
-      ('s48', CruxSpacing.s48),
-    ];
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        for (final (name, value) in entries)
-          Padding(
-            padding: const EdgeInsets.only(bottom: CruxSpacing.s8),
-            child: Row(
-              children: [
-                SizedBox(
-                  width: 96,
-                  child: Text(
-                    '$name · ${value.toInt()}px',
-                    style: type.caption.copyWith(color: colors.textSecondary),
-                  ),
-                ),
-                Container(
-                  height: 12,
-                  width: value * _barScale,
-                  color: colors.accent,
-                ),
-              ],
-            ),
-          ),
-      ],
-    );
-  }
-}
-
-/// Section (d): a small real-world sample screen (card, chips, list) built
-/// only from plain widgets and Crux tokens.
+/// The real-world sample: a small screen (card, chips, list) built from
+/// real Crux atoms ([CruxCard], [CruxButton], [CruxChip],
+/// [CruxListTile], [CruxDivider]) used together the way a consuming app
+/// actually would, rather than as an isolated per-variant grid.
 class _SampleScreen extends StatelessWidget {
   const _SampleScreen({required this.colors, required this.type});
 
@@ -541,7 +174,16 @@ class _SampleScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(CruxSpacing.s16),
+      // Only vertical padding here: the list section (_DemoList) must sit
+      // flush against this container's own left/right edges, so its
+      // CruxListTile rows' own default horizontal padding is what
+      // produces the visual inset — and so a pressed row's state-layer
+      // highlight runs edge-to-edge of this rounded container, iOS
+      // Settings-app style, instead of stopping short at some extra gutter.
+      // _DemoCard and _DemoChipRow are not full-bleed, so each wraps itself
+      // in its own horizontal Padding below to keep the same inset they had
+      // before.
+      padding: const EdgeInsets.symmetric(vertical: CruxSpacing.s16),
       decoration: BoxDecoration(
         color: colors.background,
         borderRadius: BorderRadius.circular(20),
@@ -550,9 +192,15 @@ class _SampleScreen extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          _DemoCard(colors: colors, type: type),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: CruxSpacing.s16),
+            child: _DemoCard(colors: colors, type: type),
+          ),
           const SizedBox(height: CruxSpacing.s24),
-          _ChipRow(colors: colors, type: type),
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: CruxSpacing.s16),
+            child: _DemoChipRow(),
+          ),
           const SizedBox(height: CruxSpacing.s24),
           _DemoList(colors: colors, type: type),
         ],
@@ -569,13 +217,7 @@ class _DemoCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(CruxSpacing.s16),
-      decoration: BoxDecoration(
-        color: colors.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: colors.separator),
-      ),
+    return CruxCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -600,11 +242,19 @@ class _DemoCard extends StatelessWidget {
   }
 }
 
-class _ChipRow extends StatelessWidget {
-  const _ChipRow({required this.colors, required this.type});
+/// A row of [CruxChip]s: two toggle their own [CruxChip.selected] state
+/// on tap, and the third is a fixed disabled example (mirroring the
+/// previous mock's "muted" chip).
+class _DemoChipRow extends StatefulWidget {
+  const _DemoChipRow();
 
-  final CruxColors colors;
-  final CruxTypography type;
+  @override
+  State<_DemoChipRow> createState() => _DemoChipRowState();
+}
+
+class _DemoChipRowState extends State<_DemoChipRow> {
+  bool _recommendedSelected = true;
+  bool _dueTodaySelected = false;
 
   @override
   Widget build(BuildContext context) {
@@ -612,49 +262,32 @@ class _ChipRow extends StatelessWidget {
       spacing: CruxSpacing.s8,
       runSpacing: CruxSpacing.s8,
       children: [
-        _Chip(label: 'おすすめ', colors: colors, type: type, muted: false),
-        _Chip(label: '今日中', colors: colors, type: type, muted: false),
-        _Chip(label: '下書き', colors: colors, type: type, muted: true),
+        CruxChip(
+          label: 'おすすめ',
+          selected: _recommendedSelected,
+          onTap: () =>
+              setState(() => _recommendedSelected = !_recommendedSelected),
+        ),
+        CruxChip(
+          label: '今日中',
+          selected: _dueTodaySelected,
+          onTap: () => setState(() => _dueTodaySelected = !_dueTodaySelected),
+        ),
+        const CruxChip(label: '下書き', onTap: null),
       ],
     );
   }
 }
 
-class _Chip extends StatelessWidget {
-  const _Chip({
-    required this.label,
-    required this.colors,
-    required this.type,
-    required this.muted,
-  });
-
-  final String label;
-  final CruxColors colors;
-  final CruxTypography type;
-  final bool muted;
-
-  @override
-  Widget build(BuildContext context) {
-    final Color background = muted ? colors.surface : colors.accentTint;
-    final Color border = muted ? colors.separator : colors.accentLine;
-    // Non-muted chips use textPrimary (not accent) for the label, for the
-    // same WCAG AA contrast reason CruxColors.onAccent documents (see
-    // test/contrast_test.dart).
-    final Color textColor = muted ? colors.textSecondary : colors.textPrimary;
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: CruxSpacing.s12,
-        vertical: CruxSpacing.s4,
-      ),
-      decoration: BoxDecoration(
-        color: background,
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: border),
-      ),
-      child: Text(label, style: type.label.copyWith(color: textColor)),
-    );
-  }
-}
+/// The [CruxDivider.indent] that aligns a divider's start with where each
+/// row's title text starts: [CruxListTile]'s own default horizontal
+/// padding ([CruxSpacing.s16]) + its 44 logical pixel `leading` frame +
+/// the [CruxSpacing.s12] gap between `leading` and the title. Now that
+/// `_SampleScreen`'s list section is full-bleed (no horizontal padding of
+/// its own) and each row supplies its own inset instead, this indent must
+/// grow by that same [CruxSpacing.s16] to keep lining up with the title.
+const double _demoListDividerIndent =
+    CruxSpacing.s16 + 44 + CruxSpacing.s12;
 
 class _DemoList extends StatelessWidget {
   const _DemoList({required this.colors, required this.type});
@@ -664,87 +297,55 @@ class _DemoList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final List<(String, String, String, String)> rows =
-        <(String, String, String, String)>[
+    final List<(String?, String, String?, String?)> rows =
+        <(String?, String, String?, String?)>[
           ('📝', '買い物メモを作成', '週末の買い出し用', '10分前'),
           ('📅', '歯医者の予約確認', '来週火曜 14:00', '1時間前'),
           ('💬', '友達からのメッセージ', '週末どこ行く?', '昨日'),
+          // Title-only row: no subtitle, showing the single-line variant.
+          ('☕', 'コーヒー豆を注文', null, '3日前'),
+          // Most compact form: title only, no leading/subtitle/trailing.
+          (null, 'アーカイブをすべて見る', null, null),
         ];
 
     return Column(
       children: [
         for (int i = 0; i < rows.length; i++) ...[
-          _DemoListRow(
-            icon: rows[i].$1,
+          CruxListTile(
+            leading: rows[i].$1 == null
+                ? null
+                : _DemoListIcon(icon: rows[i].$1!, colors: colors),
             title: rows[i].$2,
             subtitle: rows[i].$3,
-            time: rows[i].$4,
-            colors: colors,
-            type: type,
+            trailing: rows[i].$4,
+            onTap: () {},
           ),
           if (i != rows.length - 1)
-            Divider(
-              height: CruxSpacing.s24,
-              thickness: 1,
-              color: colors.separator,
-            ),
+            const CruxDivider(indent: _demoListDividerIndent),
         ],
       ],
     );
   }
 }
 
-class _DemoListRow extends StatelessWidget {
-  const _DemoListRow({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.time,
-    required this.colors,
-    required this.type,
-  });
+/// The small emoji-in-a-circle leading widget for each [_DemoList] row.
+class _DemoListIcon extends StatelessWidget {
+  const _DemoListIcon({required this.icon, required this.colors});
 
   final String icon;
-  final String title;
-  final String subtitle;
-  final String time;
   final CruxColors colors;
-  final CruxTypography type;
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        Container(
-          width: 36,
-          height: 36,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: colors.accentTint,
-            shape: BoxShape.circle,
-          ),
-          child: Text(icon),
-        ),
-        const SizedBox(width: CruxSpacing.s12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: type.title.copyWith(color: colors.textPrimary),
-              ),
-              Text(
-                subtitle,
-                style: type.body.copyWith(color: colors.textSecondary),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(width: CruxSpacing.s12),
-        Text(time, style: type.caption.copyWith(color: colors.muted)),
-      ],
+    return Container(
+      width: 36,
+      height: 36,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: colors.accentTint,
+        shape: BoxShape.circle,
+      ),
+      child: Text(icon),
     );
   }
 }
