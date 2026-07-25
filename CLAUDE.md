@@ -15,6 +15,8 @@ dart format --output=none --set-exit-if-changed .  # check formatting (drop the 
 flutter test                                       # run all tests
 flutter test test/<name>_test.dart                 # run a single test file
 cd example && flutter build ios --simulator --debug  # build the showcase app
+cd widgetbook && flutter run -d macos               # launch the dev catalog app
+cd widgetbook && flutter test --update-goldens      # regenerate golden baselines after an intentional visual change
 ```
 
 Requires Dart SDK `^3.12.2` (i.e. a Flutter SDK shipping a Dart in that range).
@@ -33,6 +35,7 @@ When opening an HTML file (reports, previews, etc.), open it in Orca's built-in 
 - Per the README, the first component (and each one after) lands together with its tests — tests are written before the implementation.
 - When adding a component, also record it in `CHANGELOG.md`.
 - Design decisions and their rationale are recorded per milestone under `unknowns/` — `unknowns/design-tokens-first/` for the token layer, `unknowns/button-atom/` for `CruxButton`/`CruxMotion` — each with a `ledger.md` for agreed facts and a `handoff.md` for that milestone's spec. Consult the relevant ledger before changing token names/values or existing component behavior.
+- **Catalog operating rule**: `widgetbook/` (repo root, sibling to `example/`) is the dev catalog app — `widgetbook: ^3.25.0` is a dependency of that app only, never of the package itself. **Every new component must land with a widgetbook use-case set (Playground / States matrix / Edge cases, in `widgetbook/lib/usecases/<name>.dart`) plus a golden test pair (light + dark) in `widgetbook/test/golden_test.dart`**, following the contract in `widgetbook/lib/usecases/CONVENTIONS.md`. `example/` stays a single "what it looks like in a real screen" sample (currently: header with the light/dark toggle, plus one contextual screen using `CruxCard`/`CruxButton`/`CruxChip`/`CruxListTile`/`CruxDivider` together) — it never grows a token table or a per-variant state grid; those belong in widgetbook.
 
 ## Analysis rules that will bite you
 
