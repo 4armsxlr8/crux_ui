@@ -268,6 +268,108 @@ void main() {
     );
   });
 
+  group('minimum press feedback (fast tap)', () {
+    // Reproduces the real bug this guarantee fixes: inside a scrollable
+    // list, Flutter's TapGestureRecognizer (kPressTimeout = 100ms) often
+    // resolves the gesture arena and delivers onTapDown immediately
+    // followed by onTapUp with no frame ever rendered in between, so a
+    // naive `_pressed = true` then `_pressed = false` collapses to a no-op
+    // before the pressed state is ever painted. `tester.tap()` reproduces
+    // this exactly: it calls `TestGesture.down()` then `.up()` back-to-back
+    // with no `pump()` between them (see `WidgetController.tapAt` in
+    // flutter_test/lib/src/controller.dart), unlike this file's own "press
+    // animation" group above, which deliberately pumps 80ms between down
+    // and up to sample a *slow*, already-working press instead.
+    testWidgets(
+      'stays visibly pressed for a minimum duration even when down and up '
+      'are delivered back-to-back, then springs back to 1.0',
+      (WidgetTester tester) async {
+        await tester.pumpWidget(
+          _wrap(CruxButton(label: 'はじめる', onPressed: () {})),
+        );
+
+        await tester.tap(find.byType(CruxButton));
+        // Zero-duration pump lets the pending setState from the fast
+        // down+up actually rebuild (see the "press animation" group's
+        // identical comment above); the second pump then samples the
+        // spring partway through its flight.
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 50));
+
+        expect(
+          tester
+              .widget<Transform>(find.byType(Transform))
+              .transform
+              .entry(0, 0),
+          lessThan(0.995),
+        );
+
+        await tester.pumpAndSettle();
+
+        expect(
+          tester
+              .widget<Transform>(find.byType(Transform))
+              .transform
+              .entry(0, 0),
+          closeTo(1.0, 0.001),
+        );
+      },
+    );
+
+    testWidgets(
+      "does not throw, and still invokes onPressed once per tap, when "
+      "tapped again while a previous fast tap's minimum-hold guarantee is "
+      'still pending',
+      (WidgetTester tester) async {
+        int calls = 0;
+        await tester.pumpWidget(
+          _wrap(CruxButton(label: 'はじめる', onPressed: () => calls++)),
+        );
+
+        await tester.tap(find.byType(CruxButton));
+        await tester.pump(const Duration(milliseconds: 10));
+        await tester.tap(find.byType(CruxButton));
+        await tester.pump(const Duration(milliseconds: 10));
+
+        expect(tester.takeException(), isNull);
+
+        await tester.pumpAndSettle();
+
+        expect(tester.takeException(), isNull);
+        expect(calls, 2);
+        expect(
+          tester
+              .widget<Transform>(find.byType(Transform))
+              .transform
+              .entry(0, 0),
+          closeTo(1.0, 0.001),
+        );
+      },
+    );
+
+    testWidgets(
+      'does not throw and leaves no pending timer when disposed while the '
+      'minimum-hold guarantee is still pending',
+      (WidgetTester tester) async {
+        await tester.pumpWidget(
+          _wrap(CruxButton(label: 'はじめる', onPressed: () {})),
+        );
+
+        await tester.tap(find.byType(CruxButton));
+        await tester.pump(const Duration(milliseconds: 10));
+
+        // Unmount the button while the minimum-hold guarantee's Timer is
+        // still pending: flutter_test's automated binding fails the test
+        // if any Timer is still pending after the widget tree is torn
+        // down, so this also exercises "no pending timer left behind"
+        // without needing to inspect the timer directly.
+        await tester.pumpWidget(const SizedBox.shrink());
+
+        expect(tester.takeException(), isNull);
+      },
+    );
+  });
+
   group('variant color resolution', () {
     testWidgets('filled: accent background, no border, onAccent text', (
       WidgetTester tester,

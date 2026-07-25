@@ -5,12 +5,13 @@ Crux UI likes people who like Crux UI.
 ## Status
 
 **Under development.** The design token layer is implemented: colors,
-spacing, and typography, plus a `CruxTheme` / `CruxThemeData` pair that
-makes them available to a widget subtree. The first widget atom,
-`CruxButton`, is also implemented (pill-shaped, three variants, three
-sizes, spring press feedback). Other widgets (cards, chips, and so on) have
-not been built yet — for now, the rest of a screen is composed from plain
-Flutter widgets plus Crux's tokens, as shown in `example/`.
+spacing, typography, and radii, plus a `CruxTheme` / `CruxThemeData` pair
+that makes them available to a widget subtree. Six widget atoms are also
+implemented: `CruxButton`, `CruxChip`, `CruxCard`, `CruxListTile`,
+`CruxSwitch`, and `CruxDivider`. Other widgets (text fields, snackbars,
+and so on) have not been built yet — for now, the rest of a screen is
+composed from plain Flutter widgets plus Crux's tokens, as shown in
+`example/`.
 
 Crux never rewrites Material's `ThemeData`; providing a `CruxTheme` does
 not change the look of `Material`, `Scaffold`, or other Material widgets.
@@ -62,8 +63,35 @@ disable it. Its label is a plain `String`, always rendered on a single line
 with an ellipsis, so it can never overflow no matter how narrow its
 constraints or how long the label is.
 
-See `example/lib/main.dart` for a full showcase of the color palette, type
-scale, spacing scale, button variants/sizes, and a light/dark toggle.
+`CruxChip` is a pill-shaped filter/tag chip with a `selected` flag. Like
+`CruxButton`, it hugs its label's width, truncates with an ellipsis, and
+keeps a 44 logical pixel tap target even though its visible pill is 36 tall.
+Pass `onTap: null` to disable it.
+
+`CruxCard` is a bordered content container. Unlike `CruxButton`, it does
+**not** hug its content's width — it fills its parent's bounded width like a
+block element. Leave `onTap` unset for a purely decorative container with no
+press feedback, or pass a callback to make the whole card pressable.
+
+`CruxListTile` is a list row with an optional `leading` widget, a required
+`title`, and optional `subtitle`/`trailing` text. It fills its parent's
+width like `CruxCard`, and its only press feedback is a state layer (no
+press-scale, unlike `CruxButton`/`CruxCard` — a full-width row shrinking
+on tap reads as an unnatural wobble).
+
+`CruxSwitch` is a pill-shaped on/off toggle. It is a controlled widget,
+the same convention Flutter's own `Switch` uses: it always reflects `value`
+and calls `onChanged(!value)` on tap rather than mutating itself. Pass
+`onChanged: null` to disable it.
+
+`CruxDivider` is a 1 logical pixel tall `separator`-colored rule that
+fills the width of its bounded parent, with an optional `indent`.
+
+See `example/lib/main.dart` for a real-world sample screen using every
+widget atom together, plus a light/dark toggle. For the color palette, type
+scale, spacing scale, and radii tokens, and for every atom's full
+Playground/States matrix/Edge cases catalog, run the dev catalog app in
+`widgetbook/` (`cd widgetbook && flutter run -d macos`).
 
 ## Getting started
 
@@ -79,9 +107,11 @@ flutter test
 
 ## Roadmap
 
-`CruxButton` is the first widget atom; the rest of the widget set has not
-been decided yet. Each future component will land here along with its tests
-and documentation, following the same tokens introduced in 0.1.0.
+`CruxButton`, `CruxChip`, `CruxCard`, `CruxListTile`, `CruxSwitch`,
+and `CruxDivider` are the widget atoms shipped so far; the rest of the
+widget set (text fields, snackbars, and so on) has not been decided yet.
+Each future component will land here along with its tests and
+documentation, following the same tokens introduced in 0.1.0.
 
 ## License
 

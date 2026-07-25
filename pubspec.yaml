@@ -1,8 +1,9 @@
 name: crux_ui
 description: >-
   A playful Flutter UI kit. Ships design tokens (colors, spacing,
-  typography), a theme layer, and a CruxButton atom.
-version: 0.2.0
+  typography, radii), a theme layer, and six widget atoms: CruxButton,
+  CruxChip, CruxCard, CruxListTile, CruxSwitch, and CruxDivider.
+version: 0.3.0
 
 topics:
   - ui

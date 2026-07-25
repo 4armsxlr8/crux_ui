@@ -91,4 +91,19 @@ void main() {
       );
     });
   });
+
+  group('CruxRadii', () {
+    test('matches the fixed corner-radius scale', () {
+      expect(CruxRadii.m, 14.0);
+      expect(CruxRadii.l, 16.0);
+      expect(CruxRadii.pill, 9999.0);
+    });
+  });
+
+  group('CruxMotion', () {
+    test('pressedScaleSubtle is 0.98, distinct from pressedScale', () {
+      expect(CruxMotion.pressedScaleSubtle, 0.98);
+      expect(CruxMotion.pressedScale, 0.96);
+    });
+  });
 }

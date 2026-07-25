@@ -36,7 +36,7 @@ class CruxColors {
     surface: Color(0xFFFFFFFF),
     accent: Color(0xFFD97745),
     accentTint: Color.fromRGBO(217, 119, 69, 0.15),
-    accentLine: Color.fromRGBO(217, 119, 69, 0.40),
+    accentLine: Color(0xFFCB6F41),
     textPrimary: Color(0xFF26251E),
     textSecondary: Color(0xFF5A5852),
     muted: Color(0xFF807D72),
@@ -51,7 +51,7 @@ class CruxColors {
     surface: Color(0xFF211F18),
     accent: Color(0xFFD97745),
     accentTint: Color.fromRGBO(217, 119, 69, 0.15),
-    accentLine: Color.fromRGBO(217, 119, 69, 0.40),
+    accentLine: Color(0xFFD97745),
     textPrimary: Color(0xFFF6F5EF),
     textSecondary: Color.fromRGBO(236, 234, 224, 0.62),
     muted: Color.fromRGBO(236, 234, 224, 0.45),
@@ -70,11 +70,21 @@ class CruxColors {
   final Color accent;
 
   /// A low-opacity tint of [accent], for subtle fills behind accented
-  /// content (for example a chip's background).
+  /// content (for example a selected chip's background). This is a
+  /// decorative wash only: because [accent]'s own hue is close in luminance
+  /// to [background] (even fully opaque, it falls short of a 3:1 contrast
+  /// ratio in the light palette), no opacity of this tint alone can meet
+  /// WCAG 1.4.11's 3:1 non-text contrast floor — [accentLine] is the token
+  /// that carries that responsibility for state-identifying visual features
+  /// such as a selected chip's outline.
   final Color accentTint;
 
-  /// A mid-opacity tint of [accent], for borders and outlines that should
-  /// read as accented without competing with [accent] itself.
+  /// An accented, opaque outline color for borders that must double as a
+  /// state-identifying visual feature (for example a selected [CruxChip]'s
+  /// border) — solid rather than a translucent tint of [accent], so it
+  /// clears WCAG 1.4.11's 3:1 non-text contrast floor against both
+  /// [background] and [surface] in each palette (verified in
+  /// `test/contrast_test.dart`).
   final Color accentLine;
 
   /// The color of primary, high-emphasis text.

@@ -117,6 +117,30 @@ void main() {
       );
     });
 
+    test('light CruxChip selected-state border (accentLine) has at least '
+        '3.0 non-text contrast (WCAG 1.4.11) against background/surface', () {
+      const CruxColors c = CruxColors.light;
+      final Color onBackground = _compositeOver(c.accentLine, c.background);
+      final Color onSurface = _compositeOver(c.accentLine, c.surface);
+      expect(
+        _contrastRatio(onBackground, c.background),
+        greaterThanOrEqualTo(3.0),
+      );
+      expect(_contrastRatio(onSurface, c.surface), greaterThanOrEqualTo(3.0));
+    });
+
+    test('dark CruxChip selected-state border (accentLine) has at least '
+        '3.0 non-text contrast (WCAG 1.4.11) against background/surface', () {
+      const CruxColors c = CruxColors.dark;
+      final Color onBackground = _compositeOver(c.accentLine, c.background);
+      final Color onSurface = _compositeOver(c.accentLine, c.surface);
+      expect(
+        _contrastRatio(onBackground, c.background),
+        greaterThanOrEqualTo(3.0),
+      );
+      expect(_contrastRatio(onSurface, c.surface), greaterThanOrEqualTo(3.0));
+    });
+
     testWidgets(
       'filled CruxButton pressed-state background vs onAccent stays at '
       'least 4.5 (light and dark)',

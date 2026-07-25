@@ -2,6 +2,7 @@ import 'package:flutter/widgets.dart';
 
 import 'colors.dart';
 import 'motion.dart';
+import 'press_feedback.dart';
 import 'spacing.dart';
 import 'theme.dart';
 
@@ -134,13 +135,15 @@ class CruxButton extends StatefulWidget {
 class _CruxButtonState extends State<CruxButton> {
   bool _pressed = false;
 
-  bool get _enabled => widget.onPressed != null;
+  // Guarantees the pressed scale/state-layer stays visible for a minimum
+  // duration even when a tap's down and up arrive back-to-back (e.g. inside
+  // a scroll view) -- see press_feedback.dart's class doc for the bug this
+  // fixes.
+  late final PressFeedbackController _pressFeedback = PressFeedbackController(
+    onChanged: (bool value) => setState(() => _pressed = value),
+  );
 
-  void _setPressed(bool value) {
-    if (_pressed != value) {
-      setState(() => _pressed = value);
-    }
-  }
+  bool get _enabled => widget.onPressed != null;
 
   // Only _handleTapDown checks `_enabled`: it is the only handler that
   // *starts* a press, so gating it there is enough to keep a disabled
@@ -152,13 +155,19 @@ class _CruxButtonState extends State<CruxButton> {
   // `enabled` themselves).
   void _handleTapDown(TapDownDetails details) {
     if (_enabled) {
-      _setPressed(true);
+      _pressFeedback.down();
     }
   }
 
-  void _handleTapUp(TapUpDetails details) => _setPressed(false);
+  void _handleTapUp(TapUpDetails details) => _pressFeedback.up();
 
-  void _handleTapCancel() => _setPressed(false);
+  void _handleTapCancel() => _pressFeedback.cancel();
+
+  @override
+  void dispose() {
+    _pressFeedback.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
