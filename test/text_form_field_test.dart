@@ -5,7 +5,7 @@
 // Form (validate()/save()/onSaved), and (in contrast_test.dart) pure color
 // math on CruxColors. Private classes, internal state fields, and
 // implementation details are never reached into.
-import 'dart:ui' show Tristate;
+import 'dart:ui' show PointerDeviceKind, Tristate;
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -1314,6 +1314,321 @@ void main() {
 
       handle.dispose();
     });
+  });
+
+  group('obscure toggle', () {
+    const Key obscuredIconKey = Key('obscured-icon');
+    const Key revealedIconKey = Key('revealed-icon');
+    const String obscuredLabel = '表示する';
+    const String revealedLabel = '隠す';
+
+    /// A toggle built from plain, non-icon-system widgets ([ColoredBox]es
+    /// distinguished only by [Key]) -- deliberately not a real icon font, to
+    /// demonstrate the package places no expectations at all on what kind
+    /// of [Widget] a caller passes for [CruxObscureToggle.obscuredIcon]/
+    /// [CruxObscureToggle.revealedIcon]. [ColoredBox] (rather than a bare
+    /// [SizedBox]) so each fake icon actually paints something and is a
+    /// genuine hit-test target for `tester.tap` -- an empty [SizedBox] has
+    /// no rendering of its own and would only be tappable by virtue of an
+    /// ancestor's opaque `GestureDetector`, which `tester.tap`'s own
+    /// hit-test sanity check (correctly) flags as not landing on the
+    /// requested widget itself.
+    CruxObscureToggle buildToggle() => const CruxObscureToggle(
+      obscuredIcon: SizedBox(
+        width: 20,
+        height: 20,
+        child: ColoredBox(key: obscuredIconKey, color: Color(0xFF336699)),
+      ),
+      revealedIcon: SizedBox(
+        width: 20,
+        height: 20,
+        child: ColoredBox(key: revealedIconKey, color: Color(0xFF996633)),
+      ),
+      obscuredLabel: obscuredLabel,
+      revealedLabel: revealedLabel,
+    );
+
+    /// Finds the [Semantics] widget carrying this toggle's own explicit
+    /// `button: true` annotation -- the same "find our own annotation by
+    /// its distinguishing property" convention `ourSemanticsFinder` (in the
+    /// `semantics` group above) uses for the field's `textField: true`
+    /// annotation.
+    Finder toggleSemanticsFinder() {
+      return find.byWidgetPredicate(
+        (Widget widget) =>
+            widget is Semantics && widget.properties.button == true,
+      );
+    }
+
+    testWidgets('renders the obscured icon and keeps the text obscured when '
+        'obscureToggle is supplied and obscureText is true', (
+      WidgetTester tester,
+    ) async {
+      await tester.pumpWidget(
+        _wrap(
+          CruxTextFormField(
+            label: 'パスワード',
+            obscureText: true,
+            obscureToggle: buildToggle(),
+          ),
+        ),
+      );
+
+      expect(find.byKey(obscuredIconKey), findsOneWidget);
+      expect(find.byKey(revealedIconKey), findsNothing);
+
+      final CupertinoTextField field = tester.widget<CupertinoTextField>(
+        find.byType(CupertinoTextField),
+      );
+      expect(field.obscureText, isTrue);
+    });
+
+    testWidgets(
+      'tapping the toggle reveals the text and swaps to the revealed icon',
+      (WidgetTester tester) async {
+        await tester.pumpWidget(
+          _wrap(
+            CruxTextFormField(
+              label: 'パスワード',
+              obscureText: true,
+              obscureToggle: buildToggle(),
+            ),
+          ),
+        );
+
+        await tester.tap(find.byKey(obscuredIconKey));
+        await tester.pump();
+
+        expect(find.byKey(revealedIconKey), findsOneWidget);
+        expect(find.byKey(obscuredIconKey), findsNothing);
+
+        final CupertinoTextField field = tester.widget<CupertinoTextField>(
+          find.byType(CupertinoTextField),
+        );
+        expect(field.obscureText, isFalse);
+      },
+    );
+
+    testWidgets('tapping the toggle a second time re-obscures the text', (
+      WidgetTester tester,
+    ) async {
+      await tester.pumpWidget(
+        _wrap(
+          CruxTextFormField(
+            label: 'パスワード',
+            obscureText: true,
+            obscureToggle: buildToggle(),
+          ),
+        ),
+      );
+
+      await tester.tap(find.byKey(obscuredIconKey));
+      await tester.pump();
+      await tester.tap(find.byKey(revealedIconKey));
+      await tester.pump();
+
+      expect(find.byKey(obscuredIconKey), findsOneWidget);
+      expect(find.byKey(revealedIconKey), findsNothing);
+
+      final CupertinoTextField field = tester.widget<CupertinoTextField>(
+        find.byType(CupertinoTextField),
+      );
+      expect(field.obscureText, isTrue);
+    });
+
+    testWidgets('renders no toggle at all, and keeps the text obscured, when '
+        'obscureToggle is not supplied', (WidgetTester tester) async {
+      await tester.pumpWidget(
+        _wrap(CruxTextFormField(label: 'パスワード', obscureText: true)),
+      );
+
+      expect(find.byKey(obscuredIconKey), findsNothing);
+      expect(find.byKey(revealedIconKey), findsNothing);
+      expect(toggleSemanticsFinder(), findsNothing);
+
+      final CupertinoTextField field = tester.widget<CupertinoTextField>(
+        find.byType(CupertinoTextField),
+      );
+      expect(field.obscureText, isTrue);
+    });
+
+    testWidgets(
+      'tapping the toggle does not move focus away from the text field or '
+      'change which FocusNode has it',
+      (WidgetTester tester) async {
+        final FocusNode focusNode = FocusNode();
+        addTearDown(focusNode.dispose);
+
+        // Flutter's "tap outside a focused text field" hazard this test
+        // guards against (EditableText's default `onTapOutside` handling,
+        // see the implementation's TextFieldTapRegion comment) only fires
+        // through a real `TapRegionSurface` ancestor -- normally installed
+        // by `WidgetsApp`/`MaterialApp`/`CupertinoApp`, none of which
+        // `_wrap` includes. Without one, this test could not tell a
+        // correct implementation from a broken one (confirmed: see this
+        // slice's RED capture in implementation-notes.md). Adding
+        // `TapRegionSurface` explicitly here -- rather than to the shared
+        // `_wrap` helper every other test in this file uses -- keeps this
+        // fix scoped to the one test that actually needs it.
+        await tester.pumpWidget(
+          TapRegionSurface(
+            child: _wrap(
+              CruxTextFormField(
+                label: 'パスワード',
+                obscureText: true,
+                obscureToggle: buildToggle(),
+                focusNode: focusNode,
+              ),
+            ),
+          ),
+        );
+
+        focusNode.requestFocus();
+        await tester.pump();
+        await tester.pump();
+        expect(focusNode.hasFocus, isTrue);
+
+        // A mouse-kind tap (rather than `tester.tap`'s default `touch`)
+        // deterministically exercises the "outside tap unfocuses" branch
+        // of EditableText's default `onTapOutside` handling regardless of
+        // `defaultTargetPlatform` -- confirmed against the Flutter SDK,
+        // `_EditableTextTapOutsideAction.invoke`: a touch-kind pointer only
+        // unfocuses when `kIsWeb`, which is never true under `flutter
+        // test`, but every non-touch pointer kind (mouse, stylus, ...)
+        // unfocuses unconditionally on every platform branch.
+        await tester.tap(
+          find.byKey(obscuredIconKey),
+          kind: PointerDeviceKind.mouse,
+        );
+        await tester.pump();
+
+        expect(focusNode.hasFocus, isTrue);
+      },
+    );
+
+    testWidgets(
+      "toggling changes neither the field's own size nor the label/caption "
+      "rows' positions -- the toggle is present whenever configured, "
+      'regardless of state, so there is nothing for toggling to shift',
+      (WidgetTester tester) async {
+        await tester.pumpWidget(
+          _wrap(
+            CruxTextFormField(
+              label: 'パスワード',
+              helperText: '8文字以上',
+              obscureText: true,
+              obscureToggle: buildToggle(),
+            ),
+          ),
+        );
+
+        final Size sizeBefore = tester.getSize(
+          find.byType(CruxTextFormField),
+        );
+        final Rect labelRectBefore = tester.getRect(find.text('パスワード'));
+        final Rect captionRectBefore = tester.getRect(find.text('8文字以上'));
+
+        await tester.tap(find.byKey(obscuredIconKey));
+        await tester.pump();
+
+        expect(tester.getSize(find.byType(CruxTextFormField)), sizeBefore);
+        expect(tester.getRect(find.text('パスワード')), labelRectBefore);
+        expect(tester.getRect(find.text('8文字以上')), captionRectBefore);
+      },
+    );
+
+    testWidgets('exposes a button whose semantics label matches the supplied '
+        'obscured/revealed label and changes as the state toggles', (
+      WidgetTester tester,
+    ) async {
+      final SemanticsHandle handle = tester.ensureSemantics();
+      await tester.pumpWidget(
+        _wrap(
+          CruxTextFormField(
+            label: 'パスワード',
+            obscureText: true,
+            obscureToggle: buildToggle(),
+          ),
+        ),
+      );
+
+      final Semantics before = tester.widget<Semantics>(
+        toggleSemanticsFinder(),
+      );
+      expect(before.properties.button, isTrue);
+      expect(before.properties.label, obscuredLabel);
+
+      await tester.tap(find.byKey(obscuredIconKey));
+      await tester.pump();
+
+      final Semantics after = tester.widget<Semantics>(toggleSemanticsFinder());
+      expect(after.properties.label, revealedLabel);
+
+      handle.dispose();
+    });
+
+    testWidgets('enabled: false makes the toggle non-interactive', (
+      WidgetTester tester,
+    ) async {
+      await tester.pumpWidget(
+        _wrap(
+          CruxTextFormField(
+            label: 'パスワード',
+            obscureText: true,
+            obscureToggle: buildToggle(),
+            enabled: false,
+          ),
+        ),
+      );
+
+      final GestureDetector detector = tester.widget<GestureDetector>(
+        find.ancestor(
+          of: find.byKey(obscuredIconKey),
+          matching: find.byType(GestureDetector),
+        ),
+      );
+      expect(detector.onTap, isNull);
+
+      await tester.tap(find.byKey(obscuredIconKey), warnIfMissed: false);
+      await tester.pump();
+
+      expect(find.byKey(obscuredIconKey), findsOneWidget);
+      final CupertinoTextField field = tester.widget<CupertinoTextField>(
+        find.byType(CupertinoTextField),
+      );
+      expect(field.obscureText, isTrue);
+    });
+
+    testWidgets(
+      "reserves the toggle's width in the text field's own content padding "
+      "so entered text is never drawn underneath it",
+      (WidgetTester tester) async {
+        await tester.pumpWidget(_wrap(CruxTextFormField(label: 'メールアドレス')));
+        final CupertinoTextField withoutToggle = tester
+            .widget<CupertinoTextField>(find.byType(CupertinoTextField));
+        final double endWithoutToggle = withoutToggle.padding
+            .resolve(TextDirection.ltr)
+            .right;
+
+        await tester.pumpWidget(
+          _wrap(
+            CruxTextFormField(
+              label: 'パスワード',
+              obscureText: true,
+              obscureToggle: buildToggle(),
+            ),
+          ),
+        );
+        final CupertinoTextField withToggle = tester.widget<CupertinoTextField>(
+          find.byType(CupertinoTextField),
+        );
+        final double endWithToggle = withToggle.padding
+            .resolve(TextDirection.ltr)
+            .right;
+
+        expect(endWithToggle, greaterThan(endWithoutToggle));
+      },
+    );
   });
 
   group('ambient theme isolation (regression)', () {

@@ -31,6 +31,84 @@ const EdgeInsets _boxContentPadding = EdgeInsets.all(CruxSpacing.s12);
 /// The gap between the box and the helper/error caption row below it.
 const double _helperRowGap = CruxSpacing.s8;
 
+/// The width -- and, since it is stretched to the box's own height via
+/// [PositionedDirectional]'s `top`/`bottom` in [_CruxTextFormFieldState
+/// ._buildContent], also the minimum height -- of
+/// [CruxTextFormField.obscureToggle]'s tap target, matching this
+/// package's usual 44 logical pixel minimum (see [_minTapTarget]'s doc
+/// above; this field declares its own copy of that constant rather than
+/// sharing [_minTapTarget], per this package's established convention of
+/// each interactive element owning a private const rather than a shared
+/// token -- see `button.dart`/`chip.dart`/`switch.dart`'s identically
+/// -named, independently-declared constants).
+const double _obscureToggleTapTarget = 44;
+
+/// Bundles the icons and screen-reader labels a product supplies for
+/// [CruxTextFormField]'s optional password show/hide toggle.
+///
+/// This package deliberately never draws its own glyph for this toggle.
+/// Different products ship completely different icon sets (a bespoke icon
+/// font, Cupertino/Material icon packs, an SVG asset, or even a plain
+/// text/emoji glyph) and `crux_ui` has no way to know which one any given
+/// consumer uses -- the same reasoning [CruxButton]/[CruxChip] apply to
+/// their own text labels, extended here to imagery. Passing an
+/// [CruxObscureToggle] to [CruxTextFormField.obscureToggle] is how a
+/// caller supplies its own choice; leaving it `null` renders no toggle at
+/// all, per that parameter's own doc.
+///
+/// [obscuredIcon] and [revealedIcon] are plain [Widget]s, not [IconData] --
+/// a caller can hand this an `Icon`, an `Image`, or even a `Text` showing a
+/// literal glyph, and this package draws whatever it is given without
+/// caring which icon system (if any) produced it.
+///
+/// [obscuredLabel] and [revealedLabel] are `required` [String]s, for the
+/// same reason the icons are caller-supplied rather than fixed: this
+/// package has no fixed language to announce to a screen reader, and an
+/// icon-only button (see [CruxTextFormField]'s "Obscure toggle" class doc
+/// section for why this button carries no visible text of its own) has
+/// nothing else it could fall back to. Making them `required` rather than
+/// nullable-with-an-English-default was a deliberate choice: a nullable
+/// label would force this package to silently pick between two bad
+/// outcomes whenever a caller omitted one -- announcing nothing at all (an
+/// icon-only interactive control with no accessible name, failing WCAG
+/// 4.1.2) or inventing English wording (exactly the hardcoding this whole
+/// class exists to avoid). Requiring both labels up front pushes that
+/// decision to the one place that actually knows the app's language and
+/// icon choice: the call site.
+///
+/// This is a plain, immutable value bundle (not a [Widget] itself) so that
+/// adding this whole feature costs [CruxTextFormField] exactly one new
+/// constructor parameter, rather than four -- and so a future addition to
+/// this bundle (if one is ever needed) stays a non-breaking change to
+/// [CruxTextFormField]'s own constructor.
+@immutable
+class CruxObscureToggle {
+  /// Creates a bundle of icons and screen-reader labels for
+  /// [CruxTextFormField.obscureToggle].
+  const CruxObscureToggle({
+    required this.obscuredIcon,
+    required this.revealedIcon,
+    required this.obscuredLabel,
+    required this.revealedLabel,
+  });
+
+  /// The icon shown while the field's text is hidden. Tapping it reveals
+  /// the text (and swaps the visible icon to [revealedIcon]).
+  final Widget obscuredIcon;
+
+  /// The icon shown while the field's text is visible. Tapping it hides
+  /// the text again (and swaps the visible icon to [obscuredIcon]).
+  final Widget revealedIcon;
+
+  /// The label a screen reader announces for the toggle button while the
+  /// text is hidden (for example "Show password" / "パスワードを表示").
+  final String obscuredLabel;
+
+  /// The label a screen reader announces for the toggle button while the
+  /// text is visible (for example "Hide password" / "パスワードを隠す").
+  final String revealedLabel;
+}
+
 /// A single-line, `Form`-integrated text input field: Crux UI's form text
 /// field atom.
 ///
@@ -117,6 +195,62 @@ const double _helperRowGap = CruxSpacing.s8;
 /// convention would have no way to represent "enabled, callback-less" and
 /// "disabled" as different states.
 ///
+/// **Obscure toggle.** Set [obscureToggle] to a [CruxObscureToggle] to
+/// render a show/hide button at the box's trailing edge (mirrored under an
+/// RTL [Directionality], via [PositionedDirectional]) -- see
+/// [CruxObscureToggle]'s own class doc for why its icons and screen
+/// -reader labels are caller-supplied rather than something this package
+/// draws itself, and [obscureText]'s doc for exactly how the two arguments
+/// combine. Leaving [obscureToggle] `null` (the default) renders no toggle
+/// at all: [obscureText] is then this field's fixed, unchanging obscured
+/// state for its whole lifetime, exactly as before this feature existed.
+///
+/// The toggle button always occupies a fixed 44x44 logical pixel slot
+/// (this package's usual minimum tap target, matching
+/// [CruxButton]/[CruxChip]/[CruxSwitch]'s own private constants) for
+/// as long as [obscureToggle] is non-`null`, regardless of which icon is
+/// currently showing -- toggling swaps the icon in place but never adds,
+/// removes, or resizes anything, so the box's size, the label row, and the
+/// helper/error caption row all stay exactly where they were before the
+/// tap. The field's own content padding reserves that same 44 logical
+/// pixels on the trailing edge (on top of the box's ordinary padding) so
+/// entered text can never be drawn underneath the toggle.
+///
+/// `Semantics(button: true, excludeSemantics: true, label: ...)` marks the
+/// toggle as a button whose announced label is whichever of
+/// [CruxObscureToggle.obscuredLabel]/[CruxObscureToggle.revealedLabel]
+/// matches the current state. This departs from how every other
+/// interactive Crux atom (see [CruxButton]/[CruxChip]) handles
+/// semantics -- they set no explicit `label` and instead rely on a
+/// descendant `Text` to supply one automatically, avoiding a doubled
+/// announcement. That convention does not transfer here: the toggle is
+/// icon-only and has no descendant text of its own to rely on, and its
+/// icon is an arbitrary caller-supplied [Widget] that might carry
+/// unrelated or absent semantics of its own (an `Icon` with no
+/// `semanticLabel`, or a `Text` glyph whose literal characters are not a
+/// meaningful description). `excludeSemantics: true` suppresses whatever
+/// the icon subtree would otherwise contribute, so the only label ever
+/// announced is the one [CruxObscureToggle] supplies.
+///
+/// Tapping the toggle never steals focus from the text field or dismisses
+/// the on-screen keyboard: it is wrapped in a [TextFieldTapRegion], the
+/// same mechanism [CupertinoTextField]'s own selection toolbar and
+/// magnifier use to be treated as "inside" the field for focus purposes.
+/// Without it, tapping the toggle would count as a tap *outside* the
+/// field's [EditableText] and trigger its default "unfocus on outside tap"
+/// behavior on desktop platforms (and for a mouse/stylus everywhere) --
+/// confirmed against the Flutter SDK,
+/// `widgets/editable_text.dart`'s `_EditableTextTapOutsideAction`.
+///
+/// Toggling is a plain [State.setState] flip of an internal flag -- it
+/// never calls [FormFieldState.didChange] and never touches the field's
+/// actual text [value], since it only changes how the existing value is
+/// *displayed*, not what it is.
+///
+/// While [enabled] is `false`, the toggle dims along with the rest of the
+/// field (it renders inside the same [Opacity] wrapper described in
+/// "Disabled" below) and stops responding to taps.
+///
 /// **Overflow.** Deliberately departs from this package's usual
 /// "overflow → ellipsis" rule (see [CruxButton], [CruxChip],
 /// [CruxListTile]): a very long value scrolls horizontally to follow the
@@ -154,6 +288,7 @@ const double _helperRowGap = CruxSpacing.s8;
 /// `GlobalCupertinoLocalizations.delegate` (alongside the Material/Widgets
 /// equivalents and a matching `supportedLocales`) to fix that path; see
 /// `example/lib/main.dart` for a working setup.
+
 class CruxTextFormField extends FormField<String> {
   /// Creates a Crux form text field.
   ///
@@ -171,6 +306,7 @@ class CruxTextFormField extends FormField<String> {
     this.focusNode,
     super.enabled = true,
     this.obscureText = false,
+    this.obscureToggle,
     this.keyboardType,
     this.textInputAction,
     this.inputFormatters,
@@ -232,7 +368,43 @@ class CruxTextFormField extends FormField<String> {
 
   /// Whether to hide the entered text, for password-style input. Defaults
   /// to `false`.
+  ///
+  /// When [obscureToggle] is `null`, this is the field's fixed, unchanging
+  /// obscured state -- there is no way for the user to reveal the text, so
+  /// this value is exactly what renders for the field's whole lifetime.
+  ///
+  /// When [obscureToggle] is non-`null`, this instead supplies only the
+  /// field's *starting* obscured state; the rendered toggle then lets the
+  /// user flip between hidden and visible from there, regardless of what
+  /// [obscureText] itself is set to. In particular, passing
+  /// `obscureText: false` together with a non-`null` [obscureToggle] is not
+  /// treated as a contradiction that suppresses the toggle -- the toggle
+  /// still renders and works, it just starts in its visible state. This is
+  /// the least surprising reading of the two arguments together: once a
+  /// caller has supplied a whole [CruxObscureToggle] (icons, both
+  /// labels), that is a clear, deliberate request for an interactive
+  /// toggle, and silently dropping it because of an unrelated flag would
+  /// be a more surprising outcome than simply honoring [obscureText] as a
+  /// starting point rather than a permanent clamp. (`obscureText: false` +
+  /// a real toggle is also a legitimate product choice on its own, not
+  /// just an accepted edge case -- for example a PIN field that starts
+  /// visible to reduce entry friction, with the toggle offered so the user
+  /// can hide it again before, say, taking a screenshot.)
   final bool obscureText;
+
+  /// The icons and screen-reader labels for an optional password show/hide
+  /// toggle, rendered at the box's trailing edge (mirrored under RTL). Pass
+  /// `null` (the default) to render no toggle at all -- this package never
+  /// invents its own glyph or wording, so there is no fallback appearance
+  /// to fall back to; see [CruxObscureToggle]'s own class doc for why the
+  /// icons and labels must come from the call site. See [obscureText]'s doc
+  /// for exactly how the two arguments interact, including the
+  /// `obscureText: false` case.
+  ///
+  /// See the class doc's "Obscure toggle" section for the toggle's full
+  /// behavior: tap target size, focus/keyboard handling, layout stability,
+  /// and disabled behavior.
+  final CruxObscureToggle? obscureToggle;
 
   /// The type of keyboard to show. Passed straight through to the
   /// underlying [CupertinoTextField].
@@ -285,6 +457,7 @@ class _CruxTextFieldCore extends StatelessWidget {
     required this.colors,
     required this.typography,
     required this.brightness,
+    this.contentPadding = _boxContentPadding,
     this.placeholder,
     this.keyboardType,
     this.textInputAction,
@@ -300,6 +473,13 @@ class _CruxTextFieldCore extends StatelessWidget {
   final bool obscureText;
   final CruxColors colors;
   final CruxTypography typography;
+
+  /// The padding applied to the actual [CupertinoTextField]'s own content.
+  /// Defaults to [_boxContentPadding]; widened on the trailing edge by
+  /// [_CruxTextFormFieldState._buildContent] whenever
+  /// [CruxTextFormField.obscureToggle] is non-`null`, so entered text
+  /// never renders underneath the toggle button.
+  final EdgeInsetsGeometry contentPadding;
 
   /// The theme's brightness, passed straight through to
   /// [CupertinoTextField.keyboardAppearance] so the on-screen keyboard
@@ -374,7 +554,7 @@ class _CruxTextFieldCore extends StatelessWidget {
           // invariant below. A non-null-but-empty BoxDecoration paints
           // nothing and never triggers that fallback.
           decoration: const BoxDecoration(),
-          padding: _boxContentPadding,
+          padding: contentPadding,
           style: typography.body.copyWith(color: colors.textPrimary),
           placeholder: placeholder,
           placeholderStyle: typography.body.copyWith(
@@ -396,6 +576,37 @@ class _CruxTextFieldCore extends StatelessWidget {
 class _CruxTextFormFieldState extends FormFieldState<String> {
   TextEditingController? _controller;
   FocusNode? _focusNode;
+
+  /// The toggle's own "is the text currently hidden" state, while
+  /// [CruxTextFormField.obscureToggle] is non-`null`. Meaningless (and
+  /// never read) whenever [CruxTextFormField.obscureToggle] is `null` --
+  /// see [_effectiveObscureText], which reads [CruxTextFormField
+  /// .obscureText] directly in that case instead, exactly matching this
+  /// field's pre-toggle behavior. Initialized from
+  /// [CruxTextFormField.obscureText] in [initState], and re-synced there
+  /// from the same source whenever that argument itself changes (see
+  /// [didUpdateWidget]) -- see [CruxTextFormField.obscureText]'s own doc
+  /// for why a changed `obscureText` argument wins over whatever the user
+  /// last toggled to, while an unrelated rebuild leaves this alone.
+  bool _obscured = false;
+
+  /// The obscured state actually passed to [_CruxTextFieldCore]: the
+  /// live, user-toggleable [_obscured] flag when a toggle exists, or
+  /// [CruxTextFormField.obscureText] directly (a fixed value for this
+  /// field's whole lifetime) when it does not. See
+  /// [CruxTextFormField.obscureText]'s own doc for the reasoning.
+  bool get _effectiveObscureText =>
+      _field.obscureToggle == null ? _field.obscureText : _obscured;
+
+  /// Flips [_obscured]. Only ever wired to the toggle button's `onTap`, and
+  /// only while [CruxTextFormField.enabled] is `true` -- see
+  /// [_buildContent]. A plain [State.setState]: this never calls
+  /// [FormFieldState.didChange] or touches this field's actual text
+  /// [FormFieldState.value], since revealing/hiding only changes how the
+  /// existing value is displayed, not what it is.
+  void _handleToggleObscured() {
+    setState(() => _obscured = !_obscured);
+  }
 
   /// Whether [_buildContent] has run at least once yet. Guards the shake
   /// -trigger detection below so the *very first* build -- which may
@@ -460,12 +671,19 @@ class _CruxTextFormFieldState extends FormFieldState<String> {
     if (_field.focusNode == null) {
       _focusNode = FocusNode();
     }
+    _obscured = _field.obscureText;
   }
 
   @override
   void didUpdateWidget(covariant FormField<String> oldWidget) {
     super.didUpdateWidget(oldWidget);
     final CruxTextFormField oldField = oldWidget as CruxTextFormField;
+    if (_field.obscureText != oldField.obscureText) {
+      // A changed `obscureText` argument re-seeds the toggle's own state --
+      // see this field's doc comment for why a controlled-prop change wins
+      // over whatever the user last toggled to.
+      _obscured = _field.obscureText;
+    }
     if (_field.controller != oldField.controller) {
       oldField.controller?.removeListener(_handleControllerChanged);
       _field.controller?.addListener(_handleControllerChanged);
@@ -555,6 +773,65 @@ class _CruxTextFormFieldState extends FormFieldState<String> {
       _shakeGeneration++;
     }
 
+    final CruxObscureToggle? obscureToggle = _field.obscureToggle;
+
+    // Reserves _obscureToggleTapTarget on the box's trailing edge, on top
+    // of the box's ordinary padding, whenever a toggle is configured -- see
+    // the class doc's "Obscure toggle" section. EdgeInsetsGeometry.add
+    // keeps this direction-aware (an EdgeInsetsDirectional `end` inset
+    // mirrors under RTL), matching PositionedDirectional's own
+    // direction-awareness below.
+    final EdgeInsetsGeometry contentPadding = obscureToggle == null
+        ? _boxContentPadding
+        : _boxContentPadding.add(
+            const EdgeInsetsDirectional.only(end: _obscureToggleTapTarget),
+          );
+
+    final Widget textFieldCore = _CruxTextFieldCore(
+      controller: _effectiveController,
+      focusNode: _effectiveFocusNode,
+      enabled: enabled,
+      obscureText: _effectiveObscureText,
+      colors: colors,
+      typography: theme.typography,
+      brightness: theme.brightness,
+      contentPadding: contentPadding,
+      placeholder: _field.placeholder,
+      keyboardType: _field.keyboardType,
+      textInputAction: _field.textInputAction,
+      inputFormatters: _field.inputFormatters,
+      autofillHints: _field.autofillHints,
+      onChanged: (String text) {
+        field.didChange(text);
+        _field.onChanged?.call(text);
+      },
+      onSubmitted: _field.onSubmitted,
+    );
+
+    // The Stack's own size comes entirely from textFieldCore (its only
+    // non-positioned child); the toggle button is `Positioned` within
+    // whatever size that resolves to, so adding/removing/toggling it never
+    // changes the box's own size -- see the class doc's "Obscure toggle"
+    // section.
+    final Widget boxContent = obscureToggle == null
+        ? textFieldCore
+        : Stack(
+            children: <Widget>[
+              textFieldCore,
+              PositionedDirectional(
+                end: 0,
+                top: 0,
+                bottom: 0,
+                child: _ObscureToggleButton(
+                  obscured: _effectiveObscureText,
+                  toggle: obscureToggle,
+                  enabled: enabled,
+                  onPressed: _handleToggleObscured,
+                ),
+              ),
+            ],
+          );
+
     final Widget box = ConstrainedBox(
       constraints: const BoxConstraints(minHeight: _minTapTarget),
       child: Container(
@@ -569,25 +846,7 @@ class _CruxTextFormFieldState extends FormFieldState<String> {
             ),
           ),
         ),
-        child: _CruxTextFieldCore(
-          controller: _effectiveController,
-          focusNode: _effectiveFocusNode,
-          enabled: enabled,
-          obscureText: _field.obscureText,
-          colors: colors,
-          typography: theme.typography,
-          brightness: theme.brightness,
-          placeholder: _field.placeholder,
-          keyboardType: _field.keyboardType,
-          textInputAction: _field.textInputAction,
-          inputFormatters: _field.inputFormatters,
-          autofillHints: _field.autofillHints,
-          onChanged: (String text) {
-            field.didChange(text);
-            _field.onChanged?.call(text);
-          },
-          onSubmitted: _field.onSubmitted,
-        ),
+        child: boxContent,
       ),
     );
 
@@ -654,6 +913,76 @@ class _CruxTextFormFieldState extends FormFieldState<String> {
             const SizedBox(height: _helperRowGap),
             caption,
           ],
+        ),
+      ),
+    );
+  }
+}
+
+/// The show/hide button [_CruxTextFormFieldState._buildContent] renders
+/// at the box's trailing edge whenever [CruxTextFormField.obscureToggle]
+/// is non-`null` -- see [CruxTextFormField]'s class doc, "Obscure
+/// toggle" section, for the full behavior this implements.
+class _ObscureToggleButton extends StatelessWidget {
+  const _ObscureToggleButton({
+    required this.obscured,
+    required this.toggle,
+    required this.enabled,
+    required this.onPressed,
+  });
+
+  /// Whether the field's text is currently hidden. Selects which of
+  /// [toggle]'s icon/label pair renders.
+  final bool obscured;
+
+  final CruxObscureToggle toggle;
+
+  /// Whether the field as a whole is enabled. While `false`, [onPressed] is
+  /// not wired to the [GestureDetector] at all, so this button stops
+  /// responding to taps; dimming is handled by the ambient [Opacity] this
+  /// button renders inside (see `_buildContent`), not by this widget.
+  final bool enabled;
+
+  /// Flips the obscured state. Never called while [enabled] is `false`.
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final Widget icon = obscured ? toggle.obscuredIcon : toggle.revealedIcon;
+    final String label = obscured ? toggle.obscuredLabel : toggle.revealedLabel;
+
+    // TextFieldTapRegion groups this button with the surrounding
+    // CupertinoTextField's own EditableText (both default to
+    // `groupId: EditableText`) for the purposes of Flutter's "tap outside
+    // a focused text field" handling -- see the class doc's "Obscure
+    // toggle" section for exactly which Flutter behavior this prevents.
+    // Without it, tapping this button would count as an *outside* tap and
+    // could unfocus the field / dismiss the keyboard on some platforms.
+    return TextFieldTapRegion(
+      child: Semantics(
+        container: true,
+        button: true,
+        enabled: enabled,
+        // See the class doc's "Obscure toggle" section for why this
+        // button -- unlike every other interactive Crux atom -- sets an
+        // explicit `label` and excludes descendant semantics: it has no
+        // descendant text of its own to rely on, and `icon` is an
+        // arbitrary caller-supplied widget that may carry unrelated or
+        // absent semantics of its own.
+        label: label,
+        excludeSemantics: true,
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: enabled ? onPressed : null,
+          child: SizedBox(
+            width: _obscureToggleTapTarget,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(
+                minHeight: _obscureToggleTapTarget,
+              ),
+              child: Center(child: icon),
+            ),
+          ),
         ),
       ),
     );

@@ -12,6 +12,8 @@
 // for, rather than navigating anywhere.
 
 import 'package:example/main.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:crux_ui/crux_ui.dart';
 
@@ -96,6 +98,44 @@ void main() {
       expect(find.byType(CruxTextFormField), findsNothing);
       expect(find.text('入力内容の検証に成功しました'), findsOneWidget);
       expect(find.text('もう一度試す'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    "the password field's show/hide toggle reveals and re-hides the typed "
+    'password -- the real, app-supplied icons wired up in LoginScreen '
+    '(Material `Icons.visibility_outlined`/`visibility_off_outlined`, since '
+    'this sample already depends on material.dart), not anything crux_ui '
+    'invents itself',
+    (WidgetTester tester) async {
+      await _openLoginScreen(tester);
+
+      final Finder passwordField = find.byType(CruxTextFormField).at(1);
+      await tester.enterText(passwordField, 'password123');
+      await tester.pump();
+
+      CupertinoTextField cupertinoFieldOf(Finder field) =>
+          tester.widget<CupertinoTextField>(
+            find.descendant(
+              of: field,
+              matching: find.byType(CupertinoTextField),
+            ),
+          );
+
+      expect(cupertinoFieldOf(passwordField).obscureText, isTrue);
+      expect(find.byIcon(Icons.visibility_outlined), findsOneWidget);
+
+      await tester.tap(find.byIcon(Icons.visibility_outlined));
+      await tester.pump();
+
+      expect(cupertinoFieldOf(passwordField).obscureText, isFalse);
+      expect(find.byIcon(Icons.visibility_off_outlined), findsOneWidget);
+
+      await tester.tap(find.byIcon(Icons.visibility_off_outlined));
+      await tester.pump();
+
+      expect(cupertinoFieldOf(passwordField).obscureText, isTrue);
+      expect(find.byIcon(Icons.visibility_outlined), findsOneWidget);
     },
   );
 

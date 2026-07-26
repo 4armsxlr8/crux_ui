@@ -193,6 +193,29 @@ class _LoginForm extends StatelessWidget {
                 CruxTextFormField(
                   label: 'パスワード',
                   obscureText: true,
+                  // crux_ui never bundles its own icon set (different
+                  // apps ship different icon fonts), so this app -- not
+                  // the package -- supplies the eye/eye-slash glyphs and
+                  // their Japanese screen-reader labels. Material's own
+                  // `Icons.visibility`/`Icons.visibility_off` are used here
+                  // simply because this screen already depends on
+                  // `material.dart` for its `Scaffold`; a Cupertino-only
+                  // app could pass `CupertinoIcons.eye`/`eye_slash` instead
+                  // with no change to crux_ui itself.
+                  obscureToggle: CruxObscureToggle(
+                    obscuredIcon: Icon(
+                      Icons.visibility_outlined,
+                      size: 20,
+                      color: colors.textSecondary,
+                    ),
+                    revealedIcon: Icon(
+                      Icons.visibility_off_outlined,
+                      size: 20,
+                      color: colors.textSecondary,
+                    ),
+                    obscuredLabel: 'パスワードを表示',
+                    revealedLabel: 'パスワードを隠す',
+                  ),
                   controller: passwordController,
                   focusNode: passwordFocusNode,
                   textInputAction: TextInputAction.done,

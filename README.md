@@ -98,7 +98,12 @@ renders inside the box itself, disappearing once a value is entered. Its
 helper/error caption row below the box is always reserved, so nothing shifts
 as a validation error appears or clears. Pass `enabled: false` to disable
 it, rather than the package's usual null-callback convention — a text field
-is commonly used with only a `controller` and no `onChanged` at all.
+is commonly used with only a `controller` and no `onChanged` at all. Pass
+`obscureToggle` (an `CruxObscureToggle`) to add a password show/hide
+button at the box's trailing edge; this package never draws its own
+eye/eye-slash glyph, so `CruxObscureToggle` bundles the icons and the
+screen-reader labels for both states, both supplied by the caller. Leaving
+`obscureToggle` unset renders no toggle at all.
 
 Its selection/copy-paste menu's wording ("Paste", "Copy", ...) has two
 sources, and a non-English app needs to cover both. On iOS 16+, the menu is

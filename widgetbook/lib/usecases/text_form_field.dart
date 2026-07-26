@@ -2,6 +2,18 @@ import 'package:flutter/widgets.dart';
 import 'package:crux_ui/crux_ui.dart';
 import 'package:widgetbook/widgetbook.dart';
 
+/// A show/hide toggle built from plain text glyphs rather than any real
+/// icon system -- demonstrating [CruxObscureToggle]'s "any [Widget]
+/// works" contract (see its class doc) without pulling an icon font
+/// dependency into this catalog file. Shared by every use case below that
+/// demonstrates the toggle.
+CruxObscureToggle get _demoObscureToggle => const CruxObscureToggle(
+  obscuredIcon: Text('👁'),
+  revealedIcon: Text('🙈'),
+  obscuredLabel: '表示する',
+  revealedLabel: '隠す',
+);
+
 /// The `CruxTextFormField` entry in the catalog: Playground, States
 /// matrix, and Edge cases use cases. See `usecases/CONVENTIONS.md` for the
 /// contract this file follows.
@@ -39,6 +51,10 @@ WidgetbookComponent get textFormFieldComponent => WidgetbookComponent(
           label: 'obscureText',
           initialValue: false,
         );
+        final bool showObscureToggle = context.knobs.boolean(
+          label: 'Show obscure toggle',
+          initialValue: false,
+        );
         final bool hasError = context.knobs.boolean(
           label: 'Show error',
           initialValue: false,
@@ -70,6 +86,7 @@ WidgetbookComponent get textFormFieldComponent => WidgetbookComponent(
                 helperText: hasHelperText ? helperText : null,
                 enabled: enabled,
                 obscureText: obscureText,
+                obscureToggle: showObscureToggle ? _demoObscureToggle : null,
                 hasError: hasError,
                 errorText: errorText,
               ),
@@ -107,6 +124,7 @@ class _TextFormFieldPlayground extends StatefulWidget {
     required this.helperText,
     required this.enabled,
     required this.obscureText,
+    required this.obscureToggle,
     required this.hasError,
     required this.errorText,
   });
@@ -117,6 +135,7 @@ class _TextFormFieldPlayground extends StatefulWidget {
   final String? helperText;
   final bool enabled;
   final bool obscureText;
+  final CruxObscureToggle? obscureToggle;
   final bool hasError;
   final String errorText;
 
@@ -145,6 +164,7 @@ class _TextFormFieldPlaygroundState extends State<_TextFormFieldPlayground> {
       helperText: widget.helperText,
       enabled: widget.enabled,
       obscureText: widget.obscureText,
+      obscureToggle: widget.obscureToggle,
       // AutovalidateMode.always makes CruxTextFormField call validator on
       // every build (confirmed against the Flutter SDK's
       // FormFieldState.build, which does this regardless of whether a Form
@@ -257,6 +277,14 @@ class TextFormFieldStatesMatrix extends StatelessWidget {
                 helperText: 'ログインに使用します',
               ),
             ),
+            cell(
+              'パスワード（表示切替あり）',
+              CruxTextFormField(
+                label: 'パスワード',
+                obscureText: true,
+                obscureToggle: _demoObscureToggle,
+              ),
+            ),
           ],
         ),
       ),
@@ -301,7 +329,13 @@ const String _veryLongValue =
 /// (regression, now structural)` group), and several fields stacked back to
 /// back the way a real form lays them out. Several cases combine
 /// [CruxTextFormField.label] with [CruxTextFormField.placeholder] to
-/// show both roles together, not just one at a time.
+/// show both roles together, not just one at a time. Two further cases
+/// demonstrate [CruxTextFormField.obscureToggle]: one under RTL (the
+/// toggle *does* have custom positioning of its own,
+/// [PositionedDirectional], unlike the label/placeholder above, so this is
+/// the one part of this widget an RTL case must actually exercise) and one
+/// showing the documented `obscureText: false` + a real toggle
+/// combination (starts revealed, toggle still works).
 class _TextFormFieldEdgeCases extends StatelessWidget {
   const _TextFormFieldEdgeCases();
 
@@ -385,6 +419,34 @@ class _TextFormFieldEdgeCases extends StatelessWidget {
                     placeholder: _samplePlaceholder,
                     helperText: 'ログインに使用します',
                   ),
+                ),
+              ),
+            ),
+            labeled(
+              '表示切替つきパスワード欄（RTL 下でも枠の反対側にミラーする -- '
+              'PositionedDirectional で位置指定しているため）',
+              SizedBox(
+                width: 320,
+                child: Directionality(
+                  textDirection: TextDirection.rtl,
+                  child: CruxTextFormField(
+                    label: 'パスワード',
+                    obscureText: true,
+                    obscureToggle: _demoObscureToggle,
+                  ),
+                ),
+              ),
+            ),
+            labeled(
+              'obscureText: false + 表示切替あり（開始時から表示された状態 -- '
+              'obscureToggle が指定されている限りトグルは常に働くので、この組み合わせを '
+              '矛盾として無視しない、という決定のデモ）',
+              SizedBox(
+                width: 320,
+                child: CruxTextFormField(
+                  label: 'PIN コード',
+                  initialValue: '1234',
+                  obscureToggle: _demoObscureToggle,
                 ),
               ),
             ),
