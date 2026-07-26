@@ -1,3 +1,4 @@
+import 'package:flutter/rendering.dart' show OverflowBoxFit;
 import 'package:flutter/widgets.dart';
 
 import 'colors.dart';
@@ -65,7 +66,13 @@ const int _trailingFlex = 1;
 /// let the row overflow (Flutter's yellow-and-black striped warning), it is
 /// laid out with just enough width for its fixed content and then clipped
 /// back down to the real, narrower width, so it quietly loses whatever
-/// doesn't fit instead of visibly overflowing.
+/// doesn't fit instead of visibly overflowing. This holds regardless of the
+/// ambient height constraint too: the tile always hugs its own, normal
+/// content height in this case — the same height it would have at a
+/// comfortable width — even when that height constraint is unbounded (as a
+/// `Column`, `ListView`, or `SingleChildScrollView` hands a plain child
+/// along its main/scroll axis), where naively filling the available height
+/// would either stretch the tile to an arbitrary size or fail outright.
 ///
 /// Set [onTap] to `null` to render a non-interactive, informational row —
 /// it neither reports itself as a button to assistive technology nor shows
@@ -315,6 +322,23 @@ class _CruxListTileState extends State<CruxListTile> {
                     alignment: AlignmentDirectional.centerStart,
                     minWidth: 0,
                     maxWidth: fixedNonFlexWidth,
+                    // Without this, OverflowBox keeps its default fit,
+                    // OverflowBoxFit.max, which makes it sizedByParent and
+                    // sizes itself to `constraints.biggest` — ignoring how
+                    // tall `row` actually measures. That's merely a
+                    // stretched height when the ambient height is bounded,
+                    // but it throws outright when the ambient height is
+                    // unbounded (`maxHeight == double.infinity`), which is
+                    // exactly what a `Column`, `ListView`, or
+                    // `SingleChildScrollView` hands a plain (non-flexible)
+                    // child along its main/scroll axis.
+                    // OverflowBoxFit.deferToChild instead sizes this box
+                    // to `row`'s own measured size (clamped to this
+                    // OverflowBox's width/height constraints, here only
+                    // width is constrained), which is always finite and
+                    // matches the "hug the content" behavior every other
+                    // branch of this widget already has.
+                    fit: OverflowBoxFit.deferToChild,
                     child: row,
                   ),
                 );

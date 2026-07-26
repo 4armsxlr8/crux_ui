@@ -251,6 +251,129 @@ void main() {
     });
   });
 
+  group('ambient height constraints (regression)', () {
+    // Both tests below put a tile in the "pathological" narrow branch (see
+    // list_tile.dart:303-304): its own width is below `fixedNonFlexWidth`
+    // (leading's fixed 44px frame + gaps), so the OverflowBox at
+    // list_tile.dart:313-320 takes over. Neither test above in "overflow
+    // safety" catches these, because they all size the *whole test surface*
+    // to the narrow width via `tester.view.physicalSize`, which the test
+    // binding's root RenderView always reports as a bounded (though maybe
+    // tall) size — never `double.infinity`. A real unbounded height only
+    // shows up when the tile is a plain (non-Expanded/Flexible) child of a
+    // Column, ListView, or SingleChildScrollView along their main/scroll
+    // axis, which none of these tests, nor any test in "overflow safety",
+    // exercise.
+    testWidgets(
+      'does not throw when squeezed narrow inside a Column, whose plain '
+      '(non-flex) children always receive an unbounded main-axis '
+      'constraint regardless of the Column\'s own height (regression: the '
+      "OverflowBox's default fit, OverflowBoxFit.max, made its "
+      'RenderConstrainedOverflowBox size itself to `constraints.biggest`, '
+      'which is infinite here, throwing "was given an infinite size during '
+      'layout")',
+      (WidgetTester tester) async {
+        // Mirrors the widgetbook catalog's Edge cases page structure
+        // (widgetbook/lib/usecases/list_tile.dart's `_buildEdgeCases`): a
+        // `Column(mainAxisSize: MainAxisSize.min)` whose direct child is a
+        // `SizedBox` narrowing the tile to a fixed width. Per
+        // RenderFlex._constraintsForNonFlexChild (flex.dart), a Column's
+        // plain (non-flex) children get `BoxConstraints(maxWidth: ...)`
+        // for their cross axis, which leaves maxHeight at its default of
+        // double.infinity — regardless of how tall or short the Column's
+        // own incoming constraints are. That's the unbounded height this
+        // test needs; no `tester.view` manipulation is needed to produce
+        // it.
+        await tester.pumpWidget(
+          Directionality(
+            textDirection: TextDirection.ltr,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: <Widget>[
+                SizedBox(
+                  width: 60, // within the reported ~44-80px crash range
+                  child: CruxListTile(
+                    leading: const SizedBox(width: 24, height: 24),
+                    title: _edgeCaseLongTitle,
+                    trailing: _edgeCaseLongTrailing,
+                    onTap: () {},
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+        await tester.pump();
+
+        expect(tester.takeException(), isNull);
+      },
+    );
+
+    testWidgets(
+      'hugs its natural content height instead of stretching to fill a '
+      'bounded (not infinite) but tall ambient height, in the same '
+      "pathological narrow branch (regression: OverflowBoxFit.max's "
+      'default sized the OverflowBox to the full ambient height instead of '
+      "the row's actual measured height)",
+      (WidgetTester tester) async {
+        addTearDown(tester.view.reset);
+        tester.view.devicePixelRatio = 1.0;
+        // A generously sized surface: the point of this test is the
+        // *bound* it hands down being loose (unlike a bare tight root),
+        // not the surface being small.
+        tester.view.physicalSize = const Size(1000, 800);
+
+        // `Align` loosens both axes to [0, 1000]x[0, 800] (unlike pumping
+        // the tile directly under `Directionality`, whose tight root
+        // constraints would force *any* child, buggy or not, to exactly
+        // 800 tall and defeat this test). The inner `SizedBox` then
+        // tightens only the width, leaving height loose — bounded at 800,
+        // but not tight to it, which is exactly what a `Column`/`Row`
+        // cross axis, `ListView` cross axis, or `Align` hands a child in
+        // real layouts.
+        Widget buildTile(double width) => Directionality(
+          textDirection: TextDirection.ltr,
+          child: Align(
+            alignment: Alignment.topLeft,
+            child: SizedBox(
+              width: width,
+              child: CruxListTile(
+                leading: const SizedBox(width: 24, height: 24),
+                title: _edgeCaseLongTitle,
+                trailing: _edgeCaseLongTrailing,
+                onTap: () {},
+              ),
+            ),
+          ),
+        );
+
+        // Ample width: not in the pathological branch, so today's
+        // (already-correct) layout gives the tile's natural, hugging
+        // height under this same loose bound. Nothing about this content
+        // (leading's fixed 44px frame, single-line ellipsized title and
+        // trailing) changes height when width shrinks, so this is the
+        // same height the narrow case below should produce too.
+        await tester.pumpWidget(buildTile(400));
+        final double naturalHeight = tester
+            .getSize(find.byType(CruxListTile))
+            .height;
+
+        // The same 44px width as the existing "does not overflow at 44
+        // logical pixels" regression test above, which puts the tile in
+        // the pathological branch — but this time asserting on the
+        // resulting height, which that test never did.
+        await tester.pumpWidget(buildTile(44));
+        await tester.pump();
+
+        expect(tester.takeException(), isNull);
+        final double narrowHeight = tester
+            .getSize(find.byType(CruxListTile))
+            .height;
+        expect(narrowHeight, naturalHeight);
+      },
+    );
+  });
+
   group('color resolution', () {
     testWidgets(
       'title uses textPrimary, subtitle and trailing use textSecondary',
