@@ -69,7 +69,14 @@ class ButtonStatesMatrix extends StatelessWidget {
     final CruxThemeData theme = CruxTheme.of(context);
     return ColoredBox(
       color: theme.colors.background,
-      child: Padding(
+      // Three variants stacked (each with an enabled and a disabled row)
+      // add up to more height than a small preview pane offers, which used
+      // to overflow with Flutter's yellow-and-black stripes instead of
+      // just scrolling past the fold. SingleChildScrollView keeps every
+      // variant reachable regardless of the surrounding viewport's height;
+      // at the golden test's generous 900×4000 canvas the content already
+      // fits, so this is a no-op there.
+      child: SingleChildScrollView(
         padding: const EdgeInsets.all(CruxSpacing.s16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -124,39 +131,63 @@ class _StateRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final CruxThemeData theme = CruxTheme.of(context);
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SizedBox(
-          width: 64,
-          child: Text(
-            enabled ? 'enabled' : 'disabled',
-            style: theme.typography.caption.copyWith(color: theme.colors.muted),
-          ),
-        ),
-        for (final CruxButtonSize size in CruxButtonSize.values)
-          Padding(
-            padding: const EdgeInsets.only(right: CruxSpacing.s12),
-            child: Column(
+    // This row lists every CruxButtonSize side by side, which used to
+    // claim the full available width via the implicit
+    // `mainAxisSize: MainAxisSize.max` default (so the row filled the
+    // golden test's 900×4000 canvas exactly as before) and overflow with
+    // Flutter's yellow-and-black stripes once that available width dropped
+    // below what the three size columns need. LayoutBuilder measures the
+    // width this row is actually given; ConstrainedBox's `minWidth`
+    // reproduces the same full-width claim so nothing shifts when the
+    // content already fits (as it does at golden width); the horizontal
+    // SingleChildScrollView only starts scrolling once the content
+    // genuinely needs more room than that, instead of overflowing.
+    return LayoutBuilder(
+      builder: (BuildContext context, BoxConstraints constraints) {
+        return SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: ConstrainedBox(
+            constraints: BoxConstraints(minWidth: constraints.maxWidth),
+            child: Row(
               mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                CruxButton(
-                  label: '${variant.name} ${size.name}',
-                  variant: variant,
-                  size: size,
-                  onPressed: enabled ? () {} : null,
-                ),
-                const SizedBox(height: CruxSpacing.s4),
-                Text(
-                  size.name,
-                  style: theme.typography.caption.copyWith(
-                    color: theme.colors.muted,
+                SizedBox(
+                  width: 64,
+                  child: Text(
+                    enabled ? 'enabled' : 'disabled',
+                    style: theme.typography.caption.copyWith(
+                      color: theme.colors.muted,
+                    ),
                   ),
                 ),
+                for (final CruxButtonSize size in CruxButtonSize.values)
+                  Padding(
+                    padding: const EdgeInsets.only(right: CruxSpacing.s12),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        CruxButton(
+                          label: '${variant.name} ${size.name}',
+                          variant: variant,
+                          size: size,
+                          onPressed: enabled ? () {} : null,
+                        ),
+                        const SizedBox(height: CruxSpacing.s4),
+                        Text(
+                          size.name,
+                          style: theme.typography.caption.copyWith(
+                            color: theme.colors.muted,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
               ],
             ),
           ),
-      ],
+        );
+      },
     );
   }
 }

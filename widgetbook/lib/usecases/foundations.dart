@@ -46,6 +46,7 @@ const List<String> _colorTokenNames = <String>[
   'separator',
   'success',
   'error',
+  'controlFill',
   'onAccent',
 ];
 
@@ -73,6 +74,8 @@ Color _colorForToken(String name, CruxColors colors) {
       return colors.success;
     case 'error':
       return colors.error;
+    case 'controlFill':
+      return colors.controlFill;
     case 'onAccent':
     default:
       return colors.onAccent;
@@ -297,7 +300,14 @@ class FoundationsStatesMatrix extends StatelessWidget {
 
     return ColoredBox(
       color: colors.background,
-      child: Padding(
+      // Four token-family sections stacked add up to more height than a
+      // small preview pane offers, which used to overflow with Flutter's
+      // yellow-and-black stripes instead of just scrolling past the fold.
+      // SingleChildScrollView keeps every section reachable regardless of
+      // the surrounding viewport's height; at the golden test's generous
+      // 900×4000 canvas the content already fits, so this is a no-op there
+      // (see `text_form_field.dart`'s Edge cases for the same pattern).
+      child: SingleChildScrollView(
         padding: const EdgeInsets.all(CruxSpacing.s20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -363,6 +373,7 @@ class _ColorSwatchGrid extends StatelessWidget {
       ('separator', colors.separator),
       ('success', colors.success),
       ('error', colors.error),
+      ('controlFill', colors.controlFill),
       ('onAccent', colors.onAccent),
     ];
 
@@ -598,7 +609,13 @@ class _FoundationsEdgeCases extends StatelessWidget {
 
     return ColoredBox(
       color: colors.background,
-      child: Padding(
+      // These four stacked cases add up to more height than a small
+      // preview pane offers, which used to overflow with Flutter's
+      // yellow-and-black stripes instead of just scrolling past the fold.
+      // SingleChildScrollView keeps every case reachable regardless of the
+      // surrounding viewport's height, mirroring the fix already applied to
+      // `text_form_field.dart`'s Edge cases.
+      child: SingleChildScrollView(
         padding: const EdgeInsets.all(CruxSpacing.s20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

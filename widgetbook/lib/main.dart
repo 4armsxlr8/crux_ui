@@ -1,4 +1,5 @@
 import 'package:flutter/widgets.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:crux_ui/crux_ui.dart';
 import 'package:widgetbook/widgetbook.dart';
 
@@ -8,6 +9,7 @@ import 'usecases/chip.dart';
 import 'usecases/foundations.dart';
 import 'usecases/list_tile.dart';
 import 'usecases/switch_.dart';
+import 'usecases/text_form_field.dart';
 
 /// Entry point of the Crux UI catalog app.
 ///
@@ -97,6 +99,29 @@ Widget _appBuilder(BuildContext context, Widget child) {
             builder(context),
       );
     },
+    // A bare WidgetsApp supplies no CupertinoLocalizations, but
+    // CruxTextFormField's box is a CupertinoTextField, whose long-press
+    // selection toolbar (CupertinoTextSelectionToolbarButton) unconditionally
+    // asserts debugCheckHasCupertinoLocalizations(context)
+    // (cupertino/text_selection_toolbar_button.dart). Without this, the
+    // catalog crashes the instant a visitor long-presses text anywhere a
+    // CruxTextFormField is previewed. This used to be satisfied with just
+    // DefaultCupertinoLocalizations (the English-only implementation built
+    // into package:flutter/cupertino.dart, no flutter_localizations
+    // dependency needed) -- that stopped the crash but meant the toolbar's
+    // buttons always read in English ("Paste", "Copy", ...) regardless of
+    // which locale a use case is meant to represent. The Global*
+    // delegates from flutter_localizations below resolve real per-locale
+    // strings (backed by flutter_localizations' own .arb files) instead,
+    // matching how example/lib/main.dart is wired; this still only supplies
+    // the Localizations lookups CupertinoTextField's widgets require and
+    // does not add any Material/Cupertino theming.
+    localizationsDelegates: const <LocalizationsDelegate<dynamic>>[
+      GlobalMaterialLocalizations.delegate,
+      GlobalCupertinoLocalizations.delegate,
+      GlobalWidgetsLocalizations.delegate,
+    ],
+    supportedLocales: const <Locale>[Locale('ja'), Locale('en')],
     home: child,
   );
 }
@@ -116,6 +141,7 @@ final List<WidgetbookNode> _directories = [
       cardComponent,
       listTileComponent,
       switchComponent,
+      textFormFieldComponent,
     ],
   ),
 ];

@@ -21,6 +21,7 @@ import 'package:widgetbook_app/usecases/chip.dart';
 import 'package:widgetbook_app/usecases/foundations.dart';
 import 'package:widgetbook_app/usecases/list_tile.dart';
 import 'package:widgetbook_app/usecases/switch_.dart';
+import 'package:widgetbook_app/usecases/text_form_field.dart';
 
 void main() {
   final Map<String, Widget> matrices = <String, Widget>{
@@ -30,6 +31,7 @@ void main() {
     'card': const CardStatesMatrix(),
     'list_tile': const ListTileStatesMatrix(),
     'switch': const SwitchStatesMatrix(),
+    'text_form_field': const TextFormFieldStatesMatrix(),
   };
 
   final Map<String, CruxThemeData> themes = <String, CruxThemeData>{

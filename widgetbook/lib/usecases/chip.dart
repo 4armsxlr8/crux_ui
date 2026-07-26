@@ -101,28 +101,41 @@ class _ChipStatesMatrixRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        SizedBox(
-          width: 72,
-          child: Text(
-            rowLabel,
-            style: theme.typography.caption.copyWith(
-              color: theme.colors.textSecondary,
+    // This row's label + two chips already shrink-wraps to its own content
+    // width (mainAxisSize.min), which used to overflow with Flutter's
+    // yellow-and-black stripes once the pane got narrower than that
+    // content. Wrapping it in a horizontal SingleChildScrollView keeps the
+    // row label and chips grouped on one line (unlike a Wrap, which could
+    // push the label onto its own line, separating it from the chips it
+    // labels) and makes the row scrollable instead of overflowing. Because
+    // the row already shrink-wraps to content, and a SingleChildScrollView
+    // shrink-wraps the same way once its content fits within the available
+    // space, this is a no-op at the golden test's generous 900×4000 canvas.
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          SizedBox(
+            width: 72,
+            child: Text(
+              rowLabel,
+              style: theme.typography.caption.copyWith(
+                color: theme.colors.textSecondary,
+              ),
             ),
           ),
-        ),
-        const SizedBox(width: CruxSpacing.s16),
-        CruxChip(label: 'Not selected', onTap: enabled ? () {} : null),
-        const SizedBox(width: CruxSpacing.s16),
-        CruxChip(
-          label: 'Selected',
-          selected: true,
-          onTap: enabled ? () {} : null,
-        ),
-      ],
+          const SizedBox(width: CruxSpacing.s16),
+          CruxChip(label: 'Not selected', onTap: enabled ? () {} : null),
+          const SizedBox(width: CruxSpacing.s16),
+          CruxChip(
+            label: 'Selected',
+            selected: true,
+            onTap: enabled ? () {} : null,
+          ),
+        ],
+      ),
     );
   }
 }

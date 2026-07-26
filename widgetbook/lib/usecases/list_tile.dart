@@ -126,7 +126,17 @@ class ListTileStatesMatrix extends StatelessWidget {
     final CruxThemeData theme = CruxTheme.of(context);
     return ColoredBox(
       color: theme.colors.background,
-      child: Padding(
+      // Two tappability groups of 8 element-combination rows each (16 rows
+      // total) add up to more height than a small preview pane offers,
+      // which used to overflow with Flutter's yellow-and-black stripes
+      // instead of just scrolling past the fold. SingleChildScrollView
+      // keeps every row reachable regardless of the surrounding viewport's
+      // height; at the golden test's generous 900×4000 canvas the content
+      // already fits, so this is a no-op there. This is unrelated to (and
+      // does not touch) this file's Edge cases builder, whose separate
+      // "infinite size during layout" issue is being investigated
+      // elsewhere.
+      child: SingleChildScrollView(
         padding: const EdgeInsets.all(CruxSpacing.s16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

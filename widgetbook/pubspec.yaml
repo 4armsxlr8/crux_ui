@@ -31,6 +31,14 @@ dependencies:
   flutter:
     sdk: flutter
 
+  # Supplies the Global*Localizations delegates (Material/Cupertino/Widgets)
+  # so a use case's CupertinoTextField selection menu reads in a real
+  # locale instead of Flutter's English-only DefaultCupertinoLocalizations.
+  # crux_ui itself never depends on this -- see root CLAUDE.md and
+  # lib/src/text_form_field.dart's "Localization" doc note.
+  flutter_localizations:
+    sdk: flutter
+
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
