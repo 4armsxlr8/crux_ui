@@ -117,6 +117,19 @@ void main() {
       );
     });
 
+    test('light error vs background/surface is at least 4.5', () {
+      const CruxColors c = CruxColors.light;
+      // error is opaque in both palettes, so no compositing is needed.
+      expect(_contrastRatio(c.error, c.background), greaterThanOrEqualTo(4.5));
+      expect(_contrastRatio(c.error, c.surface), greaterThanOrEqualTo(4.5));
+    });
+
+    test('dark error vs background/surface is at least 4.5', () {
+      const CruxColors c = CruxColors.dark;
+      expect(_contrastRatio(c.error, c.background), greaterThanOrEqualTo(4.5));
+      expect(_contrastRatio(c.error, c.surface), greaterThanOrEqualTo(4.5));
+    });
+
     test('light textPrimary vs controlFill is at least 4.5', () {
       const CruxColors c = CruxColors.light;
       // controlFill is opaque in the light palette, so no compositing is

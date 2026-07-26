@@ -25,5 +25,6 @@ export 'src/motion.dart';
 export 'src/radii.dart';
 export 'src/spacing.dart';
 export 'src/switch.dart';
+export 'src/text_form_field.dart';
 export 'src/theme.dart';
 export 'src/typography.dart';
