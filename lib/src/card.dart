@@ -155,18 +155,22 @@ class _CruxCardState extends State<CruxCard> {
       // width, matching normal block/list-item flow.
       alignment: AlignmentDirectional.centerStart,
       padding: widget.padding,
-      // Clips `child` to this same rounded rect. Without this, Container
-      // defaults to Clip.none and never clips at all, so a full-bleed
-      // child (e.g. a pressed CruxListTile's state-layer overlay) paints
-      // straight through the rounded corners as a visible square poking
-      // out past the border. Container derives the clip path from
-      // `decoration.borderRadius` internally and paints the border on top
-      // of the clip afterward, so the border itself is never clipped away.
+      // Clips `child` to this same rounded (superellipse) shape. Without
+      // this, Container defaults to Clip.none and never clips at all, so a
+      // full-bleed child (e.g. a pressed CruxListTile's state-layer
+      // overlay) paints straight through the rounded corners as a visible
+      // square poking out past the border. Container derives the clip path
+      // from `decoration.getClipPath()` internally -- which for a
+      // ShapeDecoration defers to `shape.getOuterPath()`, i.e. this same
+      // RoundedSuperellipseBorder -- and paints the border on top of the
+      // clip afterward, so the border itself is never clipped away.
       clipBehavior: Clip.antiAlias,
-      decoration: BoxDecoration(
+      decoration: ShapeDecoration(
         color: background,
-        border: Border.all(color: colors.separator),
-        borderRadius: BorderRadius.circular(widget.radius),
+        shape: RoundedSuperellipseBorder(
+          borderRadius: BorderRadius.circular(widget.radius),
+          side: BorderSide(color: colors.separator),
+        ),
       ),
       child: widget.child,
     );

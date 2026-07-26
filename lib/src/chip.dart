@@ -183,11 +183,13 @@ class _CruxChipState extends State<CruxChip> {
                 padding: const EdgeInsets.symmetric(
                   horizontal: CruxSpacing.s16,
                 ),
-                decoration: BoxDecoration(
+                decoration: ShapeDecoration(
                   color: background,
-                  border: Border.all(color: borderColor),
-                  borderRadius: const BorderRadius.all(
-                    Radius.circular(CruxRadii.pill),
+                  shape: RoundedSuperellipseBorder(
+                    borderRadius: const BorderRadius.all(
+                      Radius.circular(CruxRadii.pill),
+                    ),
+                    side: BorderSide(color: borderColor),
                   ),
                 ),
                 alignment: Alignment.center,

@@ -238,8 +238,8 @@ void main() {
           final Container container = tester.widget<Container>(
             find.byType(Container),
           );
-          final BoxDecoration decoration =
-              container.decoration! as BoxDecoration;
+          final ShapeDecoration decoration =
+              container.decoration! as ShapeDecoration;
           final Color pressedBackground = decoration.color!;
 
           await gesture.up();

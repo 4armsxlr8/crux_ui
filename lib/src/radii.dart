@@ -5,6 +5,19 @@ import 'spacing.dart';
 /// Like [CruxSpacing], radii do not vary by theme or brightness: these are
 /// plain constants, so they can be used directly (`CruxRadii.l`) without a
 /// Crux theme in scope.
+///
+/// A radius from this scale is never painted as a plain circular-arc rounded
+/// rectangle: every Crux component that draws a rounded corner (a filled
+/// background, a border, or both together) shapes it as a superellipse — the
+/// smoother, "squircle" corner style iOS uses (`UIBezierPath
+/// (roundedRect:cornerRadius:)`'s `.continuous` style, and SwiftUI's
+/// `RoundedRectangle(cornerRadius:style: .continuous)`), painted via
+/// Flutter's `RoundedSuperellipseBorder`, not `RoundedRectangleBorder`. A
+/// value from this scale is still just "how far the corner is rounded, in
+/// logical pixels" — it does not change meaning across the two shapes — but
+/// the actual curve it produces is a superellipse arc rather than a circular
+/// one. See `unknowns/design-tokens-first/ledger.md`'s 2026-07-26 entry for
+/// the decision record.
 class CruxRadii {
   const CruxRadii._();
 

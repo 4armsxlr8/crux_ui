@@ -145,16 +145,22 @@ Widget _wrapInGarishMaterialApp(Widget child) {
 /// Finds the box [Container] (the one with a border, drawn by
 /// CruxTextFormField itself) inside a rendered [CruxTextFormField].
 /// Distinguished from [CupertinoTextField]'s own internal (undecorated,
-/// since `decoration: null` is passed to it) [Container] by requiring an
-/// actual [BoxDecoration.border] to be present, the same predicate-finder
-/// convention switch_test.dart's `_trackFinder` uses.
+/// since an empty `BoxDecoration` is passed to it) [Container] by requiring
+/// a [ShapeDecoration] whose shape is a [RoundedSuperellipseBorder] with an
+/// actual border side present, the same predicate-finder convention
+/// switch_test.dart's `_trackFinder` uses.
 Finder _boxFinder() {
   return find.byWidgetPredicate((Widget widget) {
     if (widget is! Container) {
       return false;
     }
     final Decoration? decoration = widget.decoration;
-    return decoration is BoxDecoration && decoration.border != null;
+    if (decoration is! ShapeDecoration) {
+      return false;
+    }
+    final ShapeBorder shape = decoration.shape;
+    return shape is RoundedSuperellipseBorder &&
+        shape.side.style != BorderStyle.none;
   });
 }
 
@@ -475,45 +481,51 @@ void main() {
   });
 
   group('focus', () {
-    testWidgets("focusing the field does not change the box's BoxDecoration", (
-      WidgetTester tester,
-    ) async {
-      final FocusNode focusNode = FocusNode();
-      addTearDown(focusNode.dispose);
+    testWidgets(
+      "focusing the field does not change the box's ShapeDecoration",
+      (WidgetTester tester) async {
+        final FocusNode focusNode = FocusNode();
+        addTearDown(focusNode.dispose);
 
-      await tester.pumpWidget(
-        _wrap(CruxTextFormField(label: 'メールアドレス', focusNode: focusNode)),
-      );
-      final BoxDecoration decorationBeforeFocus =
-          tester.widget<Container>(_boxFinder()).decoration! as BoxDecoration;
+        await tester.pumpWidget(
+          _wrap(CruxTextFormField(label: 'メールアドレス', focusNode: focusNode)),
+        );
+        final ShapeDecoration decorationBeforeFocus =
+            tester.widget<Container>(_boxFinder()).decoration!
+                as ShapeDecoration;
+        final RoundedSuperellipseBorder shapeBeforeFocus =
+            decorationBeforeFocus.shape as RoundedSuperellipseBorder;
 
-      // The resting border is exactly CruxColors.light.separator at 1
-      // logical pixel, not just "whatever it happens to be" — Border.all's
-      // default width is 1.0, so this equality pins both color and width,
-      // against an independent expected value rather than a self-comparison.
-      expect(
-        decorationBeforeFocus.border,
-        Border.all(color: CruxColors.light.separator),
-      );
+        // The resting border is exactly CruxColors.light.separator at 1
+        // logical pixel, not just "whatever it happens to be" —
+        // BorderSide's default width is 1.0, so this equality pins both
+        // color and width, against an independent expected value rather
+        // than a self-comparison.
+        expect(
+          shapeBeforeFocus.side,
+          BorderSide(color: CruxColors.light.separator),
+        );
 
-      focusNode.requestFocus();
-      // A second pump is required here, not one.
-      // AutomatedTestWidgetsFlutterBinding.pump() checks hasScheduledFrame
-      // before flushing the microtask queue that runs the focus manager's
-      // deferred notification (confirmed against the Flutter SDK), so a
-      // single pump after requestFocus() does not yet reflect a
-      // Listenable-driven rebuild keyed off FocusNode.hasFocus. A prior
-      // version of this test pumped only once, which let a
-      // border-changes-on-focus mutation slip through undetected — see
-      // implementation-notes.md.
-      await tester.pump();
-      await tester.pump();
+        focusNode.requestFocus();
+        // A second pump is required here, not one.
+        // AutomatedTestWidgetsFlutterBinding.pump() checks hasScheduledFrame
+        // before flushing the microtask queue that runs the focus manager's
+        // deferred notification (confirmed against the Flutter SDK), so a
+        // single pump after requestFocus() does not yet reflect a
+        // Listenable-driven rebuild keyed off FocusNode.hasFocus. A prior
+        // version of this test pumped only once, which let a
+        // border-changes-on-focus mutation slip through undetected — see
+        // implementation-notes.md.
+        await tester.pump();
+        await tester.pump();
 
-      final BoxDecoration decorationAfterFocus =
-          tester.widget<Container>(_boxFinder()).decoration! as BoxDecoration;
+        final ShapeDecoration decorationAfterFocus =
+            tester.widget<Container>(_boxFinder()).decoration!
+                as ShapeDecoration;
 
-      expect(decorationAfterFocus, decorationBeforeFocus);
-    });
+        expect(decorationAfterFocus, decorationBeforeFocus);
+      },
+    );
 
     testWidgets(
       'resolves the resting border from CruxColors.dark.separator under a '
@@ -526,13 +538,13 @@ void main() {
           ),
         );
 
-        final BoxDecoration decoration =
-            tester.widget<Container>(_boxFinder()).decoration! as BoxDecoration;
+        final ShapeDecoration decoration =
+            tester.widget<Container>(_boxFinder()).decoration!
+                as ShapeDecoration;
+        final RoundedSuperellipseBorder shape =
+            decoration.shape as RoundedSuperellipseBorder;
 
-        expect(
-          decoration.border,
-          Border.all(color: CruxColors.dark.separator),
-        );
+        expect(shape.side, BorderSide(color: CruxColors.dark.separator));
       },
     );
 
@@ -558,9 +570,12 @@ void main() {
         formKey.currentState!.validate();
         await tester.pump();
 
-        final BoxDecoration decoration =
-            tester.widget<Container>(_boxFinder()).decoration! as BoxDecoration;
-        expect(decoration.border, Border.all(color: CruxColors.light.error));
+        final ShapeDecoration decoration =
+            tester.widget<Container>(_boxFinder()).decoration!
+                as ShapeDecoration;
+        final RoundedSuperellipseBorder shape =
+            decoration.shape as RoundedSuperellipseBorder;
+        expect(shape.side, BorderSide(color: CruxColors.light.error));
 
         final Text caption = tester.widget<Text>(find.text('必須項目です'));
         expect(caption.style?.color, CruxColors.light.error);
@@ -591,9 +606,12 @@ void main() {
         formKey.currentState!.validate();
         await tester.pump();
 
-        final BoxDecoration decoration =
-            tester.widget<Container>(_boxFinder()).decoration! as BoxDecoration;
-        expect(decoration.border, Border.all(color: CruxColors.dark.error));
+        final ShapeDecoration decoration =
+            tester.widget<Container>(_boxFinder()).decoration!
+                as ShapeDecoration;
+        final RoundedSuperellipseBorder shape =
+            decoration.shape as RoundedSuperellipseBorder;
+        expect(shape.side, BorderSide(color: CruxColors.dark.error));
       },
     );
 
@@ -622,11 +640,13 @@ void main() {
       formKey.currentState!.validate();
       await tester.pump();
 
-      final BoxDecoration decorationBeforeFocus =
-          tester.widget<Container>(_boxFinder()).decoration! as BoxDecoration;
+      final ShapeDecoration decorationBeforeFocus =
+          tester.widget<Container>(_boxFinder()).decoration! as ShapeDecoration;
+      final RoundedSuperellipseBorder shapeBeforeFocus =
+          decorationBeforeFocus.shape as RoundedSuperellipseBorder;
       expect(
-        decorationBeforeFocus.border,
-        Border.all(color: CruxColors.light.error),
+        shapeBeforeFocus.side,
+        BorderSide(color: CruxColors.light.error),
       );
 
       focusNode.requestFocus();
@@ -635,8 +655,8 @@ void main() {
       await tester.pump();
       await tester.pump();
 
-      final BoxDecoration decorationAfterFocus =
-          tester.widget<Container>(_boxFinder()).decoration! as BoxDecoration;
+      final ShapeDecoration decorationAfterFocus =
+          tester.widget<Container>(_boxFinder()).decoration! as ShapeDecoration;
       expect(decorationAfterFocus, decorationBeforeFocus);
     });
   });
@@ -647,8 +667,8 @@ void main() {
     ) async {
       await tester.pumpWidget(_wrap(CruxTextFormField(label: 'メールアドレス')));
 
-      final BoxDecoration decoration =
-          tester.widget<Container>(_boxFinder()).decoration! as BoxDecoration;
+      final ShapeDecoration decoration =
+          tester.widget<Container>(_boxFinder()).decoration! as ShapeDecoration;
 
       expect(decoration.color, CruxColors.light.controlFill);
     });
@@ -662,8 +682,8 @@ void main() {
         ),
       );
 
-      final BoxDecoration decoration =
-          tester.widget<Container>(_boxFinder()).decoration! as BoxDecoration;
+      final ShapeDecoration decoration =
+          tester.widget<Container>(_boxFinder()).decoration! as ShapeDecoration;
 
       expect(decoration.color, CruxColors.dark.controlFill);
     });

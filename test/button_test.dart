@@ -47,8 +47,12 @@ void main() {
         final Container container = tester.widget<Container>(
           find.byType(Container),
         );
-        final BoxDecoration decoration = container.decoration! as BoxDecoration;
+        final ShapeDecoration decoration =
+            container.decoration! as ShapeDecoration;
+        final RoundedSuperellipseBorder shape =
+            decoration.shape as RoundedSuperellipseBorder;
         expect(decoration.color, CruxColors.light.separator);
+        expect(shape.side, BorderSide.none);
 
         final Text text = tester.widget<Text>(find.text('はじめる'));
         expect(text.style?.color, CruxColors.light.muted);
@@ -381,9 +385,12 @@ void main() {
       final Container container = tester.widget<Container>(
         find.byType(Container),
       );
-      final BoxDecoration decoration = container.decoration! as BoxDecoration;
+      final ShapeDecoration decoration =
+          container.decoration! as ShapeDecoration;
+      final RoundedSuperellipseBorder shape =
+          decoration.shape as RoundedSuperellipseBorder;
       expect(decoration.color, CruxColors.light.accent);
-      expect(decoration.border, isNull);
+      expect(shape.side, BorderSide.none);
 
       final Text text = tester.widget<Text>(find.text('Go'));
       expect(text.style?.color, CruxColors.light.onAccent);
@@ -405,10 +412,12 @@ void main() {
         final Container container = tester.widget<Container>(
           find.byType(Container),
         );
-        final BoxDecoration decoration = container.decoration! as BoxDecoration;
+        final ShapeDecoration decoration =
+            container.decoration! as ShapeDecoration;
+        final RoundedSuperellipseBorder shape =
+            decoration.shape as RoundedSuperellipseBorder;
         expect(decoration.color, CruxColors.light.accentTint);
-        final Border border = decoration.border! as Border;
-        expect(border.top.color, CruxColors.light.accentLine);
+        expect(shape.side.color, CruxColors.light.accentLine);
 
         final Text text = tester.widget<Text>(find.text('Go'));
         expect(text.style?.color, CruxColors.light.textPrimary);
@@ -431,9 +440,12 @@ void main() {
       final Container container = tester.widget<Container>(
         find.byType(Container),
       );
-      final BoxDecoration decoration = container.decoration! as BoxDecoration;
+      final ShapeDecoration decoration =
+          container.decoration! as ShapeDecoration;
+      final RoundedSuperellipseBorder shape =
+          decoration.shape as RoundedSuperellipseBorder;
       expect(decoration.color, isNull);
-      expect(decoration.border, isNull);
+      expect(shape.side, BorderSide.none);
 
       final Text text = tester.widget<Text>(find.text('Go'));
       expect(text.style?.color, CruxColors.light.textPrimary);

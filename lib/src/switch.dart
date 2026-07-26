@@ -279,10 +279,12 @@ class _CruxSwitchState extends State<CruxSwitch> {
                                   padding: const EdgeInsets.symmetric(
                                     horizontal: _thumbInset,
                                   ),
-                                  decoration: BoxDecoration(
+                                  decoration: ShapeDecoration(
                                     color: trackColor,
-                                    borderRadius: BorderRadius.circular(
-                                      _trackHeight / 2,
+                                    shape: RoundedSuperellipseBorder(
+                                      borderRadius: BorderRadius.circular(
+                                        _trackHeight / 2,
+                                      ),
                                     ),
                                   ),
                                   // Explicit positioning replaces the
@@ -308,23 +310,26 @@ class _CruxSwitchState extends State<CruxSwitch> {
                                         width: width,
                                         height: height,
                                         child: Container(
-                                          decoration: BoxDecoration(
+                                          decoration: ShapeDecoration(
                                             color: colors.surface,
-                                            // A constant, comfortably
-                                            // oversized radius (equal to
-                                            // resting [_thumbSize], well
-                                            // over half of any
-                                            // width/height this thumb ever
-                                            // takes) always yields a true
-                                            // stadium/pill regardless of
-                                            // the live width/height -- the
-                                            // same oversized-radius trick
-                                            // [CruxRadii.pill] uses
-                                            // elsewhere in the package to
-                                            // force a pill shape without
-                                            // conditional math.
-                                            borderRadius: BorderRadius.circular(
-                                              _thumbSize,
+                                            shape: RoundedSuperellipseBorder(
+                                              // A constant, comfortably
+                                              // oversized radius (equal to
+                                              // resting [_thumbSize], well
+                                              // over half of any
+                                              // width/height this thumb ever
+                                              // takes) always yields a true
+                                              // stadium/pill regardless of
+                                              // the live width/height -- the
+                                              // same oversized-radius trick
+                                              // [CruxRadii.pill] uses
+                                              // elsewhere in the package to
+                                              // force a pill shape without
+                                              // conditional math.
+                                              borderRadius:
+                                                  BorderRadius.circular(
+                                                    _thumbSize,
+                                                  ),
                                             ),
                                           ),
                                         ),

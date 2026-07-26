@@ -184,10 +184,10 @@ class _CruxButtonState extends State<CruxButton> {
       enabled: enabled,
       pressed: _pressed,
     );
-    final Border? border =
+    final BorderSide side =
         enabled && widget.variant == CruxButtonVariant.tonal
-        ? Border.all(color: colors.accentLine)
-        : null;
+        ? BorderSide(color: colors.accentLine)
+        : BorderSide.none;
     final Color textColor = _resolveTextColor(
       colors: colors,
       variant: widget.variant,
@@ -260,10 +260,12 @@ class _CruxButtonState extends State<CruxButton> {
                 padding: EdgeInsets.symmetric(
                   horizontal: metrics.horizontalPadding,
                 ),
-                decoration: BoxDecoration(
+                decoration: ShapeDecoration(
                   color: background,
-                  borderRadius: const BorderRadius.all(Radius.circular(999)),
-                  border: border,
+                  shape: RoundedSuperellipseBorder(
+                    borderRadius: const BorderRadius.all(Radius.circular(999)),
+                    side: side,
+                  ),
                 ),
                 alignment: Alignment.center,
                 child: Text(

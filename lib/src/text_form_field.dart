@@ -465,12 +465,16 @@ class _CruxTextFormFieldState extends FormFieldState<String> {
     final Widget box = ConstrainedBox(
       constraints: const BoxConstraints(minHeight: _minTapTarget),
       child: Container(
-        decoration: BoxDecoration(
+        decoration: ShapeDecoration(
           color: colors.controlFill,
-          border: Border.all(
-            color: errorText != null ? colors.error : colors.separator,
+          shape: RoundedSuperellipseBorder(
+            borderRadius: const BorderRadius.all(
+              Radius.circular(CruxRadii.m),
+            ),
+            side: BorderSide(
+              color: errorText != null ? colors.error : colors.separator,
+            ),
           ),
-          borderRadius: const BorderRadius.all(Radius.circular(CruxRadii.m)),
         ),
         child: _CruxTextFieldCore(
           controller: _effectiveController,

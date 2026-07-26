@@ -114,7 +114,7 @@ void main() {
       );
 
       final Container track = tester.widget<Container>(_trackFinder());
-      final BoxDecoration decoration = track.decoration! as BoxDecoration;
+      final ShapeDecoration decoration = track.decoration! as ShapeDecoration;
       expect(decoration.color, CruxColors.light.muted);
     });
 
@@ -126,7 +126,7 @@ void main() {
       );
 
       final Container track = tester.widget<Container>(_trackFinder());
-      final BoxDecoration decoration = track.decoration! as BoxDecoration;
+      final ShapeDecoration decoration = track.decoration! as ShapeDecoration;
       expect(decoration.color, CruxColors.light.separator);
     });
   });
@@ -170,7 +170,7 @@ void main() {
       );
 
       final Container track = tester.widget<Container>(_trackFinder());
-      final BoxDecoration decoration = track.decoration! as BoxDecoration;
+      final ShapeDecoration decoration = track.decoration! as ShapeDecoration;
       expect(decoration.color, CruxColors.light.accent);
     });
 
@@ -182,7 +182,7 @@ void main() {
       );
 
       final Container track = tester.widget<Container>(_trackFinder());
-      final BoxDecoration decoration = track.decoration! as BoxDecoration;
+      final ShapeDecoration decoration = track.decoration! as ShapeDecoration;
       expect(decoration.color, CruxColors.light.separator);
     });
 
@@ -194,7 +194,7 @@ void main() {
       );
 
       final Container thumb = tester.widget<Container>(_thumbFinder());
-      final BoxDecoration decoration = thumb.decoration! as BoxDecoration;
+      final ShapeDecoration decoration = thumb.decoration! as ShapeDecoration;
       expect(decoration.color, CruxColors.light.surface);
     });
   });
@@ -507,7 +507,7 @@ void main() {
         await tester.pumpWidget(_wrap(const CruxSwitch(value: false)));
 
         final Container track = tester.widget<Container>(_trackFinder());
-        final BoxDecoration decoration = track.decoration! as BoxDecoration;
+        final ShapeDecoration decoration = track.decoration! as ShapeDecoration;
         expect(decoration.color, CruxColors.light.separator);
       },
     );

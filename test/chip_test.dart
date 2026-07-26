@@ -47,10 +47,12 @@ void main() {
         final Container container = tester.widget<Container>(
           find.byType(Container),
         );
-        final BoxDecoration decoration = container.decoration! as BoxDecoration;
+        final ShapeDecoration decoration =
+            container.decoration! as ShapeDecoration;
+        final RoundedSuperellipseBorder shape =
+            decoration.shape as RoundedSuperellipseBorder;
         expect(decoration.color, CruxColors.light.surface);
-        final Border border = decoration.border! as Border;
-        expect(border.top.color, CruxColors.light.separator);
+        expect(shape.side.color, CruxColors.light.separator);
 
         final Text text = tester.widget<Text>(find.text('すべて'));
         expect(text.style?.color, CruxColors.light.muted);
@@ -212,7 +214,7 @@ void main() {
 
         final Color restBackground =
             (tester.widget<Container>(find.byType(Container)).decoration!
-                    as BoxDecoration)
+                    as ShapeDecoration)
                 .color!;
         expect(restBackground, CruxColors.light.surface);
 
@@ -223,7 +225,7 @@ void main() {
 
         final Color pressedBackground =
             (tester.widget<Container>(find.byType(Container)).decoration!
-                    as BoxDecoration)
+                    as ShapeDecoration)
                 .color!;
         // The state layer must visibly change the background away from the
         // flat rest-state surface color, and must not simply be transparent
@@ -297,10 +299,12 @@ void main() {
       final Container container = tester.widget<Container>(
         find.byType(Container),
       );
-      final BoxDecoration decoration = container.decoration! as BoxDecoration;
+      final ShapeDecoration decoration =
+          container.decoration! as ShapeDecoration;
+      final RoundedSuperellipseBorder shape =
+          decoration.shape as RoundedSuperellipseBorder;
       expect(decoration.color, CruxColors.light.surface);
-      final Border border = decoration.border! as Border;
-      expect(border.top.color, CruxColors.light.separator);
+      expect(shape.side.color, CruxColors.light.separator);
 
       final Text text = tester.widget<Text>(find.text('すべて'));
       expect(text.style?.color, CruxColors.light.textSecondary);
@@ -315,10 +319,12 @@ void main() {
       final Container container = tester.widget<Container>(
         find.byType(Container),
       );
-      final BoxDecoration decoration = container.decoration! as BoxDecoration;
+      final ShapeDecoration decoration =
+          container.decoration! as ShapeDecoration;
+      final RoundedSuperellipseBorder shape =
+          decoration.shape as RoundedSuperellipseBorder;
       expect(decoration.color, CruxColors.light.accentTint);
-      final Border border = decoration.border! as Border;
-      expect(border.top.color, CruxColors.light.accentLine);
+      expect(shape.side.color, CruxColors.light.accentLine);
 
       final Text text = tester.widget<Text>(find.text('すべて'));
       expect(text.style?.color, CruxColors.light.textPrimary);
@@ -333,10 +339,12 @@ void main() {
       final Container container = tester.widget<Container>(
         find.byType(Container),
       );
-      final BoxDecoration decoration = container.decoration! as BoxDecoration;
+      final ShapeDecoration decoration =
+          container.decoration! as ShapeDecoration;
+      final RoundedSuperellipseBorder shape =
+          decoration.shape as RoundedSuperellipseBorder;
       expect(decoration.color, CruxColors.light.surface);
-      final Border border = decoration.border! as Border;
-      expect(border.top.color, CruxColors.light.separator);
+      expect(shape.side.color, CruxColors.light.separator);
 
       final Text text = tester.widget<Text>(find.text('すべて'));
       expect(text.style?.color, CruxColors.light.muted);

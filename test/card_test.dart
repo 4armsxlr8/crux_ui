@@ -56,15 +56,17 @@ void main() {
       final Container container = tester.widget<Container>(
         find.byType(Container),
       );
-      final BoxDecoration decoration = container.decoration! as BoxDecoration;
+      final ShapeDecoration decoration =
+          container.decoration! as ShapeDecoration;
+      final RoundedSuperellipseBorder shape =
+          decoration.shape as RoundedSuperellipseBorder;
       expect(decoration.color, CruxColors.light.surface);
-      final Border border = decoration.border! as Border;
-      expect(border.top.color, CruxColors.light.separator);
-      expect(border.top.width, 1);
-      expect(decoration.borderRadius, BorderRadius.circular(CruxRadii.l));
+      expect(shape.side.color, CruxColors.light.separator);
+      expect(shape.side.width, 1);
+      expect(shape.borderRadius, BorderRadius.circular(CruxRadii.l));
 
       // No shadow (spec: "影なし").
-      expect(decoration.boxShadow, anyOf(isNull, isEmpty));
+      expect(decoration.shadows, anyOf(isNull, isEmpty));
     });
 
     testWidgets('clips its child to the card\'s rounded-corner shape via '
@@ -90,8 +92,11 @@ void main() {
         find.byType(Container),
       );
       expect(container.clipBehavior, Clip.antiAlias);
-      final BoxDecoration decoration = container.decoration! as BoxDecoration;
-      expect(decoration.borderRadius, BorderRadius.circular(CruxRadii.m));
+      final ShapeDecoration decoration =
+          container.decoration! as ShapeDecoration;
+      final RoundedSuperellipseBorder shape =
+          decoration.shape as RoundedSuperellipseBorder;
+      expect(shape.borderRadius, BorderRadius.circular(CruxRadii.m));
     });
 
     testWidgets('resolves colors from the ambient CruxTheme (dark)', (
@@ -107,10 +112,12 @@ void main() {
       final Container container = tester.widget<Container>(
         find.byType(Container),
       );
-      final BoxDecoration decoration = container.decoration! as BoxDecoration;
+      final ShapeDecoration decoration =
+          container.decoration! as ShapeDecoration;
+      final RoundedSuperellipseBorder shape =
+          decoration.shape as RoundedSuperellipseBorder;
       expect(decoration.color, CruxColors.dark.surface);
-      final Border border = decoration.border! as Border;
-      expect(border.top.color, CruxColors.dark.separator);
+      expect(shape.side.color, CruxColors.dark.separator);
     });
   });
 
@@ -146,8 +153,8 @@ void main() {
         final Container pressedContainer = tester.widget<Container>(
           find.byType(Container),
         );
-        final BoxDecoration pressedDecoration =
-            pressedContainer.decoration! as BoxDecoration;
+        final ShapeDecoration pressedDecoration =
+            pressedContainer.decoration! as ShapeDecoration;
         expect(pressedDecoration.color, isNot(CruxColors.light.surface));
 
         await gesture.up();
@@ -163,8 +170,8 @@ void main() {
         final Container idleContainer = tester.widget<Container>(
           find.byType(Container),
         );
-        final BoxDecoration idleDecoration =
-            idleContainer.decoration! as BoxDecoration;
+        final ShapeDecoration idleDecoration =
+            idleContainer.decoration! as ShapeDecoration;
         expect(idleDecoration.color, CruxColors.light.surface);
       },
     );
