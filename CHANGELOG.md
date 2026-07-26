@@ -85,6 +85,29 @@
   commonly used with only a `controller` and no `onChanged` callback at all,
   so a nullable-callback convention would have no way to tell "enabled, with
   no callback" apart from "disabled."
+- Every rounded corner Crux UI draws — `CruxButton`, `CruxChip`,
+  `CruxCard`, `CruxSwitch`'s track and thumb, and
+  `CruxTextFormField`'s box — is now a superellipse ("squircle", the same
+  continuous-curvature corner iOS uses) instead of a plain circular-arc
+  rounded rectangle, via Flutter's `RoundedSuperellipseBorder` in place of
+  `RoundedRectangleBorder`/`BoxDecoration.borderRadius`. Wherever a
+  component paints both a fill and a border, both now come from the same
+  `ShapeDecoration(shape: RoundedSuperellipseBorder(...))` so the two can
+  never visually disagree — the shape-only `ClipRSuperellipse` widget would
+  have clipped a child to the new curve while leaving a separately-drawn
+  border on the old circular one. `CruxRadii`'s values (`m` = 14, `l` =
+  16, `pill` = 9999) are unchanged; only the curve a given radius draws
+  changed. The effect is visible at `CruxCard`'s 16px and
+  `CruxTextFormField`'s 14px radii (confirmed against regenerated
+  `widgetbook` goldens: only the corner pixels of each shifted). At the
+  `pill` radius (`CruxButton`/`CruxChip`/`CruxSwitch`), the change is
+  nil to negligible: once a corner's radius reaches half its shortest side,
+  no straight edge segment remains for a superellipse to flatten against,
+  so it degenerates to the exact same semicircle a circular rounded rect
+  already drew (goldens confirm this — fill-only rows produced zero pixel
+  diff, and bordered rows produced only a sub-2% diff from stroke
+  anti-aliasing, imperceptible at actual size). `CruxListTile` and
+  `CruxDivider` draw no rounded corners of their own and are unaffected.
 - Fixed a crash in `CruxListTile`, present since it shipped in 0.3.0: a
   tile squeezed narrower than its fixed content (`leading`'s frame plus its
   gaps) would throw "was given an infinite size during layout" if the
@@ -96,6 +119,76 @@
   size, which also fixes a quieter sibling bug: with a bounded but tall
   ambient height, the same narrow tile used to silently stretch to fill it
   instead of hugging its normal, short content height.
+- 2026-07-26: `CruxTextFormField` now shakes — a brief horizontal wobble,
+  the familiar "wrong password" reaction — whenever a validation error
+  appears. Only the box shakes; the label above it and the caption/error
+  row below it stay perfectly still (revised the same day from an initial
+  version where the whole field moved as one piece — see
+  `unknowns/textfield-atom/implementation-notes.md`'s dated reversal entry
+  for why). It shakes again on a repeated failed submit even when the error
+  message is identical (the common real case: the user presses the button
+  again) — `errorText` alone does not change between the two calls, so this
+  field's `FormFieldState.validate` override is what actually notices the
+  second failure. An error already showing the very first time the field is
+  ever built (for example an `AutovalidateMode.always` field whose initial
+  value is already invalid) does not shake on mount: only a transition
+  *during* the field's lifetime counts as "an error appearing". The shake
+  is a paint-time transform only — it never changes the field's own size or
+  moves anything around it — and is fully suppressed, not merely
+  shortened, when the OS "reduce motion" accessibility setting
+  (`MediaQuery.disableAnimationsOf`) is on.
+- 2026-07-26: `CruxTextFormField`'s validation-error caption now renders at
+  `FontWeight.w600` instead of the caption style's normal `w400`, so an error
+  message reads as bolder and more noticeable than plain helper text (user
+  request: 「エラー文言を太くして目立たせたい」). Plain helper text (no
+  error showing) is unaffected and stays at `w400`. The size stays at the
+  caption style's own 12px rather than switching to the `label` token's 14px
+  — a size change would grow the reserved caption row and break the
+  guarantee that showing an error never shifts anything else in the layout.
+  Implemented as a component-level `copyWith(fontWeight:)` rather than a new
+  `CruxTypography` token, since `caption` itself is meant to stay a fixed
+  12px/w400 pair usable elsewhere (timestamps, metadata) without an emphasis
+  rule that only makes sense for an error.
+- Added `CruxMotion.shake`, a new motion primitive: a decaying horizontal
+  oscillation that plays once each time its `trigger` count changes, for
+  one-shot effects that must be replayable from a standing start (unlike
+  `CruxMotion.scale`/`animatedValue`, which spring a value toward a
+  persisted target and stay there). Driven internally by `motor`'s
+  duration-based `Motion.curved` rather than a spring: a spring only
+  settles asymptotically near its target, never bit-exactly at it, which
+  cannot guarantee the shake returns to *exactly* zero displacement once it
+  finishes. Also added `CruxMotion.shakeDuration` (400ms) and
+  `CruxMotion.shakeAmplitude` (8 logical pixels) as the new tunable
+  constants — both are starting values only, not yet checked against a
+  running app on a device, and should be revisited there.
+- 2026-07-26: Added `CruxTextFormField.obscureToggle` (type
+  `CruxObscureToggle?`), a password show/hide button rendered at the
+  box's trailing edge (mirrored under RTL). This package never draws its
+  own eye/eye-slash glyph for it: different products ship different icon
+  sets, so `CruxObscureToggle` bundles the icons (`obscuredIcon`/
+  `revealedIcon`, plain `Widget`s — an `Icon`, an `Image`, even a `Text`
+  glyph all work) and the screen-reader labels (`obscuredLabel`/
+  `revealedLabel`, `required` `String`s) a caller supplies for both states.
+  Both labels are `required` rather than nullable: an icon-only button has
+  no descendant text to fall back to, so a nullable label would force this
+  package to choose between announcing nothing (an accessibility failure)
+  or inventing English wording (exactly what this feature exists to avoid).
+  Leaving `obscureToggle` unset (the default) renders no toggle at all —
+  `obscureText` is then this field's fixed, unchanging obscured state, the
+  same as before this feature existed. Passing `obscureToggle` together
+  with `obscureText: false` is not treated as a contradiction that
+  suppresses the toggle: `obscureText` becomes the field's *starting*
+  obscured state, and the toggle still renders and works from there — the
+  least surprising reading once a caller has gone to the trouble of
+  supplying a whole `CruxObscureToggle`. Tapping the toggle never steals
+  focus from the field or dismisses the keyboard (wrapped in a
+  `TextFieldTapRegion`, the same mechanism `CupertinoTextField`'s own
+  selection toolbar uses to be treated as "inside" the field), reserves a
+  fixed 44x44 logical pixel slot in the field's own content padding so
+  entered text is never drawn underneath it, and never moves the box, the
+  label row, or the helper/error caption row regardless of which state is
+  showing. `enabled: false` dims and disables the toggle along with the
+  rest of the field.
 
 ## 0.3.0
 
