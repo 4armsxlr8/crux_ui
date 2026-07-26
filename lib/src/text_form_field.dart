@@ -78,9 +78,12 @@ const double _helperRowGap = CruxSpacing.s8;
 /// **Helper text and errors.** [helperText] renders in a caption row below
 /// the box; a validation error (surfaced through the field's `validator`,
 /// or [FormFieldState.errorText]) replaces it in [CruxColors.error] — the
-/// same color the box's border switches to, per "The box" above. That row's
-/// height is also always reserved, so showing or clearing an error never
-/// shifts anything else in the layout.
+/// same color the box's border switches to, per "The box" above — and at
+/// `FontWeight.w600` rather than the caption style's normal `w400`, so the
+/// message reads as louder than plain helper text. The size stays at the
+/// caption style's own 12px; only the weight changes. That row's height is
+/// also always reserved, so showing or clearing an error never shifts
+/// anything else in the layout.
 ///
 /// **Error shake.** Whenever a validation error appears (`errorText` goes
 /// from `null` to non-`null`) the *box* — and only the box, not the label
@@ -603,12 +606,27 @@ class _CruxTextFormFieldState extends FormFieldState<String> {
             ),
           );
 
+    // A validation error also renders at FontWeight.w600 -- one step up
+    // from caption's own w400 -- so the message reads as louder than plain
+    // helper text, on top of the color change above. This is a
+    // component-level override (`copyWith(fontWeight:)`), not a change to
+    // `caption` itself or a new typography token: `caption` stays a fixed
+    // 12px/w400 pair usable elsewhere (timestamps, metadata) without
+    // dragging along an emphasis rule that only makes sense for an error.
+    // Size deliberately stays at caption's own 12px rather than switching
+    // to `label` (14px w600) -- a size change would grow the reserved
+    // caption row's height and break the "showing an error never moves
+    // anything below it" guarantee this file's "error / helper row" group
+    // tests. If a second component later needs this same emphasized-caption
+    // look, promote it to a real `CruxTypography` token instead of
+    // copy-pasting this `copyWith` again.
     final Widget caption = Text(
       captionText,
       maxLines: 1,
       overflow: TextOverflow.ellipsis,
       style: theme.typography.caption.copyWith(
         color: errorText != null ? colors.error : colors.textSecondary,
+        fontWeight: errorText != null ? FontWeight.w600 : null,
       ),
     );
 

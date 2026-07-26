@@ -503,6 +503,57 @@ void main() {
     );
   });
 
+  group('caption weight (validation error)', () {
+    // 2026-07-26: user request "エラー文言を太くして目立たせたい" (make the
+    // error message bolder so it stands out). The caption row already
+    // recolors to CruxColors.error (see the "focus" group above); this
+    // adds a second, independent emphasis cue -- weight -- to the error
+    // case specifically, while leaving plain helper text at its normal
+    // weight. See implementation-notes.md's dated entry for why this is a
+    // component-level `copyWith(fontWeight:)` rather than a new typography
+    // token or a change to `caption` itself.
+    testWidgets('renders the error caption at FontWeight.w600, bolder than the '
+        'resting caption style', (WidgetTester tester) async {
+      final GlobalKey<FormState> formKey = GlobalKey<FormState>();
+      await tester.pumpWidget(
+        _wrap(
+          Form(
+            key: formKey,
+            child: CruxTextFormField(
+              label: 'メールアドレス',
+              validator: (String? value) =>
+                  (value == null || value.isEmpty) ? '必須項目です' : null,
+            ),
+          ),
+        ),
+      );
+
+      formKey.currentState!.validate();
+      await tester.pump();
+
+      final Text caption = tester.widget<Text>(find.text('必須項目です'));
+      expect(caption.style?.fontWeight, FontWeight.w600);
+    });
+
+    testWidgets(
+      'keeps the helper caption (no error showing) at FontWeight.w400 -- '
+      'only a showing validation error gets the bolder weight',
+      (WidgetTester tester) async {
+        await tester.pumpWidget(
+          _wrap(
+            CruxTextFormField(
+              label: 'メールアドレス',
+              helperText: 'you@example.com',
+            ),
+          ),
+        );
+
+        final Text caption = tester.widget<Text>(find.text('you@example.com'));
+        expect(caption.style?.fontWeight, FontWeight.w400);
+      },
+    );
+  });
+
   group('shake animation (validation error)', () {
     // 2026-07-26: the shake was narrowed from the whole field down to just
     // the box -- the label above and the caption/error row below must stay
