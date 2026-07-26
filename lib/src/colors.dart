@@ -27,6 +27,7 @@ class CruxColors {
     required this.separator,
     required this.success,
     required this.error,
+    required this.controlFill,
     this.onAccent = const Color(0xFF26251E),
   });
 
@@ -43,6 +44,7 @@ class CruxColors {
     separator: Color(0xFFE6E5E0),
     success: Color(0xFF1F8A65),
     error: Color(0xFFCF2D56),
+    controlFill: Color(0xFFE9E8E2),
   );
 
   /// The dark color palette.
@@ -58,6 +60,7 @@ class CruxColors {
     separator: Color.fromRGBO(92, 88, 76, 0.55),
     success: Color(0xFF3ED598),
     error: Color(0xFFFF5B78),
+    controlFill: Color(0xFF262319),
   );
 
   /// The base page background color.
@@ -105,6 +108,18 @@ class CruxColors {
 
   /// The color used to indicate an error or destructive state.
   final Color error;
+
+  /// The fill painted behind an interactive control such as a text input —
+  /// for example [CruxTextFormField]'s box. Distinct from both
+  /// [separator] (reused here, the fill and the 1px border it sits behind
+  /// would become the same color and the border would visually disappear)
+  /// and [surface] (reused here, a filled control would become
+  /// indistinguishable from a card in dark mode, where [surface] and
+  /// [background] sit close together). This name is deliberately generic
+  /// rather than field-specific: other controls this package adds later
+  /// (for example a search or chat input bar, or a post-composer box) are
+  /// expected to reuse it too.
+  final Color controlFill;
 
   /// The text/icon color to use on top of [accent] (for example a filled
   /// button's label). Fixed to `#26251E` in both palettes — measured at a

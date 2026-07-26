@@ -65,6 +65,7 @@ class CruxThemeData {
         other.colors.separator == colors.separator &&
         other.colors.success == colors.success &&
         other.colors.error == colors.error &&
+        other.colors.controlFill == colors.controlFill &&
         other.colors.onAccent == colors.onAccent;
   }
 
@@ -83,6 +84,7 @@ class CruxThemeData {
     colors.separator,
     colors.success,
     colors.error,
+    colors.controlFill,
     colors.onAccent,
   );
 }

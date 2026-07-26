@@ -117,6 +117,55 @@ void main() {
       );
     });
 
+    test('light textPrimary vs controlFill is at least 4.5', () {
+      const CruxColors c = CruxColors.light;
+      // controlFill is opaque in the light palette, so no compositing is
+      // needed. Measured with this test's own WCAG math: ~12.52:1, far
+      // above the 4.5:1 floor, leaving generous headroom for a future
+      // palette swap (per colors.dart's "values are provisional" rule).
+      expect(
+        _contrastRatio(c.textPrimary, c.controlFill),
+        greaterThanOrEqualTo(4.5),
+      );
+    });
+
+    test('dark textPrimary vs controlFill is at least 4.5', () {
+      const CruxColors c = CruxColors.dark;
+      // controlFill is opaque in the dark palette too. Measured: ~14.38:1.
+      expect(
+        _contrastRatio(c.textPrimary, c.controlFill),
+        greaterThanOrEqualTo(4.5),
+      );
+    });
+
+    test('light textSecondary vs controlFill is at least 4.5', () {
+      const CruxColors c = CruxColors.light;
+      // textSecondary is opaque in the light palette, so no compositing is
+      // needed. This is CruxTextFormField's resting, in-box label color
+      // (2026-07-25: switched from muted, whose ~3.36:1 fell short of the
+      // 4.5:1 normal-text floor — see unknowns/textfield-atom/ledger.md).
+      // Measured ratio: ~5.79:1.
+      expect(
+        _contrastRatio(c.textSecondary, c.controlFill),
+        greaterThanOrEqualTo(4.5),
+      );
+    });
+
+    test('dark textSecondary vs controlFill is at least 4.5 after alpha '
+        'compositing', () {
+      const CruxColors c = CruxColors.dark;
+      // textSecondary is semi-transparent (rgba) in dark mode, and it
+      // renders on top of controlFill (the field's own fill) rather than
+      // background, so composite over controlFill first — the same
+      // reasoning the existing dark textSecondary-vs-background test above
+      // applies to background. Measured ratio: ~5.88:1.
+      final Color effective = _compositeOver(c.textSecondary, c.controlFill);
+      expect(
+        _contrastRatio(effective, c.controlFill),
+        greaterThanOrEqualTo(4.5),
+      );
+    });
+
     test('light CruxChip selected-state border (accentLine) has at least '
         '3.0 non-text contrast (WCAG 1.4.11) against background/surface', () {
       const CruxColors c = CruxColors.light;

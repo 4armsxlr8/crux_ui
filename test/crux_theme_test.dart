@@ -113,4 +113,38 @@ void main() {
       expect(newWidget.updateShouldNotify(oldWidget), isTrue);
     });
   });
+
+  group('CruxThemeData equality', () {
+    test('two instances differing only in colors.controlFill are not equal '
+        'and have different hashCodes (regression: theme.dart hand-writes '
+        '== and hashCode by enumerating every CruxColors field, so a new '
+        'field is silently ignored by both unless it is added there too)', () {
+      final CruxThemeData a = CruxThemeData(
+        colors: CruxColors.light,
+        typography: const CruxTypography(),
+        brightness: Brightness.light,
+      );
+      final CruxThemeData b = CruxThemeData(
+        colors: CruxColors(
+          background: CruxColors.light.background,
+          surface: CruxColors.light.surface,
+          accent: CruxColors.light.accent,
+          accentTint: CruxColors.light.accentTint,
+          accentLine: CruxColors.light.accentLine,
+          textPrimary: CruxColors.light.textPrimary,
+          textSecondary: CruxColors.light.textSecondary,
+          muted: CruxColors.light.muted,
+          separator: CruxColors.light.separator,
+          success: CruxColors.light.success,
+          error: CruxColors.light.error,
+          controlFill: Color(0xFF000000),
+        ),
+        typography: const CruxTypography(),
+        brightness: Brightness.light,
+      );
+
+      expect(a, isNot(equals(b)));
+      expect(a.hashCode, isNot(equals(b.hashCode)));
+    });
+  });
 }
