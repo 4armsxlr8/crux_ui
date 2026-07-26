@@ -2,6 +2,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart' show TextInputFormatter;
 
 import 'colors.dart';
+import 'motion.dart';
 import 'radii.dart';
 import 'spacing.dart';
 import 'theme.dart';
@@ -80,6 +81,30 @@ const double _helperRowGap = CruxSpacing.s8;
 /// same color the box's border switches to, per "The box" above. That row's
 /// height is also always reserved, so showing or clearing an error never
 /// shifts anything else in the layout.
+///
+/// **Error shake.** Whenever a validation error appears (`errorText` goes
+/// from `null` to non-`null`) the *box* — and only the box, not the label
+/// row above it or the caption row below it — plays a brief horizontal
+/// shake, the familiar "wrong password" wobble, via [CruxMotion.shake].
+/// The label and caption/helper text stay perfectly still while the box
+/// shakes under them. (This reverses an earlier version of this field, in
+/// which the whole field shook as one piece; see
+/// `unknowns/textfield-atom/implementation-notes.md`'s 2026-07-26 entry for
+/// why — in short, the user reviewed the whole-field shake on a physical
+/// device and asked for box-only instead.) Pressing the same submit button
+/// again while an identical error is already showing shakes again too —
+/// `errorText` itself does not change between the two calls, but this is
+/// the common real case (the user presses the button again), so this
+/// field's [FormFieldState.validate] override shakes on every failed call,
+/// not only the first. An error already showing the very first time this
+/// field is ever built (for example an [AutovalidateMode.always] field
+/// whose initial value is already invalid) does not shake on mount: from
+/// this field's own lifetime, there was no prior successful, error-free
+/// build for that state to have changed away from. The shake is a
+/// paint-time transform only — it never changes this field's own size or
+/// shifts anything around it — and is fully suppressed (never merely
+/// shortened) when the OS "reduce motion" accessibility setting is on
+/// ([MediaQuery.disableAnimationsOf]).
 ///
 /// **Disabled.** Set [enabled] to `false` to render the whole field (box,
 /// label, helper/error text) at 55% opacity and reject input. Unlike the
@@ -369,6 +394,51 @@ class _CruxTextFormFieldState extends FormFieldState<String> {
   TextEditingController? _controller;
   FocusNode? _focusNode;
 
+  /// Whether [_buildContent] has run at least once yet. Guards the shake
+  /// -trigger detection below so the *very first* build -- which may
+  /// already show an error (an `AutovalidateMode.always` field whose
+  /// initial value is already invalid, as in the widgetbook catalog's error
+  /// cell) -- establishes a baseline rather than being treated as an error
+  /// that "just appeared": from this field's own lifetime, there was no
+  /// prior null `errorText` to transition away from, so nothing plays on
+  /// mount.
+  bool _hasBuiltOnce = false;
+
+  /// The `errorText` observed on the previous build, used to detect a null
+  /// -> non-null transition ("an error appears", trigger 1 in
+  /// implementation-notes.md's "Error shake" section).
+  String? _previousErrorText;
+
+  /// Set by [validate] whenever it is called and the field turns out
+  /// invalid, regardless of whether `errorText`'s *value* actually changed
+  /// -- trigger 2 in implementation-notes.md's "Error shake" section: a
+  /// repeated failed submit with an identical error message. A plain null
+  /// -> non-null comparison on `errorText` alone would miss this case,
+  /// since `errorText` never goes back to null between the two `validate()`
+  /// calls -- it stays the same non-null string throughout, so nothing
+  /// about the *value* changes for [_buildContent]'s own comparison to
+  /// notice. Consumed (reset to `false`) the next time [_buildContent]
+  /// runs, whether or not it was the reason that build shook.
+  bool _forceShakeOnNextBuild = false;
+
+  /// Bumped by exactly 1, in [_buildContent], every time this field should
+  /// play its shake. Fed to [CruxMotion.shake] as its `trigger`, which
+  /// plays a new shake whenever this value changes across a rebuild.
+  int _shakeGeneration = 0;
+
+  @override
+  bool validate() {
+    final bool isValid = super.validate();
+    if (!isValid) {
+      // super.validate() already called setState (updating errorText), so a
+      // rebuild -- and therefore a future _buildContent call that will
+      // consume this flag -- is already scheduled; no extra setState is
+      // needed here.
+      _forceShakeOnNextBuild = true;
+    }
+    return isValid;
+  }
+
   CruxTextFormField get _field => widget as CruxTextFormField;
 
   TextEditingController get _effectiveController =>
@@ -462,6 +532,26 @@ class _CruxTextFormFieldState extends FormFieldState<String> {
     final String? errorText = field.errorText;
     final String captionText = errorText ?? _field.helperText ?? '';
 
+    // Decide whether this build should play a new shake -- see
+    // _hasBuiltOnce's and _previousErrorText's doc comments for what each
+    // check means. This only ever *derives* _shakeGeneration for the
+    // widget tree this same method is about to build; it never calls
+    // setState (which build() may not do), so it relies on whatever caused
+    // this rebuild (an explicit validate() call, or Flutter's own
+    // FormFieldState.build() running the validator for an autovalidate
+    // mode just before invoking this builder) having already been
+    // scheduled through a setState of its own.
+    final bool errorJustAppeared =
+        errorText != null && _previousErrorText == null;
+    final bool shouldShake =
+        _hasBuiltOnce && (errorJustAppeared || _forceShakeOnNextBuild);
+    _forceShakeOnNextBuild = false;
+    _hasBuiltOnce = true;
+    _previousErrorText = errorText;
+    if (shouldShake) {
+      _shakeGeneration++;
+    }
+
     final Widget box = ConstrainedBox(
       constraints: const BoxConstraints(minHeight: _minTapTarget),
       child: Container(
@@ -522,6 +612,15 @@ class _CruxTextFormFieldState extends FormFieldState<String> {
       ),
     );
 
+    // Only the box itself shakes -- see the class doc's "Error shake"
+    // section and implementation-notes.md's 2026-07-26 reversal entry for
+    // why this no longer wraps the label row and caption row too.
+    final Widget shakingBox = CruxMotion.shake(
+      trigger: _shakeGeneration,
+      reduceMotion: MediaQuery.disableAnimationsOf(field.context),
+      child: box,
+    );
+
     return Semantics(
       container: true,
       textField: true,
@@ -533,7 +632,7 @@ class _CruxTextFormFieldState extends FormFieldState<String> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: <Widget>[
             ?labelRow,
-            box,
+            shakingBox,
             const SizedBox(height: _helperRowGap),
             caption,
           ],

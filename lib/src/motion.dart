@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/widgets.dart';
 import 'package:motor/motor.dart' as motor;
 
@@ -134,5 +136,130 @@ class CruxMotion {
       builder: builder,
       child: child,
     );
+  }
+
+  /// The total duration of the horizontal shake [shake] plays each time
+  /// [shake]'s `trigger` changes -- see [shake]'s doc for what drives it.
+  ///
+  /// Un-tuned: a sensible starting point (long enough for [_shakeCycles]
+  /// oscillations to read as a wobble rather than a single flick, short
+  /// enough not to outstay the validation error it accompanies), not yet
+  /// checked against a running app on a device the way [_spring]'s 200ms
+  /// was (see this class's "Motion tuning" doc on [_spring]). Revisit on a
+  /// device before release.
+  static const Duration shakeDuration = Duration(milliseconds: 400);
+
+  /// The peak horizontal displacement [shake] moves the shaken widget by, in
+  /// logical pixels, at the strongest point of its decaying oscillation.
+  /// Un-tuned -- see [shakeDuration]'s doc for what that means here.
+  static const double shakeAmplitude = 8;
+
+  /// The number of full left-right oscillations [shake] completes over
+  /// [shakeDuration].
+  ///
+  /// Deliberately an integer: the oscillation term below
+  /// (`sin(_shakeCycles * 2 * pi * progress)`) is then mathematically zero
+  /// at both `progress == 0` and `progress == 1`, matching a shake that
+  /// both starts and ends at rest. [shake] additionally hard-clamps its
+  /// output to exactly `0.0` once `progress >= 1.0` rather than trusting
+  /// that mathematical zero to survive floating-point rounding -- see
+  /// [_shakeMotion]'s doc for why `progress` itself is guaranteed to reach
+  /// exactly `1.0`.
+  static const int _shakeCycles = 3;
+
+  /// Shapes how quickly [shake]'s oscillation decays: applied as
+  /// `exp(-_shakeDecayRate * progress)`, so a higher value front-loads more
+  /// of the displacement into the first swing and tapers later swings
+  /// faster, the way a real "wrong password" wobble reads (one clear kick,
+  /// a couple of diminishing echoes) rather than a uniform back-and-forth.
+  static const double _shakeDecayRate = 4.5;
+
+  /// The motor motion driving [shake]'s internal 0->1 progress value: a
+  /// fixed-duration linear curve (`Motion.curved`, motor's duration-based
+  /// alternative to a spring -- see the library doc's "unified motion
+  /// system" framing), not a spring.
+  ///
+  /// A shake is not a value settling toward a persisted target the way
+  /// [_spring]/[_slowSpring] are used elsewhere in this class: it is a
+  /// one-shot effect that must (a) be able to play again from a standing
+  /// start on every trigger, even back-to-back with an unchanged target
+  /// value (see [shake]'s doc), and (b) return to *exactly* zero
+  /// displacement once it finishes, not merely settle near zero. A spring's
+  /// settle is asymptotic -- it approaches its target but is not guaranteed
+  /// to reach it bit-exactly (this is why this package's own existing
+  /// spring-driven values are only ever asserted `closeTo` their resting
+  /// value once settled, e.g. button_test.dart's press-animation test
+  /// asserting `closeTo(1.0, 0.001)` after `pumpAndSettle()`, never a bare
+  /// `1.0`) -- so a spring cannot back requirement (b). `Motion.curved`'s
+  /// underlying `CurveSimulation`, in contrast, returns its `end` value
+  /// bit-exactly once elapsed time passes [shakeDuration] (confirmed
+  /// against motor 1.1.0's source, `simulations/curve_simulation.dart`'s
+  /// `x`/`isDone`: `x(time)` short-circuits to `end` once `time` exceeds
+  /// the duration, rather than asymptotically approaching it), which is
+  /// what lets [shake] hard-clamp its own output to exactly `0.0` once
+  /// progress reaches `1.0`.
+  static const motor.Motion _shakeMotion = motor.Motion.curved(shakeDuration);
+
+  /// Builds [child] wrapped in a horizontal shake -- a decaying left-right
+  /// wobble, the familiar "wrong password" reaction to a validation error --
+  /// that plays once each time [trigger] changes from whatever value it had
+  /// on the previous build.
+  ///
+  /// Unlike [scale] and [animatedValue], which spring a value toward a
+  /// persisted target and stay there, a shake is a one-shot effect that
+  /// must be able to play again even when nothing about the *represented
+  /// state* changed -- see `CruxTextFormField`'s "a repeated failed
+  /// submit with an identical error message shakes again" requirement, the
+  /// reason this takes a `trigger` count rather than, say, a `bool
+  /// hasError`: the caller increments [trigger] by exactly 1 every time a
+  /// new shake should play (an unchanged [trigger] across a rebuild plays
+  /// no new shake, the same "reacts to changes, not levels" contract every
+  /// other value passed to this class follows).
+  ///
+  /// Internally drives a 0->1 progress double via [_shakeMotion] (see its
+  /// doc for why a duration-based curve is used instead of a spring here)
+  /// and maps it through a fixed decaying sine
+  /// (`shakeAmplitude * exp(-_shakeDecayRate * p) * sin(_shakeCycles * 2 *
+  /// pi * p)`), then returns a hard `0.0` once progress reaches `1.0`
+  /// instead of trusting that formula's own floating-point residual at the
+  /// boundary to equal zero exactly.
+  ///
+  /// Pass `reduceMotion: true` -- from [MediaQuery.disableAnimationsOf],
+  /// Flutter's binding for the OS "reduce motion" accessibility setting --
+  /// to suppress the shake entirely: [child] is returned unwrapped, with no
+  /// motor widget built at all and no offset ever applied, rather than
+  /// merely playing a shortened or zero-amplitude version of it.
+  static Widget shake({
+    required int trigger,
+    required Widget child,
+    required bool reduceMotion,
+  }) {
+    if (reduceMotion) {
+      return child;
+    }
+    return motor.SingleMotionBuilder(
+      motion: _shakeMotion,
+      value: trigger.toDouble(),
+      builder: (BuildContext context, double animatedValue, Widget? child) {
+        // How far into *this* shake leg the animation has traveled: trigger
+        // increases by exactly 1 per shake (see the class doc above), so
+        // `trigger - 1` is the value this leg started from whenever the
+        // previous shake fully settled first (the common case) -- see
+        // [shake]'s class doc for the rare-and-harmless exception (a
+        // retrigger before the previous shake finishes).
+        final double progress = (animatedValue - (trigger - 1)).clamp(0.0, 1.0);
+        final double dx = progress >= 1.0 ? 0.0 : _shakeOffset(progress);
+        return Transform.translate(offset: Offset(dx, 0), child: child);
+      },
+      child: child,
+    );
+  }
+
+  /// The decaying-sine formula [shake] maps its 0->1 progress through --
+  /// see [shake]'s doc.
+  static double _shakeOffset(double progress) {
+    return shakeAmplitude *
+        math.exp(-_shakeDecayRate * progress) *
+        math.sin(_shakeCycles * 2 * math.pi * progress);
   }
 }

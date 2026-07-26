@@ -164,6 +164,29 @@ Finder _boxFinder() {
   });
 }
 
+/// Reads the horizontal component of the shake offset [CruxMotion.shake]
+/// applies to the box (2026-07-26: narrowed from the whole field -- see
+/// implementation-notes.md's dated reversal entry), by locating the
+/// `Transform` it wraps the box in and reading the (0, 3) entry of its 4x4
+/// matrix -- the same "read the transform matrix directly" convention
+/// button_test.dart's press-animation test uses for its (0, 0) scale entry.
+///
+/// Returns `null` if no such `Transform` exists at all. This distinguishes
+/// "not currently shaking" (a `Transform` present with a zero offset) from
+/// "the shake wrapper isn't even in the tree" (the reduce-motion path,
+/// which per its own contract bypasses the wrapper entirely rather than
+/// animating it to a standstill -- see the "reduce motion" group below).
+double? _shakeDx(WidgetTester tester) {
+  final Finder finder = find.descendant(
+    of: find.byType(CruxTextFormField),
+    matching: find.byType(Transform),
+  );
+  if (finder.evaluate().isEmpty) {
+    return null;
+  }
+  return tester.widget<Transform>(finder).transform.entry(0, 3);
+}
+
 void main() {
   group('placeholder', () {
     testWidgets('renders inside the box when the value is empty', (
@@ -476,6 +499,273 @@ void main() {
 
         expect(heightWithError, heightBeforeError);
         expect(find.text('必須項目です'), findsOneWidget);
+      },
+    );
+  });
+
+  group('shake animation (validation error)', () {
+    // 2026-07-26: the shake was narrowed from the whole field down to just
+    // the box -- the label above and the caption/error row below must stay
+    // perfectly still while only the box shakes. This reverses the
+    // "whole field shakes together" call recorded in
+    // implementation-notes.md's original "Post-milestone addition:
+    // validation-error shake animation" entry; see that file's dated
+    // reversal entry for the full history. The four tests immediately below
+    // assert, with real positional reads (not just "a Transform exists
+    // somewhere"), that: (1) the box itself is offset mid-shake, (2) the
+    // label does not move, (3) the caption/error text does not move, and
+    // (4) the box returns to exactly its resting position once the shake
+    // settles.
+    testWidgets(
+      'an error appearing offsets the box horizontally mid-animation, and '
+      'settles back to exactly its resting position once the shake '
+      'finishes',
+      (WidgetTester tester) async {
+        final GlobalKey<FormState> formKey = GlobalKey<FormState>();
+        await tester.pumpWidget(
+          _wrap(
+            Form(
+              key: formKey,
+              child: CruxTextFormField(
+                label: 'メールアドレス',
+                validator: (String? value) =>
+                    (value == null || value.isEmpty) ? '必須項目です' : null,
+              ),
+            ),
+          ),
+        );
+
+        // Baseline: no error yet, so no shake has ever played.
+        expect(_shakeDx(tester), 0.0);
+        final Offset restingBoxTopLeft = tester.getTopLeft(_boxFinder());
+
+        formKey.currentState!.validate();
+        await tester.pump();
+        // Partway into the shake -- mid-animation, not settled.
+        await tester.pump(const Duration(milliseconds: 80));
+
+        // isNotNull first: null (no Transform at all) is technically "not
+        // 0.0" too, so isNot(0.0) alone would pass vacuously if the shake
+        // wrapper vanished entirely rather than genuinely animating.
+        expect(_shakeDx(tester), isNotNull);
+        expect(_shakeDx(tester), isNot(0.0));
+
+        // The box's actual on-screen position -- not just the raw matrix
+        // entry -- is offset from where it rests.
+        final Offset midShakeBoxTopLeft = tester.getTopLeft(_boxFinder());
+        expect(midShakeBoxTopLeft, isNot(restingBoxTopLeft));
+
+        await tester.pumpAndSettle();
+
+        expect(_shakeDx(tester), 0.0);
+        expect(tester.getTopLeft(_boxFinder()), restingBoxTopLeft);
+      },
+    );
+
+    testWidgets(
+      'mid-shake, the label above the box has not moved at all from its '
+      'resting position -- only the box shakes',
+      (WidgetTester tester) async {
+        final GlobalKey<FormState> formKey = GlobalKey<FormState>();
+        await tester.pumpWidget(
+          _wrap(
+            Form(
+              key: formKey,
+              child: CruxTextFormField(
+                label: 'メールアドレス',
+                validator: (String? value) =>
+                    (value == null || value.isEmpty) ? '必須項目です' : null,
+              ),
+            ),
+          ),
+        );
+
+        final Rect restingLabelRect = tester.getRect(find.text('メールアドレス'));
+
+        formKey.currentState!.validate();
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 80));
+
+        // Confirm the shake is actually in flight here, so this test can't
+        // pass vacuously if the shake never started.
+        expect(_shakeDx(tester), isNotNull);
+        expect(_shakeDx(tester), isNot(0.0));
+
+        expect(tester.getRect(find.text('メールアドレス')), restingLabelRect);
+      },
+    );
+
+    testWidgets(
+      'mid-shake, the caption/error text below the box has not moved at '
+      'all from its resting position -- only the box shakes',
+      (WidgetTester tester) async {
+        final GlobalKey<FormState> formKey = GlobalKey<FormState>();
+        await tester.pumpWidget(
+          _wrap(
+            Form(
+              key: formKey,
+              child: CruxTextFormField(
+                label: 'メールアドレス',
+                validator: (String? value) =>
+                    (value == null || value.isEmpty) ? '必須項目です' : null,
+              ),
+            ),
+          ),
+        );
+
+        // First failed validate: let the shake fully settle so the error
+        // caption is showing and at rest before capturing its resting
+        // position.
+        formKey.currentState!.validate();
+        await tester.pumpAndSettle();
+        final Rect restingCaptionRect = tester.getRect(find.text('必須項目です'));
+
+        // Same invalid value, same validator, same message -- errorText
+        // does not change on this second call, but it shakes again anyway
+        // (see the "pressing submit a second time" test below), giving a
+        // second mid-shake window to sample the caption's position in.
+        formKey.currentState!.validate();
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 80));
+
+        // Confirm the shake is actually in flight here, so this test can't
+        // pass vacuously if the shake never started.
+        expect(_shakeDx(tester), isNotNull);
+        expect(_shakeDx(tester), isNot(0.0));
+
+        expect(tester.getRect(find.text('必須項目です')), restingCaptionRect);
+      },
+    );
+
+    testWidgets(
+      'pressing submit a second time with the identical error message '
+      'shakes again, even though errorText itself did not change -- a '
+      'naive "did errorText change" trigger would silently do nothing here, '
+      'but this is the common real case: the user presses the button again',
+      (WidgetTester tester) async {
+        final GlobalKey<FormState> formKey = GlobalKey<FormState>();
+        await tester.pumpWidget(
+          _wrap(
+            Form(
+              key: formKey,
+              child: CruxTextFormField(
+                label: 'メールアドレス',
+                validator: (String? value) =>
+                    (value == null || value.isEmpty) ? '必須項目です' : null,
+              ),
+            ),
+          ),
+        );
+
+        formKey.currentState!.validate();
+        await tester.pumpAndSettle();
+        expect(_shakeDx(tester), 0.0);
+        expect(find.text('必須項目です'), findsOneWidget);
+
+        // Same invalid value, same validator, same message -- errorText
+        // does not change on this second call.
+        formKey.currentState!.validate();
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 80));
+
+        // isNotNull first: null (no Transform at all) is technically "not
+        // 0.0" too, so isNot(0.0) alone would pass vacuously if the shake
+        // wrapper vanished entirely rather than genuinely animating.
+        expect(_shakeDx(tester), isNotNull);
+        expect(_shakeDx(tester), isNot(0.0));
+      },
+    );
+
+    testWidgets('applies no offset at all, ever, when the OS reduce-motion '
+        'accessibility setting is on -- the field still turns red and shows '
+        'its error message, but the shake itself is fully suppressed rather '
+        'than merely shortened', (WidgetTester tester) async {
+      final GlobalKey<FormState> formKey = GlobalKey<FormState>();
+      await tester.pumpWidget(
+        MediaQuery(
+          data: const MediaQueryData(disableAnimations: true),
+          child: _wrap(
+            Form(
+              key: formKey,
+              child: CruxTextFormField(
+                label: 'メールアドレス',
+                validator: (String? value) =>
+                    (value == null || value.isEmpty) ? '必須項目です' : null,
+              ),
+            ),
+          ),
+        ),
+      );
+
+      formKey.currentState!.validate();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 80));
+
+      // No Transform wrapper at all: the shake primitive is bypassed
+      // entirely rather than animated to a standstill (see _shakeDx's
+      // doc for why `null` -- not `0.0` -- is the signal for this).
+      expect(_shakeDx(tester), isNull);
+
+      // The rest of the error presentation is unaffected by reduce
+      // motion: the message still shows and the box still turns red.
+      expect(find.text('必須項目です'), findsOneWidget);
+      final ShapeDecoration decoration =
+          tester.widget<Container>(_boxFinder()).decoration! as ShapeDecoration;
+      final RoundedSuperellipseBorder shape =
+          decoration.shape as RoundedSuperellipseBorder;
+      expect(shape.side, BorderSide(color: CruxColors.light.error));
+    });
+
+    testWidgets(
+      'shaking mid-animation moves neither a sibling widget below the '
+      "field nor the field's own reported size -- it is a paint-time "
+      'transform only',
+      (WidgetTester tester) async {
+        final GlobalKey<FormState> formKey = GlobalKey<FormState>();
+        const Key siblingKey = Key('sibling-below-field');
+        await tester.pumpWidget(
+          _wrap(
+            Form(
+              key: formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  CruxTextFormField(
+                    label: 'メールアドレス',
+                    validator: (String? value) =>
+                        (value == null || value.isEmpty) ? '必須項目です' : null,
+                  ),
+                  const SizedBox(key: siblingKey, height: 20),
+                ],
+              ),
+            ),
+          ),
+        );
+
+        final Size fieldSizeBefore = tester.getSize(
+          find.byType(CruxTextFormField),
+        );
+        final Offset siblingTopLeftBefore = tester.getTopLeft(
+          find.byKey(siblingKey),
+        );
+
+        formKey.currentState!.validate();
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 80));
+
+        // Confirm the shake is actually in flight here, so this test can't
+        // pass vacuously if the shake never started.
+        // isNotNull first: null (no Transform at all) is technically "not
+        // 0.0" too, so isNot(0.0) alone would pass vacuously if the shake
+        // wrapper vanished entirely rather than genuinely animating.
+        expect(_shakeDx(tester), isNotNull);
+        expect(_shakeDx(tester), isNot(0.0));
+
+        expect(
+          tester.getSize(find.byType(CruxTextFormField)),
+          fieldSizeBefore,
+        );
+        expect(tester.getTopLeft(find.byKey(siblingKey)), siblingTopLeftBefore);
       },
     );
   });
