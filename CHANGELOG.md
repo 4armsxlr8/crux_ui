@@ -1,5 +1,102 @@
 # Changelog
 
+## 0.4.0
+
+- Added `CruxTextFormField`, a single-line, `Form`-integrated text input
+  field: it is a real `FormField<String>`, so wrapping several of them (and
+  other `FormField`s) in a Flutter `Form` gets batched `FormState.validate`
+  and `FormState.save`, and `validator`/`onSaved` work as usual.
+- Built on `CupertinoTextField` rather than Material's `TextField`: Material's
+  `TextField` asserts a `Material` ancestor and resolves roughly a dozen of
+  its defaults (fill color, border, error color, text style, and so on) from
+  the ambient `ThemeData`, which would let a consuming app's Material theme
+  leak into Crux's look. `CupertinoTextField` imports no Material code and
+  takes every visual property explicitly, so its decoration can be fully
+  replaced with Crux tokens instead.
+- `label` and `placeholder` are two separate arguments: `label` (the field's
+  name, e.g. `メールアドレス`) always renders in a static row above the box,
+  whether the value is empty or not — it never moves. `placeholder` (a hint
+  at the expected format, e.g. `you@example.com`) renders inside the box
+  itself and disappears once the value is non-empty, passed straight through
+  to `CupertinoTextField.placeholder`/`placeholderStyle`. The label row is
+  reserved only when `label` is non-`null`; the helper/error caption row
+  below the box is always reserved regardless, so a validation error
+  appearing or clearing never shifts anything else in the layout. Both the
+  label and the placeholder render in `CruxColors.textSecondary` (measured
+  against `controlFill`: ~5.79:1 light, ~5.88:1 dark, both comfortably above
+  the 4.5:1 AA floor for normal text).
+- 2026-07-26: `label` and `placeholder` were originally one argument — the
+  label doubled as the placeholder, resting inside the box while the value
+  was empty and animating up into the reserved row above the box once a
+  value existed (an early version of this changelog entry described that
+  design). The label's movement was a 200ms spring driven by
+  `CruxMotion.animatedValue`. Revised because the field's name and its
+  hint text were always meant to be two separate things; the label-as-
+  placeholder scheme and the animation it required are gone entirely.
+- The box's border is `CruxColors.separator` at rest and turns
+  `CruxColors.error` — matching the caption row below it — while a
+  validation error is showing, reverting the moment the error clears.
+  Focus deliberately changes nothing about the field's appearance on top of
+  that: same border color, same width, no highlight ring, not even while
+  typing, whether or not an error is currently showing — since the agreed
+  spec calls for a field whose only appearance change is driven by the
+  error state, never by keyboard focus.
+- Added `CruxColors.controlFill` (light `#E9E8E2`, dark `#262319`) — the
+  fill painted behind an interactive control such as a text input — and
+  used it to fill `CruxTextFormField`'s box, which previously had no fill
+  at all (only its 1px border and the page's own background made it
+  visible). The name is deliberately generic rather than field-specific:
+  the planned `CruxInputBar` and `CruxComposer` are expected to reuse
+  it. Chosen over reusing `separator` (would make the fill and the 1px
+  border the same color, erasing the border) or `surface` (would make a
+  filled field indistinguishable from a card in dark mode, where `surface`
+  and `background` sit close together). `test/contrast_test.dart` verifies
+  `textPrimary`/`textSecondary` against it: light ~12.52:1 / ~5.79:1, dark
+  ~14.38:1 / ~5.88:1 (the dark `textSecondary` figure composites it over
+  `controlFill` first, since `textSecondary` is translucent in the dark
+  palette) — both comfortably above the 4.5:1 floor for normal text.
+- Text selection handles and the copy/paste menu use the iOS ("Cupertino")
+  style on every platform, `CupertinoTextField`'s own default behavior. The
+  text cursor and selection highlight are repainted in `CruxColors.accent`
+  instead of iOS's default blue — or, inside a consuming app's Material
+  `MaterialApp`/`Theme`, that app's own primary color — via an internal
+  `DefaultSelectionStyle` wrapper scoped to the field's own subtree, since
+  `CupertinoTextField` consults an ambient `DefaultSelectionStyle` before its
+  own `CupertinoTheme` fallback. A second, narrower `CupertinoTheme` wrapper
+  colors the selection drag handles and the text-magnifier ring, the two
+  lookups `DefaultSelectionStyle` doesn't cover. Neither wrapper touches any
+  ambient `CupertinoTheme`, `DefaultSelectionStyle`, or Material theming
+  outside this widget.
+- Fixed three further cases of the same ambient-leak class found in the same
+  audit: a disabled field no longer paints a stray gray background fill of
+  its own underneath the box (the inner `CupertinoTextField`'s own
+  decoration stays empty even while disabled, so the outer box's own
+  `controlFill` is the only fill ever visible), the selection drag handles
+  use `CruxColors.accent` instead of iOS's default system blue, and the
+  on-screen keyboard's light/dark appearance now follows
+  `CruxThemeData.brightness` instead of the device's platform brightness.
+- Unlike every other Crux component, a `CruxTextFormField`'s text does
+  not ellipsize when it overflows — it scrolls horizontally to follow the
+  cursor, the ordinary behavior of a single-line text field, since
+  ellipsizing text while it is actively being edited would hide what the
+  user just typed.
+- Disabled is expressed with a plain `enabled: false` rather than the
+  package's usual "pass `null` to a callback" convention: a text field is
+  commonly used with only a `controller` and no `onChanged` callback at all,
+  so a nullable-callback convention would have no way to tell "enabled, with
+  no callback" apart from "disabled."
+- Fixed a crash in `CruxListTile`, present since it shipped in 0.3.0: a
+  tile squeezed narrower than its fixed content (`leading`'s frame plus its
+  gaps) would throw "was given an infinite size during layout" if the
+  surrounding height constraint was also unbounded — the case a `Column`,
+  `ListView`, or `SingleChildScrollView` hands a plain (non-`Expanded`)
+  child along its main/scroll axis. The narrow-width fallback's internal
+  `OverflowBox` now sizes itself to its child's actual measured size
+  (`OverflowBoxFit.deferToChild`) instead of defaulting to the full ambient
+  size, which also fixes a quieter sibling bug: with a bounded but tall
+  ambient height, the same narrow tile used to silently stretch to fill it
+  instead of hugging its normal, short content height.
+
 ## 0.3.0
 
 - Added `CruxRadii` (`m` = 14 / `l` = 16 / `pill` = 9999), a fixed

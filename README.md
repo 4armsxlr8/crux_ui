@@ -6,12 +6,12 @@ Crux UI likes people who like Crux UI.
 
 **Under development.** The design token layer is implemented: colors,
 spacing, typography, and radii, plus a `CruxTheme` / `CruxThemeData` pair
-that makes them available to a widget subtree. Six widget atoms are also
+that makes them available to a widget subtree. Seven widget atoms are also
 implemented: `CruxButton`, `CruxChip`, `CruxCard`, `CruxListTile`,
-`CruxSwitch`, and `CruxDivider`. Other widgets (text fields, snackbars,
-and so on) have not been built yet — for now, the rest of a screen is
-composed from plain Flutter widgets plus Crux's tokens, as shown in
-`example/`.
+`CruxSwitch`, `CruxDivider`, and `CruxTextFormField`. Other widgets
+(snackbars and so on) have not been built yet — for now, the rest of a
+screen is composed from plain Flutter widgets plus Crux's tokens, as shown
+in `example/`.
 
 Crux never rewrites Material's `ThemeData`; providing a `CruxTheme` does
 not change the look of `Material`, `Scaffold`, or other Material widgets.
@@ -87,11 +87,42 @@ and calls `onChanged(!value)` on tap rather than mutating itself. Pass
 `CruxDivider` is a 1 logical pixel tall `separator`-colored rule that
 fills the width of its bounded parent, with an optional `indent`.
 
-See `example/lib/main.dart` for a real-world sample screen using every
-widget atom together, plus a light/dark toggle. For the color palette, type
-scale, spacing scale, and radii tokens, and for every atom's full
-Playground/States matrix/Edge cases catalog, run the dev catalog app in
-`widgetbook/` (`cd widgetbook && flutter run -d macos`).
+`CruxTextFormField` is a single-line, `Form`-integrated text input field —
+a real `FormField<String>`, so `validator`/`onSaved` and a wrapping `Form`'s
+batched validate/save all work. It is built on `CupertinoTextField` rather
+than Material's `TextField`, so a host app's Material theme can never leak
+into its look. `label` (the field's name) and `placeholder` (a hint at the
+expected format) are separate arguments: `label` always renders in a static
+row above the box, whether or not the field has a value, and `placeholder`
+renders inside the box itself, disappearing once a value is entered. Its
+helper/error caption row below the box is always reserved, so nothing shifts
+as a validation error appears or clears. Pass `enabled: false` to disable
+it, rather than the package's usual null-callback convention — a text field
+is commonly used with only a `controller` and no `onChanged` at all.
+
+Its selection/copy-paste menu's wording ("Paste", "Copy", ...) has two
+sources, and a non-English app needs to cover both. On iOS 16+, the menu is
+drawn by iOS itself, not Flutter, so its wording follows the **app
+bundle's** declared languages — the `CFBundleLocalizations` array in
+`Info.plist` — see `example/ios/Runner/Info.plist` for a working setup.
+Everywhere else (older iOS, Android, desktop), Flutter draws the menu
+itself and reads its wording from whichever `CupertinoLocalizations` the
+host app supplies, falling back to English if unconfigured. Add the
+`flutter_localizations` package and its
+`GlobalCupertinoLocalizations.delegate` (with the Material/Widgets
+equivalents and a matching `supportedLocales`) to your `MaterialApp` to fix
+that path — see `example/lib/main.dart` for a working setup. `crux_ui`
+itself never depends on `flutter_localizations`, so this is setup a
+consuming app adds itself rather than something this package could do for
+you.
+
+See `example/` for a gallery of real-world sample screens, one per use
+case (a task list, a login form, and so on), reached from a home index and
+sharing one header with a light/dark toggle — see `example/lib/main.dart`
+for the app shell and `example/lib/screens/` for each sample screen. For
+the color palette, type scale, spacing scale, and radii tokens, and for
+every atom's full Playground/States matrix/Edge cases catalog, run the dev
+catalog app in `widgetbook/` (`cd widgetbook && flutter run -d macos`).
 
 ## Getting started
 
@@ -108,10 +139,15 @@ flutter test
 ## Roadmap
 
 `CruxButton`, `CruxChip`, `CruxCard`, `CruxListTile`, `CruxSwitch`,
-and `CruxDivider` are the widget atoms shipped so far; the rest of the
-widget set (text fields, snackbars, and so on) has not been decided yet.
-Each future component will land here along with its tests and
-documentation, following the same tokens introduced in 0.1.0.
+`CruxDivider`, and `CruxTextFormField` are the widget atoms shipped so
+far; the rest of the widget set (snackbars and so on) has not been decided
+yet. The remaining text-input use cases are deliberately planned as
+separate widgets rather than options on `CruxTextFormField`, since their
+looks differ too much to share one API: `CruxInputBar` (search and chat,
+which share one look) and `CruxComposer` (a post body — no surrounding
+box, fills the screen, multi-line by default). Neither is built yet. Each
+future component will land here along with its tests and documentation,
+following the same tokens introduced in 0.1.0.
 
 ## License
 
