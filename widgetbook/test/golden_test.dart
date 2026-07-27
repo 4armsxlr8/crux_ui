@@ -19,6 +19,7 @@ import 'package:widgetbook_app/usecases/button.dart';
 import 'package:widgetbook_app/usecases/card.dart';
 import 'package:widgetbook_app/usecases/chip.dart';
 import 'package:widgetbook_app/usecases/foundations.dart';
+import 'package:widgetbook_app/usecases/input_bar.dart';
 import 'package:widgetbook_app/usecases/list_tile.dart';
 import 'package:widgetbook_app/usecases/switch_.dart';
 import 'package:widgetbook_app/usecases/text_form_field.dart';
@@ -29,6 +30,7 @@ void main() {
     'button': const ButtonStatesMatrix(),
     'chip': const ChipStatesMatrix(),
     'card': const CardStatesMatrix(),
+    'input_bar': const InputBarStatesMatrix(),
     'list_tile': const ListTileStatesMatrix(),
     'switch': const SwitchStatesMatrix(),
     'text_form_field': const TextFormFieldStatesMatrix(),
