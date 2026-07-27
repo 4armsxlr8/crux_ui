@@ -138,6 +138,60 @@ class CruxMotion {
     );
   }
 
+  /// Builds a widget that springs a [Color] toward [value] whenever it
+  /// changes, using the same shared spring [scale] and [animatedValue] use.
+  ///
+  /// Introduced for `CruxInputBar`'s send button, whose fill color needs to
+  /// change between its enabled and disabled tones: without this, an
+  /// enabled/disabled toggle would snap the button's color instantly, which
+  /// reads as a flicker next to the button's own spring-driven press feedback
+  /// ([scale]). Routing the color through the same [_spring] makes the color
+  /// change settle with the same timing and bounce as everything else this
+  /// class animates, so it reads as the same "material" responding to state,
+  /// not a separate, disconnected transition.
+  ///
+  /// Interpolates in RGB space via `motor`'s
+  /// [motor.ColorRgbMotionConverter] -- confirmed against motor 1.1.0's
+  /// source (`motion_converter.dart:126-145`): it normalizes a [Color] to its
+  /// four straight (non-premultiplied) `r`/`g`/`b`/`a` components in a single
+  /// four-element list and denormalizes by clamping each component back to
+  /// `[0, 1]` and reconstructing via `Color.from`. All four channels,
+  /// including alpha, are carried through the same spring simulation and
+  /// interpolated together, so a color's alpha animates smoothly alongside
+  /// its RGB rather than being dropped or held fixed -- relevant because this
+  /// package's own dark palette uses translucent colors (`muted` and
+  /// `separator` are `Color.fromRGBO(..., 0.45)`, per `lib/src/colors.dart`),
+  /// so animating toward or away from one of those tokens fades its opacity
+  /// in step with its hue rather than snapping the alpha channel.
+  ///
+  /// Because the interpolation is per-channel in RGB space rather than
+  /// perceptual, animating between two hues that differ a lot (for example a
+  /// saturated accent color to a desaturated gray) can pass through a
+  /// slightly muddier intermediate color than a perceptual color space would
+  /// produce; this is `motor`'s only built-in color converter, and is an
+  /// acceptable trade-off for the short, small-swatch transitions this
+  /// package uses this for (a button fill toggling between two closely
+  /// related design tokens), not a longer decorative gradient animation.
+  ///
+  /// Like [scale] and [animatedValue], this is the single choke point atoms
+  /// route a color spring through so the underlying animation engine can
+  /// change later without breaking Crux UI's public API: [builder] and
+  /// [child] are both plain Flutter types, never a `motor` type.
+  static Widget animatedColor({
+    required Color value,
+    required Widget Function(BuildContext context, Color value, Widget? child)
+    builder,
+    Widget? child,
+  }) {
+    return motor.MotionBuilder<Color>(
+      motion: _spring,
+      converter: const motor.ColorRgbMotionConverter(),
+      value: value,
+      builder: builder,
+      child: child,
+    );
+  }
+
   /// The total duration of the horizontal shake [shake] plays each time
   /// [shake]'s `trigger` changes -- see [shake]'s doc for what drives it.
   ///
