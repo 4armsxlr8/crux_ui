@@ -3,6 +3,7 @@ import 'package:crux_ui/crux_ui.dart';
 
 import '../widgets/app_header.dart';
 import 'chat_screen.dart';
+import 'compose_screen.dart';
 import 'login_screen.dart';
 import 'task_list_screen.dart';
 
@@ -40,6 +41,7 @@ class HomeIndexPage extends StatelessWidget {
                       onTap: () => Navigator.of(context).push(
                         MaterialPageRoute<void>(
                           builder: _sampleScreens[i].builder,
+                          fullscreenDialog: _sampleScreens[i].fullscreenDialog,
                         ),
                       ),
                     ),
@@ -63,11 +65,19 @@ class _SampleScreenEntry {
     required this.title,
     required this.subtitle,
     required this.builder,
+    this.fullscreenDialog = false,
   });
 
   final String title;
   final String subtitle;
   final WidgetBuilder builder;
+
+  /// Whether this entry's screen is pushed as a modal
+  /// (`MaterialPageRoute.fullscreenDialog`) rather than a regular push. Used
+  /// by the "新規投稿" row: composing a post is a transient, cancel-or
+  /// -commit task, the kind of thing conventionally presented as a sheet
+  /// over the current screen rather than another push in the same stack.
+  final bool fullscreenDialog;
 }
 
 /// The gallery's sample screens. Add one entry here alongside a new file
@@ -88,6 +98,12 @@ final List<_SampleScreenEntry> _sampleScreens = <_SampleScreenEntry>[
     subtitle: 'CruxInputBar による検索欄とチャット入力欄、送信で増える吹き出しリスト',
     builder: _buildChatScreen,
   ),
+  _SampleScreenEntry(
+    title: '新規投稿',
+    subtitle: 'CruxComposer による投稿本文の入力、文字数上限と画像添付ボタン付き（フルスクリーンダイアログで開く）',
+    builder: _buildComposeScreen,
+    fullscreenDialog: true,
+  ),
 ];
 
 Widget _buildLoginScreen(BuildContext context) => const LoginScreen();
@@ -95,3 +111,5 @@ Widget _buildLoginScreen(BuildContext context) => const LoginScreen();
 Widget _buildTaskListScreen(BuildContext context) => const TaskListScreen();
 
 Widget _buildChatScreen(BuildContext context) => const ChatScreen();
+
+Widget _buildComposeScreen(BuildContext context) => const ComposeScreen();
