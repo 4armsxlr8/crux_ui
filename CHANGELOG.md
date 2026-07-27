@@ -1,5 +1,100 @@
 # Changelog
 
+## 0.6.0
+
+- Added `CruxComposer`, a borderless, height-filling text area for
+  composing a post -- Crux UI's third and last text-input atom, completing
+  the split alongside `CruxTextFormField` and `CruxInputBar`. It is the
+  first atom that draws no box of its own at all: no fill, no border, no
+  corner radius, no focus-triggered appearance change -- it is meant to sit
+  directly on whatever surface the caller already has (typically
+  `CruxColors.background`), so none of this package's usual
+  `controlFill`-plus-superellipse-corner conventions apply to it.
+- Everything below the text itself is optional. `CruxComposer` can be
+  given zero, one, two, or all three of `actions` (a list of caller-defined
+  buttons, e.g. an attachment or camera button), `submit` (a post button),
+  and `maxLength` (which turns on a character counter). Passing none of the
+  three renders a bare text area with no action row at all -- the row does
+  not exist and is not merely empty in that case -- and the row appears the
+  moment any one of them is supplied. The three earlier candidate designs
+  (a plain text area only, a text area with a built-in counter, or a full
+  fixed action row) were rejected in favor of this all-optional shape so
+  that the same widget can serve both the simplest case and the full
+  post-composer case without a caller ever paying for parts they did not
+  ask for.
+- Going over `maxLength` is accepted, never truncated -- the X ("Twitter")
+  style of over-limit behavior rather than stopping input at the limit.
+  Typing or pasting past the limit keeps every character: the counter turns
+  from `CruxColors.textSecondary` to `CruxColors.error` (only these two
+  states -- there is no intermediate "running low" warning color, since the
+  palette has no dedicated warning token and adding one would also touch
+  `theme.dart`'s hand-written `==`/`hashCode`), the text beyond the limit
+  renders in `CruxColors.error` too, and only the submit button disables.
+  Stopping input at the limit, or letting the caller choose the behavior,
+  were both considered and rejected: the agreed spec is that a post
+  composer should let someone finish their thought and see exactly how much
+  they are over, the same experience X's own composer gives.
+- The character count is measured in grapheme clusters via Flutter's
+  `characters` package (re-exported through `widgets.dart`, so no new
+  dependency was needed) rather than raw UTF-16 code units: an emoji or
+  other combined character counts as one, matching how a person actually
+  perceives "one character" rather than how many code units it happens to
+  take up in memory.
+- The `controller` argument takes a `CruxComposerController?`, a new
+  public `TextEditingController` subclass, rather than a plain
+  `TextEditingController`. This is a hard technical requirement, not a
+  style choice: the over-limit highlight is painted by overriding
+  `buildTextSpan`, a method the Flutter SDK's `EditableTextState` calls
+  virtually on whatever controller it is handed -- a plain
+  `TextEditingController` has no way to inject that override from outside.
+  Leaving `controller` unset (the default) creates and owns a
+  `CruxComposerController` internally. Used on its own, disconnected from
+  a `CruxComposer`, the class behaves exactly like an ordinary
+  `TextEditingController` (including the default composing-underline
+  rendering during IME conversion), so it stays safe to reuse elsewhere.
+- The submit button is enabled only when the field is enabled, the text is
+  non-empty, the text is not over `maxLength`, and `onSubmit` is actually
+  supplied (a `submit` bundle with no `onSubmit` stays disabled rather than
+  looking tappable and silently doing nothing); tapping it calls `onSubmit`
+  with the controller's current text and never clears the text itself on
+  its own. It reuses `CruxButton` (filled, small) internally rather than
+  a bespoke button, the same "disabled just means `onPressed: null`"
+  convention every other Crux control already follows.
+- `CruxComposer` fills exactly the height it is given and scrolls its own
+  text internally once the content outgrows that height, instead of
+  growing line-by-line the way `CruxInputBar` does -- place it inside an
+  `Expanded` (or any other box handing it a bounded height). Keyboard
+  avoidance is deliberately left to the surrounding screen (for example
+  `Scaffold.resizeToAvoidBottomInset`, the same pattern the example app's
+  chat screen already used), not handled inside the widget itself, so it
+  drops into any screen layout without assuming how that screen manages the
+  keyboard.
+- The shared text-input core, `CruxTextFieldCore`, gained a new `expands`
+  parameter to support this. Passing it straight through to
+  `CupertinoTextField.expands` alongside the `minLines: 1` this core always
+  used to send unconditionally would crash immediately: the Flutter SDK
+  asserts `!expands || (maxLines == null && minLines == null)`, so `build`
+  now branches on `expands` -- `true` sends `minLines: null, maxLines: null`
+  to the SDK, `false` keeps the exact `minLines: 1, maxLines: maxLines`
+  behavior this core always had, leaving `CruxTextFormField` and
+  `CruxInputBar` byte-for-byte unaffected. The core's own constructor
+  assert was also strengthened from `!obscureText || maxLines == 1` to
+  `!obscureText || (!expands && maxLines == 1)`, closing a gap where an
+  obscured field paired with `expands: true` could still pass this class's
+  own check only to fail later, deeper inside the SDK.
+- Added `CruxComposerAction` (an icon, a screen-reader label, and its own
+  `onPressed`, all three caller-supplied) and `CruxComposerSubmit` (a
+  caller-supplied label for the post button) as the two new value types
+  describing the action row's optional slots, and a "新規投稿" screen in
+  `example/`, reachable from the home list, showing `CruxComposer` wired
+  up with actions, a counter, and a submit button.
+- A hairline top border, drawn in `CruxColors.separator`, now separates the
+  text area from the action row. It is painted as decoration on the action
+  row's own container (adding zero layout height) rather than as a
+  standalone divider widget, and appears if and only if the action row
+  itself renders, so a bare `CruxComposer` (no `actions`, no `submit`, no
+  `maxLength`) still stays completely bare.
+
 ## 0.5.0
 
 - Added `CruxInputBar`, a compact, pill-shaped input bar for search boxes
