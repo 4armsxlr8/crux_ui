@@ -2,9 +2,10 @@
 ///
 /// This release ships the design token layer (colors, spacing, typography,
 /// and radii, plus the [CruxTheme] / [CruxThemeData] pair that makes
-/// them available to a widget subtree) and six widget atoms: [CruxButton],
-/// [CruxChip], [CruxCard], [CruxListTile], [CruxSwitch], and
-/// [CruxDivider].
+/// them available to a widget subtree) and eight widget atoms:
+/// [CruxButton], [CruxChip], [CruxCard], [CruxListTile],
+/// [CruxSwitch], [CruxDivider], [CruxTextFormField], and
+/// [CruxInputBar].
 ///
 /// This file is the single public entry point of the package: every
 /// component that Crux UI ships in the future will be exported from here,
@@ -20,6 +21,7 @@ export 'src/card.dart';
 export 'src/chip.dart';
 export 'src/colors.dart';
 export 'src/divider.dart';
+export 'src/input_bar.dart';
 export 'src/list_tile.dart';
 export 'src/motion.dart';
 export 'src/radii.dart';
