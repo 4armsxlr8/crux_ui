@@ -9,7 +9,7 @@ independent and mergeable without conflicts.
 - Each agent owns exactly one file: `usecases/<name>.dart`.
 - Names in scope for this milestone: `foundations`, `button`, `chip`, `card`
   (includes `CruxDivider`), `list_tile`, `switch`, `text_form_field`,
-  `input_bar`.
+  `input_bar`, `composer`.
 - Do not edit any other file in `widgetbook/` (including `main.dart` and
   other agents' `usecases/*.dart` files). The integration owner collects
   every `<name>Component` into `main.dart`'s `_directories` list after all

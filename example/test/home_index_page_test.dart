@@ -6,6 +6,7 @@
 
 import 'package:example/main.dart';
 import 'package:example/screens/chat_screen.dart';
+import 'package:example/screens/compose_screen.dart';
 import 'package:example/screens/login_screen.dart';
 import 'package:example/screens/task_list_screen.dart';
 import 'package:example/widgets/app_header.dart';
@@ -84,6 +85,27 @@ void main() {
     expect(find.byType(ChatScreen), findsOneWidget);
     expect(
       find.descendant(of: find.byType(AppHeader), matching: find.text('チャット')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('the new 新規投稿 row is listed and reaches ComposeScreen', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(const CruxExampleApp());
+
+    expect(find.text('新規投稿'), findsOneWidget);
+    expect(
+      find.text('CruxComposer による投稿本文の入力、文字数上限と画像添付ボタン付き（フルスクリーンダイアログで開く）'),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.text('新規投稿'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(ComposeScreen), findsOneWidget);
+    expect(
+      find.descendant(of: find.byType(AppHeader), matching: find.text('新規投稿')),
       findsOneWidget,
     );
   });

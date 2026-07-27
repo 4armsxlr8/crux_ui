@@ -18,6 +18,7 @@ import 'package:crux_ui/crux_ui.dart';
 import 'package:widgetbook_app/usecases/button.dart';
 import 'package:widgetbook_app/usecases/card.dart';
 import 'package:widgetbook_app/usecases/chip.dart';
+import 'package:widgetbook_app/usecases/composer.dart';
 import 'package:widgetbook_app/usecases/foundations.dart';
 import 'package:widgetbook_app/usecases/input_bar.dart';
 import 'package:widgetbook_app/usecases/list_tile.dart';
@@ -30,6 +31,7 @@ void main() {
     'button': const ButtonStatesMatrix(),
     'chip': const ChipStatesMatrix(),
     'card': const CardStatesMatrix(),
+    'composer': const ComposerStatesMatrix(),
     'input_bar': const InputBarStatesMatrix(),
     'list_tile': const ListTileStatesMatrix(),
     'switch': const SwitchStatesMatrix(),

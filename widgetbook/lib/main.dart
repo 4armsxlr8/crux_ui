@@ -6,6 +6,7 @@ import 'package:widgetbook/widgetbook.dart';
 import 'usecases/button.dart';
 import 'usecases/card.dart';
 import 'usecases/chip.dart';
+import 'usecases/composer.dart';
 import 'usecases/foundations.dart';
 import 'usecases/input_bar.dart';
 import 'usecases/list_tile.dart';
@@ -140,6 +141,7 @@ final List<WidgetbookNode> _directories = [
       buttonComponent,
       chipComponent,
       cardComponent,
+      composerComponent,
       inputBarComponent,
       listTileComponent,
       switchComponent,
