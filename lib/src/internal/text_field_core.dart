@@ -1,9 +1,9 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart' show TextInputFormatter;
 
-import 'colors.dart';
-import 'spacing.dart';
-import 'typography.dart';
+import '../tokens/colors.dart';
+import '../tokens/spacing.dart';
+import '../tokens/typography.dart';
 
 /// The padding inside the box, applied to the actual [CupertinoTextField]'s
 /// own content, whenever a caller of [CruxTextFieldCore] does not override
@@ -38,12 +38,12 @@ const EdgeInsets _defaultContentPadding = EdgeInsets.all(CruxSpacing.s12);
 /// minimal two-file reproduction before this class was moved here, not
 /// assumed).
 ///
-/// This class is intentionally public (no leading underscore) so sibling
-/// files under `lib/src/` can import and use it, but it is never exported
-/// from `lib/crux_ui.dart` — the package's single public entry point — so
-/// it is not part of this package's public API from a consumer's point of
-/// view, the same "internal, not published" status the private class it
-/// replaces had.
+/// This class is intentionally public (no leading underscore) so the atom
+/// and molecule widgets elsewhere under `lib/src/` can import and use it,
+/// but it is never exported from `lib/crux_ui.dart` — the package's
+/// single public entry point — so it is not part of this package's public
+/// API from a consumer's point of view, the same "internal, not published"
+/// status the private class it replaces had.
 class CruxTextFieldCore extends StatelessWidget {
   /// Creates the shared, token-styled text field core.
   const CruxTextFieldCore({

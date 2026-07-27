@@ -1,10 +1,10 @@
 import 'package:flutter/widgets.dart';
 
-import 'colors.dart';
-import 'motion.dart';
-import 'press_feedback.dart';
-import 'spacing.dart';
-import 'theme.dart';
+import '../../internal/press_feedback.dart';
+import '../../tokens/colors.dart';
+import '../../tokens/motion.dart';
+import '../../tokens/spacing.dart';
+import '../../tokens/theme.dart';
 
 /// The minimum tap target size for any [CruxButton], regardless of its
 /// visual [CruxButtonSize] (KB9): 44 logical pixels, matching the common

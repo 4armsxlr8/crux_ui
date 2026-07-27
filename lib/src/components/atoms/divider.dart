@@ -1,6 +1,6 @@
 import 'package:flutter/widgets.dart';
 
-import 'theme.dart';
+import '../../tokens/theme.dart';
 
 /// A hairline horizontal rule, one logical pixel tall, in
 /// [CruxColors.separator].

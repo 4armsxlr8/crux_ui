@@ -1,13 +1,13 @@
 import 'package:flutter/widgets.dart';
 
 import 'button.dart';
-import 'colors.dart';
 import 'divider.dart';
-import 'motion.dart';
-import 'press_feedback.dart';
-import 'radii.dart';
-import 'spacing.dart';
-import 'theme.dart';
+import '../../internal/press_feedback.dart';
+import '../../tokens/colors.dart';
+import '../../tokens/motion.dart';
+import '../../tokens/radii.dart';
+import '../../tokens/spacing.dart';
+import '../../tokens/theme.dart';
 
 /// The minimum tap target size for an interactive [CruxCard] (same rule
 /// as [CruxButton]'s `_minTapTarget`): 44 logical pixels.

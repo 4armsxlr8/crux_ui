@@ -1,5 +1,18 @@
 # Changelog
 
+## Unreleased
+
+- Reorganized `lib/src/` into `tokens/`, `components/atoms/`,
+  `components/molecules/`, and `internal/` directories (mirrored under
+  `test/`). This is an internal refactor only -- the set of symbols exported
+  from `lib/crux_ui.dart` is unchanged, and nothing under `internal/` was
+  ever exported.
+- Reclassified `CruxComposer` as this package's first molecule: unlike the
+  other components, it imports another public Crux component
+  (`CruxButton`) to assemble itself rather than building from tokens
+  alone, so it now lives in `lib/src/components/molecules/` instead of
+  alongside the atoms.
+
 ## 0.6.0
 
 - Added `CruxComposer`, a borderless, height-filling text area for

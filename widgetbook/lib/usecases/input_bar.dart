@@ -173,9 +173,10 @@ class _InputBarPlaygroundState extends State<_InputBarPlayground> {
 /// 状態" cell reaches its expanded shape by seeding its controller with a
 /// literal `\n` in the initial text (matching
 /// `CruxInputBar`'s own "measures `text.contains('\n')` directly"
-/// wrap check -- `lib/src/input_bar.dart`'s `_wouldWrapToMultipleLines`) so
-/// it renders already-settled on the very first frame, not partway through
-/// an animation `pumpAndSettle` would otherwise have to chase -- see
+/// wrap check -- `lib/src/components/atoms/input_bar.dart`'s
+/// `_wouldWrapToMultipleLines`) so it renders already-settled on the very
+/// first frame, not partway through an animation `pumpAndSettle` would
+/// otherwise have to chase -- see
 /// `unknowns/input-bar/impact.md`'s note on why a mid-transform state is
 /// unsafe to include here.
 class InputBarStatesMatrix extends StatefulWidget {
@@ -296,8 +297,9 @@ class _InputBarStatesMatrixState extends State<InputBarStatesMatrix> {
 
 /// A single, very long word with no spaces or soft-wrap opportunities --
 /// long enough to stress [CruxInputBar]'s line-wrap measurement
-/// (`_wouldWrapToMultipleLines` in `lib/src/input_bar.dart`) with text that
-/// cannot break at a word boundary the way ordinary prose does.
+/// (`_wouldWrapToMultipleLines` in `lib/src/components/atoms/input_bar.dart`)
+/// with text that cannot break at a word boundary the way ordinary prose
+/// does.
 const String _veryLongWord =
     'あいうえおかきくけこさしすせそたちつてとなにぬねのはひふへほまみむめもやゆよらりるれろわをんあいうえおかきくけこさしすせそ';
 

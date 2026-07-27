@@ -1,9 +1,9 @@
 import 'package:flutter/rendering.dart' show OverflowBoxFit;
 import 'package:flutter/widgets.dart';
 
-import 'colors.dart';
-import 'spacing.dart';
-import 'theme.dart';
+import '../../tokens/colors.dart';
+import '../../tokens/spacing.dart';
+import '../../tokens/theme.dart';
 
 /// The minimum tap target size for any interactive Crux atom, matching
 /// [CruxListTile]'s minimum row height and its [leading] frame width.

@@ -108,8 +108,8 @@ Decoration? _decorationOf(Widget widget) {
 /// inside a rendered [CruxInputBar]. Distinguished from
 /// [CupertinoTextField]'s own internal, undecorated container by requiring
 /// a [ShapeDecoration] whose fill is exactly [CruxColors.controlFill] --
-/// the fill color `lib/src/colors.dart`'s own doc comment on `controlFill`
-/// names as the one other in-package consumer besides
+/// the fill color `lib/src/tokens/colors.dart`'s own doc comment on
+/// `controlFill` names as the one other in-package consumer besides
 /// `CruxTextFormField`, and plan.md section 2-2 pins as this box's fill --
 /// rather than by its `shape`'s concrete type, which plan.md section 2-2's
 /// "実装設計" deliberately leaves as a to-be-created (and possibly private)

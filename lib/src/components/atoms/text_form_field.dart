@@ -1,12 +1,12 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart' show TextInputFormatter;
 
-import 'colors.dart';
-import 'motion.dart';
-import 'radii.dart';
-import 'spacing.dart';
-import 'text_field_core.dart';
-import 'theme.dart';
+import '../../internal/text_field_core.dart';
+import '../../tokens/colors.dart';
+import '../../tokens/motion.dart';
+import '../../tokens/radii.dart';
+import '../../tokens/spacing.dart';
+import '../../tokens/theme.dart';
 
 /// The minimum tap target size for the interactive box of a
 /// [CruxTextFormField], matching the other atoms' K B9-style rule: 44

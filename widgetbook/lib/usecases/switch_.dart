@@ -164,9 +164,9 @@ void _noOpSwitchChange(bool _) {}
 /// [CruxSwitch]'s layout most likely to break in a real screen: the gap
 /// between its 32px visible track and its 44px minimum tap target when
 /// several switches sit close together, and its unmirrored positioning
-/// (the thumb's `Positioned.left` in `lib/src/switch.dart` is an absolute
-/// offset, not a `start`/`end` one) under a right-to-left ambient
-/// [Directionality].
+/// (the thumb's `Positioned.left` in `lib/src/components/atoms/switch.dart`
+/// is an absolute offset, not a `start`/`end` one) under a right-to-left
+/// ambient [Directionality].
 class _SwitchEdgeCases extends StatelessWidget {
   const _SwitchEdgeCases();
 

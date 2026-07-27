@@ -1,8 +1,8 @@
 import 'package:flutter/widgets.dart';
 
-import 'colors.dart';
-import 'motion.dart';
-import 'theme.dart';
+import '../../tokens/colors.dart';
+import '../../tokens/motion.dart';
+import '../../tokens/theme.dart';
 
 /// The minimum tap target size for any [CruxSwitch] (matching
 /// [CruxButton]'s K B9 rule): 44 logical pixels, even though the visible

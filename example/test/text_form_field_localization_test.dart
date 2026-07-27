@@ -23,10 +23,10 @@
 // it is NOT proof that a physical iOS 16+ device is localized. See
 // unknowns/textfield-atom/implementation-notes.md's 2026-07-26
 // "Post-milestone correction" entry for the full misdiagnosis writeup, and
-// lib/src/text_form_field.dart's "Localization" doc note / README.md for
-// the corrected, two-source explanation. The actual device-visible fix was
-// adding CFBundleLocalizations (ja, en) to example/ios/Runner/Info.plist,
-// not anything exercised by this test.
+// lib/src/components/atoms/text_form_field.dart's "Localization" doc note /
+// README.md for the corrected, two-source explanation. The actual
+// device-visible fix was adding CFBundleLocalizations (ja, en) to
+// example/ios/Runner/Info.plist, not anything exercised by this test.
 //
 // This test lives in example/test/ rather than the package's own test/
 // because exercising the fallback-toolbar path requires depending on

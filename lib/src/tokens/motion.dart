@@ -160,9 +160,10 @@ class CruxMotion {
   /// interpolated together, so a color's alpha animates smoothly alongside
   /// its RGB rather than being dropped or held fixed -- relevant because this
   /// package's own dark palette uses translucent colors (`muted` and
-  /// `separator` are `Color.fromRGBO(..., 0.45)`, per `lib/src/colors.dart`),
-  /// so animating toward or away from one of those tokens fades its opacity
-  /// in step with its hue rather than snapping the alpha channel.
+  /// `separator` are `Color.fromRGBO(..., 0.45)`, per
+  /// `lib/src/tokens/colors.dart`), so animating toward or away from one of
+  /// those tokens fades its opacity in step with its hue rather than
+  /// snapping the alpha channel.
   ///
   /// Because the interpolation is per-channel in RGB space rather than
   /// perceptual, animating between two hues that differ a lot (for example a

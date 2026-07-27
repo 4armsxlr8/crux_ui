@@ -1,12 +1,12 @@
 import 'package:flutter/cupertino.dart';
 
-import 'button.dart';
-import 'colors.dart';
-import 'motion.dart';
-import 'spacing.dart';
-import 'text_field_core.dart';
-import 'theme.dart';
-import 'typography.dart';
+import '../atoms/button.dart';
+import '../../internal/text_field_core.dart';
+import '../../tokens/colors.dart';
+import '../../tokens/motion.dart';
+import '../../tokens/spacing.dart';
+import '../../tokens/theme.dart';
+import '../../tokens/typography.dart';
 
 /// The fixed size of every tappable slot [CruxComposer] renders inside its
 /// own action row -- each [CruxComposerAction] and the counter/submit pair
