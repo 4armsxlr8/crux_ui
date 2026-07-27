@@ -5,6 +5,7 @@
 // screen's shared header (AppHeader) provides a way back.
 
 import 'package:example/main.dart';
+import 'package:example/screens/chat_screen.dart';
 import 'package:example/screens/login_screen.dart';
 import 'package:example/screens/task_list_screen.dart';
 import 'package:example/widgets/app_header.dart';
@@ -62,6 +63,27 @@ void main() {
     expect(find.byType(TaskListScreen), findsOneWidget);
     expect(
       find.descendant(of: find.byType(AppHeader), matching: find.text('タスク一覧')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('the new チャット row is listed and reaches ChatScreen', (
+    WidgetTester tester,
+  ) async {
+    await tester.pumpWidget(const CruxExampleApp());
+
+    expect(find.text('チャット'), findsOneWidget);
+    expect(
+      find.text('CruxInputBar による検索欄とチャット入力欄、送信で増える吹き出しリスト'),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.text('チャット'));
+    await tester.pumpAndSettle();
+
+    expect(find.byType(ChatScreen), findsOneWidget);
+    expect(
+      find.descendant(of: find.byType(AppHeader), matching: find.text('チャット')),
       findsOneWidget,
     );
   });
