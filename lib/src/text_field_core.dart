@@ -64,15 +64,30 @@ class CruxTextFieldCore extends StatelessWidget {
     this.onChanged,
     this.onSubmitted,
     this.maxLines = 1,
+    this.expands = false,
+    this.textAlignVertical,
   }) : assert(
-         !obscureText || maxLines == 1,
+         !obscureText || (!expands && maxLines == 1),
          'Obscured fields cannot be multiline -- this mirrors '
          "CupertinoTextField's own assert (Flutter SDK "
          '`cupertino/text_field.dart:328`: `assert(!obscureText || maxLines '
          "== 1, 'Obscured fields cannot be multiline.')`) so a caller "
          'mistake (a future CruxInputBar wiring both obscureText and a '
          'multiline maxLines together) fails loudly at this call site '
-         "instead of only inside CupertinoTextField's own constructor.",
+         "instead of only inside CupertinoTextField's own constructor. "
+         'Strengthened to also reject `obscureText: true` together with '
+         '`expands: true`: the original check alone (`!obscureText || '
+         'maxLines == 1`) can still pass at this call site with `expands: '
+         "true` -- [maxLines] keeps whatever value a caller left it at "
+         "(commonly its default of `1`) even when [expands] is what "
+         "actually controls what reaches CupertinoTextField -- only to "
+         "fail deeper inside the SDK once build() forces both minLines and "
+         'maxLines to `null` for `expands: true` (see the doc on '
+         "[expands] and on build() below), tripping "
+         '`widgets/editable_text.dart`\'s own `assert(!expands || '
+         '(maxLines == null && minLines == null))` instead. Requiring '
+         '`!expands` here too closes that gap at this class\'s own entry '
+         'point.',
        );
 
   /// Controls the text being edited.
@@ -160,7 +175,59 @@ class CruxTextFieldCore extends StatelessWidget {
   /// together are exactly equivalent to the pre-existing single-line
   /// default (`minLines: null, maxLines: 1`) -- both fix the box at one
   /// line -- so this stays a no-op for [CruxTextFormField].
+  ///
+  /// Ignored entirely whenever [expands] is `true` -- see that field's doc.
   final int maxLines;
+
+  /// Whether this field expands to fill the height its parent gives it,
+  /// instead of sizing itself from [maxLines]. Defaults to `false`, matching
+  /// this core's behavior before this parameter existed -- [maxLines] alone
+  /// (together with the fixed `minLines: 1` [build] always passes) keeps
+  /// deciding this field's height, and [CruxTextFormField] and
+  /// `CruxInputBar` (neither of which passes this parameter) are
+  /// completely unaffected. `CruxComposer` is the intended caller for
+  /// `true`, per CP-D02 in `unknowns/composer/ledger.md`: a composer fills
+  /// whatever height its parent (typically an `Expanded`) gives it and
+  /// scrolls its own content internally, rather than growing line-by-line
+  /// the way `CruxInputBar` does.
+  ///
+  /// Passing this straight through to [CupertinoTextField.expands] alongside
+  /// the unconditional `minLines: 1`/`maxLines: maxLines` [build] otherwise
+  /// always sends would crash immediately: the Flutter SDK asserts
+  /// `!expands || (maxLines == null && minLines == null)` in more than one
+  /// place (`widgets/editable_text.dart` and `cupertino/text_field.dart`,
+  /// confirmed in `unknowns/composer/impact.md`), so whenever this is `true`
+  /// [build] instead passes `minLines: null, maxLines: null` -- [maxLines]
+  /// itself is ignored in that case, whatever value a caller left it at.
+  /// The `false` path is untouched: `minLines: 1, maxLines: maxLines`,
+  /// exactly as before this parameter existed.
+  ///
+  /// One further, deliberate side effect: with [expands] `true` (so
+  /// `maxLines` reaches [CupertinoTextField] as `null`), [keyboardType]'s own
+  /// default keyboard changes from a single-line keyboard to a multiline one
+  /// -- confirmed against the Flutter SDK
+  /// (`cupertino/text_field.dart`/`widgets/editable_text.dart`: `keyboardType
+  /// ??= maxLines == 1 ? TextInputType.text : TextInputType.multiline`) --
+  /// whenever a caller leaves [keyboardType] unset. This is the behavior
+  /// `CruxComposer` wants (a post composer's return key should insert a
+  /// newline, not submit), so it is left as-is rather than worked around; it
+  /// only matters to a caller that both sets [expands] to `true` and leaves
+  /// [keyboardType] unset.
+  final bool expands;
+
+  /// How the text and placeholder are aligned vertically within the field.
+  /// Passed straight through to [CupertinoTextField.textAlignVertical].
+  /// Defaults to `null`, matching this core's behavior before this
+  /// parameter existed -- `null` leaves `CupertinoTextField` to fall back
+  /// to its own default of vertically centered, exactly as before.
+  /// [CruxTextFormField] and `CruxInputBar` never pass this, so both
+  /// are unaffected; `CruxComposer` is the intended caller, passing
+  /// [TextAlignVertical.top] so a composer's text and placeholder start at
+  /// the top of the field rather than vertically centered, which reads
+  /// wrong once [expands] is `true` and the field is taller than one line
+  /// of text (every real-world composer starts at the top -- see
+  /// `unknowns/composer/` docs, mock-c layout).
+  final TextAlignVertical? textAlignVertical;
 
   @override
   Widget build(BuildContext context) {
@@ -231,12 +298,17 @@ class CruxTextFieldCore extends StatelessWidget {
           keyboardAppearance: brightness,
           onChanged: onChanged,
           onSubmitted: onSubmitted,
-          // minLines is deliberately always 1, not exposed as a parameter
-          // of this widget: see maxLines' own doc comment above for why
-          // this specific pairing is what makes the box start at one line
-          // and grow up to maxLines, confirmed against the Flutter SDK.
-          minLines: 1,
-          maxLines: maxLines,
+          // See [expands]' own doc for why this branches, and why the
+          // `false` branch below must stay byte-for-byte what it was before
+          // [expands] existed: `minLines: 1` (deliberately always 1, not
+          // exposed as a parameter of this widget -- see maxLines' own doc
+          // comment for why this specific pairing is what makes the box
+          // start at one line and grow up to maxLines) paired with
+          // `maxLines: maxLines`.
+          minLines: expands ? null : 1,
+          maxLines: expands ? null : maxLines,
+          expands: expands,
+          textAlignVertical: textAlignVertical,
         ),
       ),
     );
