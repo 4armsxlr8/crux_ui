@@ -6,9 +6,10 @@ Crux UI likes people who like Crux UI.
 
 **Under development.** The design token layer is implemented: colors,
 spacing, typography, and radii, plus a `CruxTheme` / `CruxThemeData` pair
-that makes them available to a widget subtree. Seven widget atoms are also
+that makes them available to a widget subtree. Eight widget atoms are also
 implemented: `CruxButton`, `CruxChip`, `CruxCard`, `CruxListTile`,
-`CruxSwitch`, `CruxDivider`, and `CruxTextFormField`. Other widgets
+`CruxSwitch`, `CruxDivider`, `CruxTextFormField`, and `CruxInputBar`.
+Other widgets
 (snackbars and so on) have not been built yet — for now, the rest of a
 screen is composed from plain Flutter widgets plus Crux's tokens, as shown
 in `example/`.
