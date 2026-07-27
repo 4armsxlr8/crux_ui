@@ -1,5 +1,99 @@
 # Changelog
 
+## 0.5.0
+
+- Added `CruxInputBar`, a compact, pill-shaped input bar for search boxes
+  and chat composers — Crux UI's second text-input atom, sharing the same
+  underlying `CupertinoTextField` core `CruxTextFormField` uses, but a
+  plain `StatefulWidget` rather than a `Form`-integrated `FormField`: no
+  label, no helper/error caption row, no validation concept at all. Three
+  new caller-supplied value types describe its optional slots —
+  `CruxInputBarLeading` (a decorative, non-tappable icon, e.g. a
+  magnifying glass), `CruxInputBarClear` (a clear button shown only while
+  the field has text), and `CruxInputBarSubmit` (a submit button, icon
+  over an accent-filled circle) — kept as three separate types rather than
+  reusing `CruxObscureToggle` or folding all three into one shared shape:
+  `CruxObscureToggle` was designed for exactly one job, a two-state
+  obscured/revealed toggle, and a leading decoration, a clear button, and a
+  submit button behave differently enough from that and from each other
+  (tappable or not, when each one appears at all, whether it has an
+  enabled/disabled color) that squeezing all of them into one type would
+  hide which fields matter in which slot.
+- `maxLines` defaults to `1`: the bar never grows and stays a pill (corner
+  radius always exactly half its own height) no matter how much text is
+  entered. Setting `maxLines` to `2` or higher lets the bar grow, one line
+  at a time up to that cap, and smoothly morph from the one-line pill into
+  a two-row shape once the text needs more than one line — text on top
+  (using the box's full width), a compact action row underneath (leading on
+  the start edge, clear/submit on the end edge) — settling at a fixed 16px
+  corner radius instead of continuing to track the box's growing height.
+  The morph is driven by a single animated progress value, not by
+  interpolating between a pill-radius and a 16px `RoundedSuperellipseBorder`
+  directly: a pill's radius is effectively unbounded (half the box's own
+  height, which keeps growing), and Flutter clamps a corner radius to fit
+  its rect at paint time regardless of the requested value, so a linear
+  blend from that unbounded radius down to 16 stays clamped back to the
+  full pill shape for almost the entire animation and only visibly changes
+  in the last instant. Instead, a new private `ShapeBorder` computes its
+  effective radius fresh at paint time from the box's actual height and the
+  current progress, so every intermediate frame has a genuinely different,
+  uncapped radius and the shape changes continuously throughout.
+- The return key's meaning switches automatically by platform once
+  `maxLines` is `2` or higher (not overridable by a caller): on macOS,
+  Windows, Linux, and Fuchsia, the return key submits (Shift+Return enters a
+  literal newline); on iOS and Android, the return key always inserts a
+  newline, and submitting only ever happens through the on-screen submit
+  button. A single-line bar's return key always submits, matching an
+  ordinary search field, with no platform-dependent behavior. The judgment
+  is Flutter's own `defaultTargetPlatform`, not a live check for an attached
+  physical keyboard — Flutter has no reliable way to tell the two apart, and
+  neither Android nor Flutter Web can reliably tell a soft keyboard's input
+  apart from a hardware one either (flutter/flutter#148375, #80505, #58171)
+  — so a phone's mobile browser opening a desktop-shaped web build, or a
+  phone with a physical keyboard attached, are known, accepted edge cases
+  where this approximation gets the return key's behavior backwards.
+- The submit button's visible circle is 32 logical pixels across inside a
+  44x44 logical pixel tap target (the difference is transparent padding,
+  not a smaller hit area). It renders disabled while the field's text is
+  empty, and switches to enabled (`CruxColors.accent` fill,
+  `CruxColors.onAccent` icon) the moment any text is entered; both colors
+  animate smoothly between the two states rather than snapping. Added
+  `CruxMotion.animatedColor`, a new motion primitive for this:
+  interpolates a `Color` toward a target using the same shared spring
+  `CruxMotion.scale`/`animatedValue` already use, via `motor`'s
+  `ColorRgbMotionConverter` (alpha included, so a translucent target fades
+  in step with its hue). This closes a gap left open since the
+  `CruxTextFormField` milestone: `CruxMotion` had no way at all to
+  animate a color (tracked there as the unresolved TF-U03), so an
+  accent-on-empty-vs-filled treatment like this one could previously only
+  snap between its two colors.
+- Added `CruxColors.mutedFill` (a translucent wash of `textPrimary`'s
+  hue: 8% in light, 12% in dark), the fill for an inactive affordance that
+  sits on top of another filled surface — and used it for the disabled
+  submit circle above. The first cut reused `CruxColors.separator` there,
+  matching `CruxButton`'s disabled treatment, but that convention assumes
+  the control sits on the page background: inside the bar's own
+  `controlFill`-filled box, `separator` is nearly the same color (~1.03:1)
+  and the disabled circle vanished entirely, leaving a lone floating arrow
+  — caught reviewing the running app, not by any test, because the
+  contrast guard measured the icon (which was fine) and nothing measured
+  the circle. Being translucent, the token reads correctly over
+  `controlFill`, `background`, or `surface` alike, and it was added with a
+  constructor default (the `onAccent` precedent) so existing manual
+  `CruxColors(...)` call sites keep compiling. `test/contrast_test.dart`
+  now guards the actual painted stack: the circle must not vanish into the
+  box (≥1.1:1; shipped ~1.16 light / ~1.43 dark) and the icon must stay
+  legible on the circle (≥2.5:1; shipped ~2.90 light / ~3.20 dark —
+  disabled controls are exempt from WCAG's own minima, so both floors are
+  drift guards for the approved look, not accessibility claims).
+  `CruxButton`'s own disabled state still uses separator-on-background
+  (visible enough thanks to its text label); aligning it to `mutedFill` is
+  a deliberate open item, not an oversight.
+- Like `CruxTextFormField`, `CruxInputBar` never lets the ambient
+  Material theme of a consuming app leak into its own look (sealed cursor/
+  selection colors, no stray disabled-state fill, keyboard brightness
+  follows the Crux theme rather than the OS).
+
 ## 0.4.0
 
 - Added `CruxTextFormField`, a single-line, `Form`-integrated text input

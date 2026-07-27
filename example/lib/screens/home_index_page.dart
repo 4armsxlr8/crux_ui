@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:crux_ui/crux_ui.dart';
 
 import '../widgets/app_header.dart';
+import 'chat_screen.dart';
 import 'login_screen.dart';
 import 'task_list_screen.dart';
 
@@ -82,8 +83,15 @@ final List<_SampleScreenEntry> _sampleScreens = <_SampleScreenEntry>[
     subtitle: 'カード・チップ・リストなど複数の atom を組み合わせたタスク管理画面',
     builder: _buildTaskListScreen,
   ),
+  _SampleScreenEntry(
+    title: 'チャット',
+    subtitle: 'CruxInputBar による検索欄とチャット入力欄、送信で増える吹き出しリスト',
+    builder: _buildChatScreen,
+  ),
 ];
 
 Widget _buildLoginScreen(BuildContext context) => const LoginScreen();
 
 Widget _buildTaskListScreen(BuildContext context) => const TaskListScreen();
+
+Widget _buildChatScreen(BuildContext context) => const ChatScreen();

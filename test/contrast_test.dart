@@ -203,6 +203,88 @@ void main() {
       expect(_contrastRatio(onSurface, c.surface), greaterThanOrEqualTo(3.0));
     });
 
+    test('light disabled CruxButton label (muted) vs its fill (separator) '
+        'has at least 3.0 non-text contrast (WCAG 1.4.11)', () {
+      const CruxColors c = CruxColors.light;
+      // CruxButton's disabled state: a muted label on a separator-filled
+      // pill, sitting on the page background. A disabled control is not
+      // itself a WCAG target (1.4.11 explicitly excludes inactive user
+      // interface components), so this is not an accessibility requirement —
+      // it is a regression guard, so a future palette swap (colors.dart's
+      // "values are provisional" rule) cannot quietly let this pairing
+      // drift below usable contrast unnoticed. Both colors are opaque in
+      // the light palette, so no compositing is needed. Measured: ~3.27:1.
+      expect(_contrastRatio(c.muted, c.separator), greaterThanOrEqualTo(3.0));
+    });
+
+    test('dark disabled CruxButton label (muted) vs its fill (separator) '
+        'has at least 3.0 non-text contrast (WCAG 1.4.11) after alpha '
+        'compositing', () {
+      const CruxColors c = CruxColors.dark;
+      // Both muted and separator are semi-transparent (rgba) in the dark
+      // palette, so both are composited before measuring, in the order they
+      // are actually painted: the separator pill over the page background,
+      // then the muted label over the pill. Measured: ~3.29:1. See the
+      // light test above for why this guard exists despite disabled
+      // controls being outside WCAG 1.4.11's own scope.
+      final Color pill = _compositeOver(c.separator, c.background);
+      final Color label = _compositeOver(c.muted, pill);
+      expect(_contrastRatio(label, pill), greaterThanOrEqualTo(3.0));
+    });
+
+    test('disabled CruxInputBar submit circle (mutedFill) is actually '
+        'visible against the controlFill box it sits in (light and dark)', () {
+      // The regression this guards is not low contrast but *invisibility*:
+      // this circle originally reused `separator`, which is nearly the same
+      // color as `controlFill` (~1.03:1), so inside the bar's
+      // controlFill-filled box the circle vanished entirely and only a faint
+      // floating arrow remained — caught by the user reviewing the running
+      // app, and the reason the `mutedFill` token exists at all (see its doc
+      // in colors.dart). The 1.1 floor is deliberately below the shipped
+      // values (~1.16 light / ~1.43 dark, user-approved on 2026-07-27) but
+      // comfortably above the ~1.03 failure this replaces: it trips on a
+      // palette swap that re-introduces the vanishing, without forbidding a
+      // future palette from choosing a slightly subtler wash.
+      for (final CruxColors c in <CruxColors>[
+        CruxColors.light,
+        CruxColors.dark,
+      ]) {
+        final Color circle = _compositeOver(c.mutedFill, c.controlFill);
+        expect(
+          _contrastRatio(circle, c.controlFill),
+          greaterThanOrEqualTo(1.1),
+          reason: 'the disabled submit circle must not vanish into the box',
+        );
+      }
+    });
+
+    test('disabled CruxInputBar submit icon (muted) vs the mutedFill '
+        'circle it sits on keeps at least 2.5 contrast (light and dark)', () {
+      // Painted stack: controlFill (the box) → mutedFill (the circle) →
+      // muted (the icon), so both translucent layers are composited in that
+      // order before measuring. Disabled controls are exempt from WCAG's
+      // own contrast minima (1.4.11 excludes inactive components), and the
+      // user-approved look (2026-07-27, tuned live on the simulator)
+      // measures ~2.90:1 light / ~3.20:1 dark — the light value sits below
+      // the 3.0 floor the non-text checks above use, deliberately: making
+      // the circle visible necessarily darkens the surface the icon sits
+      // on, and the icon only needs to read as "a button that is off". The
+      // 2.5 floor is a drift guard for that approved look, not an
+      // accessibility claim.
+      for (final CruxColors c in <CruxColors>[
+        CruxColors.light,
+        CruxColors.dark,
+      ]) {
+        final Color circle = _compositeOver(c.mutedFill, c.controlFill);
+        final Color icon = _compositeOver(c.muted, circle);
+        expect(
+          _contrastRatio(icon, circle),
+          greaterThanOrEqualTo(2.5),
+          reason: 'the disabled submit icon must stay legible on its circle',
+        );
+      }
+    });
+
     testWidgets(
       'filled CruxButton pressed-state background vs onAccent stays at '
       'least 4.5 (light and dark)',

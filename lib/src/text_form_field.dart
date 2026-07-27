@@ -5,8 +5,8 @@ import 'colors.dart';
 import 'motion.dart';
 import 'radii.dart';
 import 'spacing.dart';
+import 'text_field_core.dart';
 import 'theme.dart';
-import 'typography.dart';
 
 /// The minimum tap target size for the interactive box of a
 /// [CruxTextFormField], matching the other atoms' K B9-style rule: 44
@@ -436,143 +436,6 @@ class CruxTextFormField extends FormField<String> {
   FormFieldState<String> createState() => _CruxTextFormFieldState();
 }
 
-/// The token-styled [CupertinoTextField] core, factored out on its own (per
-/// plan.md section 3) so a future `CruxInputBar` / `CruxComposer` can
-/// share it: it is the piece that turns Crux tokens into a properly
-/// styled [CupertinoTextField] (body typography, [CruxColors.textPrimary]
-/// text, an empty `BoxDecoration` — not `null`, see the comment at its call
-/// site — since the caller draws its own box, an internal
-/// `DefaultSelectionStyle` wrapper so the cursor and selection highlight use
-/// [CruxColors.accent] instead of an ambient app's Material primary color,
-/// and an internal [CupertinoTheme] wrapper so the selection drag handles
-/// and text-magnifier ring use [CruxColors.accent] too). It does not know
-/// about labels, helper text, or `Form` integration — those stay specific
-/// to [CruxTextFormField].
-class _CruxTextFieldCore extends StatelessWidget {
-  const _CruxTextFieldCore({
-    required this.controller,
-    required this.focusNode,
-    required this.enabled,
-    required this.obscureText,
-    required this.colors,
-    required this.typography,
-    required this.brightness,
-    this.contentPadding = _boxContentPadding,
-    this.placeholder,
-    this.keyboardType,
-    this.textInputAction,
-    this.inputFormatters,
-    this.autofillHints,
-    this.onChanged,
-    this.onSubmitted,
-  });
-
-  final TextEditingController controller;
-  final FocusNode focusNode;
-  final bool enabled;
-  final bool obscureText;
-  final CruxColors colors;
-  final CruxTypography typography;
-
-  /// The padding applied to the actual [CupertinoTextField]'s own content.
-  /// Defaults to [_boxContentPadding]; widened on the trailing edge by
-  /// [_CruxTextFormFieldState._buildContent] whenever
-  /// [CruxTextFormField.obscureToggle] is non-`null`, so entered text
-  /// never renders underneath the toggle button.
-  final EdgeInsetsGeometry contentPadding;
-
-  /// The theme's brightness, passed straight through to
-  /// [CupertinoTextField.keyboardAppearance] so the on-screen keyboard
-  /// matches Crux's own light/dark theme instead of the ambient platform
-  /// brightness ([CupertinoTextField]'s own default when this is left
-  /// unset).
-  final Brightness brightness;
-
-  /// The hint text to show inside the field while it is empty. See
-  /// [CruxTextFormField.placeholder].
-  final String? placeholder;
-  final TextInputType? keyboardType;
-  final TextInputAction? textInputAction;
-  final List<TextInputFormatter>? inputFormatters;
-  final Iterable<String>? autofillHints;
-  final ValueChanged<String>? onChanged;
-  final ValueChanged<String>? onSubmitted;
-
-  @override
-  Widget build(BuildContext context) {
-    // Seals the cursor and selection-highlight colors against whatever
-    // ambient Material `Theme`/`MaterialApp` a consuming app has installed.
-    // `CupertinoTextField` resolves both as `widget.cursorColor ??
-    // DefaultSelectionStyle.of(context).cursorColor ?? themeData.primaryColor`
-    // (and the equivalent for `selectionColor`) — `DefaultSelectionStyle` is
-    // consulted *before* `CupertinoTheme.primaryColor`, and both `Theme` and
-    // `MaterialApp` install one sourced from the app's `ColorScheme`, so a
-    // plain `CupertinoTheme` wrapper alone never reaches its own fallback
-    // inside a `MaterialApp`. Providing our own `DefaultSelectionStyle` here
-    // shadows the ambient one for this subtree, the same "seal at the
-    // boundary" approach `CupertinoTheme` below already uses for the values
-    // it does control. See `unknowns/textfield-atom/implementation-notes.md`
-    // "Defects found in review" for how this was found.
-    return DefaultSelectionStyle(
-      cursorColor: colors.accent,
-      selectionColor: colors.accentTint,
-      child: CupertinoTheme(
-        // Does not affect the cursor or selection highlight (sealed above,
-        // and `DefaultSelectionStyle` wins before `CupertinoTheme
-        // .primaryColor` is ever consulted). This wrapper is still load
-        // -bearing for two other ambient lookups `CupertinoTextField` makes
-        // that are *not* intercepted by `DefaultSelectionStyle`:
-        // `selectionHandleColor` (the drag-handle color painted by
-        // `cupertino/text_selection.dart`'s `buildHandle`, read via
-        // `CupertinoTheme.of(context).selectionHandleColor`) and the
-        // magnifier loupe's ring color (`cupertino/magnifier.dart`, read via
-        // `CupertinoTheme.of(context).primaryColor`). Both are built through
-        // an `Overlay` entry outside this widget's own subtree, but Flutter
-        // re-applies this `CupertinoTheme` there anyway because
-        // `InheritedCupertinoTheme extends InheritedTheme`, and both
-        // `SelectionOverlay.showHandles`/`MagnifierController.show` capture
-        // ancestor `InheritedTheme`s (`InheritedTheme.capture`) before
-        // inserting into the overlay.
-        data: CupertinoThemeData(
-          primaryColor: colors.accent,
-          selectionHandleColor: colors.accent,
-        ),
-        child: CupertinoTextField(
-          controller: controller,
-          focusNode: focusNode,
-          enabled: enabled,
-          obscureText: obscureText,
-          // The outer box (built by CruxTextFormField) draws the border;
-          // this field must paint no decoration of its own. An *empty*
-          // BoxDecoration (rather than `null`) is used deliberately:
-          // CupertinoTextField's own build method only special-cases a
-          // `null` `decoration` when the field is disabled — its Container's
-          // `color` falls back to an ambient-brightness-resolved gray
-          // (`_kDisabledBackground`) whenever `decoration == null &&
-          // !enabled`, which would paint a stray fill behind this box
-          // exactly when disabled, breaking the documented "no fill, ever"
-          // invariant below. A non-null-but-empty BoxDecoration paints
-          // nothing and never triggers that fallback.
-          decoration: const BoxDecoration(),
-          padding: contentPadding,
-          style: typography.body.copyWith(color: colors.textPrimary),
-          placeholder: placeholder,
-          placeholderStyle: typography.body.copyWith(
-            color: colors.textSecondary,
-          ),
-          keyboardType: keyboardType,
-          textInputAction: textInputAction,
-          inputFormatters: inputFormatters,
-          autofillHints: autofillHints,
-          keyboardAppearance: brightness,
-          onChanged: onChanged,
-          onSubmitted: onSubmitted,
-        ),
-      ),
-    );
-  }
-}
-
 class _CruxTextFormFieldState extends FormFieldState<String> {
   TextEditingController? _controller;
   FocusNode? _focusNode;
@@ -787,7 +650,7 @@ class _CruxTextFormFieldState extends FormFieldState<String> {
             const EdgeInsetsDirectional.only(end: _obscureToggleTapTarget),
           );
 
-    final Widget textFieldCore = _CruxTextFieldCore(
+    final Widget textFieldCore = CruxTextFieldCore(
       controller: _effectiveController,
       focusNode: _effectiveFocusNode,
       enabled: enabled,
