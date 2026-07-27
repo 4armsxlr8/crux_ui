@@ -29,6 +29,7 @@ class CruxColors {
     required this.error,
     required this.controlFill,
     this.onAccent = const Color(0xFF26251E),
+    this.mutedFill = const Color.fromRGBO(38, 37, 30, 0.08),
   });
 
   /// The light color palette.
@@ -45,6 +46,7 @@ class CruxColors {
     success: Color(0xFF1F8A65),
     error: Color(0xFFCF2D56),
     controlFill: Color(0xFFE9E8E2),
+    mutedFill: Color.fromRGBO(38, 37, 30, 0.08),
   );
 
   /// The dark color palette.
@@ -61,6 +63,7 @@ class CruxColors {
     success: Color(0xFF3ED598),
     error: Color(0xFFFF5B78),
     controlFill: Color(0xFF262319),
+    mutedFill: Color.fromRGBO(246, 245, 239, 0.12),
   );
 
   /// The base page background color.
@@ -126,4 +129,24 @@ class CruxColors {
   /// 4.89:1 contrast ratio against [accent], above WCAG AA's 4.5:1 for
   /// normal text.
   final Color onAccent;
+
+  /// The fill painted behind an inactive affordance that sits *on top of*
+  /// another filled surface — for example `CruxInputBar`'s disabled
+  /// submit circle, which is drawn inside a [controlFill]-filled box.
+  ///
+  /// This token exists because [separator] cannot play that role there:
+  /// [separator] and [controlFill] are nearly the same color in both
+  /// palettes (measured ~1.03:1 in light), so a separator-filled circle
+  /// inside a controlFill box simply vanishes. That is fine for
+  /// `CruxButton`'s disabled state, which sits on [background], but not
+  /// for anything nested inside a filled control.
+  ///
+  /// The value is a translucent wash of [textPrimary]'s hue rather than an
+  /// opaque gray, the same "darkens in light mode, lightens in dark mode
+  /// without a second brightness-specific token" trick `CruxButton`'s
+  /// pressed overlay uses — and because it is translucent, it reads
+  /// correctly over [controlFill], [background], or [surface] alike.
+  /// Composite it over whatever it actually sits on before measuring
+  /// contrast against it (see `test/contrast_test.dart`).
+  final Color mutedFill;
 }
