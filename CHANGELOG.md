@@ -1,7 +1,76 @@
 # Changelog
 
-## Unreleased
+## 0.7.0
 
+- Added `CruxSpinner`, Crux UI's branded loading indicator: three
+  columns of dots that fall in an endless "rain," fading in at the top of
+  each lap and out at the bottom, columns offset by a third of a lap so
+  they never fall in lockstep. Comes in three sizes (`small`/`medium`/
+  `large`, 16/24/36 logical pixels) and defaults to `CruxColors.accent`,
+  overridable (for example to `onAccent` when painted on a filled accent
+  surface). Its dartdoc is explicit that this is a branding choice, not a
+  general-purpose loading affordance -- consuming apps should still reach
+  for `CircularProgressIndicator.adaptive()` for a generic loading state
+  that follows the host platform, and `CruxSpinner` is reserved for
+  places where the loading state is itself part of Crux's own visual
+  identity, including inside other Crux components (see `CruxButton`'s
+  `loading` state below). Takes an optional `semanticsLabel`: `null` (the
+  default) keeps the spinner purely decorative for hosts that already
+  supply their own accessible name (like `CruxButton`'s `loading`
+  state), while a non-null label announces that text once for callers
+  using `CruxSpinner` as a stand-alone loading indicator.
+- Added `CruxMotion.repeat`, a continuous, seamlessly-looping animation
+  builder (`LoopMode.seamless` under the hood) that `CruxSpinner`'s fall
+  is built on. Like every other `CruxMotion` entry point, the `motor`
+  package types it wraps never appear in its public signature.
+- Added `CruxIconButton`, a circular, spring-pressable icon-only atom for
+  a single tappable glyph that needs no visible text (for example a
+  composer's close button or a chat bar's attachment button). `icon`
+  (a caller-supplied `Widget`) and `label` (the screen-reader
+  announcement) are both required, the same value-class shape
+  `CruxObscureToggle` already established for icon-plus-label controls.
+  `tone` selects `neutral` (a `mutedFill`-filled circle, the default, for
+  secondary actions) or `primary` (an `accent`-filled circle with an
+  `onAccent` icon, for a screen's primary icon action); disabled renders a
+  muted circle regardless of tone. Comes in two sizes via `size`
+  (`CruxIconButtonSize`, defaulting to `medium`): `medium` is a 44
+  logical pixel visible circle that is itself the 44 logical pixel tap
+  target (no separate invisible padding around a smaller circle), and
+  `large` is a 56 logical pixel circle, already above the minimum tap
+  target on its own -- pair it with `tone: primary` for a floating action
+  button (FAB). No shadow is drawn at either size; a shadow token is a
+  separate, still-undecided topic. Pressing scales the circle down to
+  `CruxMotion.pressedScale` with the same minimum press-feedback
+  duration `CruxButton` guarantees.
+- Added `CruxCheckbox`, a bare (label-less, non-tristate) checkbox atom:
+  a controlled widget following `CruxSwitch`'s `checked`/`onChanged`
+  convention, exposing Flutter's *checked* semantics trait rather than the
+  *toggled* trait a switch uses. The checkmark springs in from a zero
+  scale with a slight overshoot before settling, and the box itself pulses
+  a few logical pixels larger at the same overshoot peak, both driven off
+  the same shared spring rather than two independent animations. The
+  unchecked outline uses `CruxColors.muted` rather than `accentLine` (the
+  token this package otherwise reserves for a state-identifying, 3:1-
+  contrast outline): `accentLine` measures only ~2.90:1 against
+  `controlFill` in the light palette, below WCAG 1.4.11's 3:1 non-text
+  floor, while `muted` clears 3:1 against both `background` and
+  `controlFill` in both palettes (see `test/tokens/contrast_test.dart`).
+  Checked-and-disabled fills with `muted` too, rather than collapsing into
+  the same look as unchecked-and-disabled.
+- Added an optional `loading` argument to `CruxButton` (`bool`, defaults
+  to `false`, fully backward compatible with every existing call site).
+  While `loading` is `true`, the label is replaced with a small
+  `CruxSpinner` (colored to match whatever foreground color that variant
+  already uses for its label -- `onAccent` for the filled variant,
+  `textPrimary` for tonal/ghost), the button stops responding to taps, and
+  its press-spring animation no longer triggers, while its background,
+  border, and overall size stay exactly as they are when not loading. A
+  screen reader keeps announcing the button's label throughout -- the label
+  `Text` stays in the semantics tree via `alwaysIncludeSemantics: true`
+  even though it is visually hidden behind the spinner -- while the
+  button's semantics report `enabled: false`, so a submitting button is
+  conveyed as a still-named control that cannot currently be activated,
+  never as a nameless one.
 - Reorganized `lib/src/` into `tokens/`, `components/atoms/`,
   `components/molecules/`, and `internal/` directories (mirrored under
   `test/`). This is an internal refactor only -- the set of symbols exported

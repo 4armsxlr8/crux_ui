@@ -2,10 +2,11 @@
 ///
 /// This release ships the design token layer (colors, spacing, typography,
 /// and radii, plus the [CruxTheme] / [CruxThemeData] pair that makes
-/// them available to a widget subtree), eight widget atoms —
+/// them available to a widget subtree), eleven widget atoms —
 /// [CruxButton], [CruxChip], [CruxCard], [CruxListTile],
-/// [CruxSwitch], [CruxDivider], [CruxTextFormField], and
-/// [CruxInputBar] — and one molecule built from them, [CruxComposer].
+/// [CruxSwitch], [CruxDivider], [CruxTextFormField],
+/// [CruxInputBar], [CruxSpinner], [CruxIconButton], and
+/// [CruxCheckbox] — and one molecule built from them, [CruxComposer].
 ///
 /// This file is the single public entry point of the package: every
 /// component that Crux UI ships in the future will be exported from here,
@@ -18,15 +19,18 @@ library;
 
 export 'src/components/atoms/button.dart';
 export 'src/components/atoms/card.dart';
+export 'src/components/atoms/checkbox.dart';
 export 'src/components/atoms/chip.dart';
 export 'src/tokens/colors.dart';
 export 'src/components/molecules/composer.dart';
 export 'src/components/atoms/divider.dart';
+export 'src/components/atoms/icon_button.dart';
 export 'src/components/atoms/input_bar.dart';
 export 'src/components/atoms/list_tile.dart';
 export 'src/tokens/motion.dart';
 export 'src/tokens/radii.dart';
 export 'src/tokens/spacing.dart';
+export 'src/components/atoms/spinner.dart';
 export 'src/components/atoms/switch.dart';
 export 'src/components/atoms/text_form_field.dart';
 export 'src/tokens/theme.dart';

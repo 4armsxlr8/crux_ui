@@ -26,11 +26,11 @@ const Duration kMinimumPressFeedbackDuration = Duration(milliseconds: 80);
 /// immediately after -- the fix for the fast-tap-in-a-scroll-view bug
 /// described in [kMinimumPressFeedbackDuration]'s doc comment.
 ///
-/// Used by [CruxButton], [CruxChip], and [CruxCard]. Deliberately
-/// **not** used by `CruxSwitch`: its thumb already has enough visual
-/// response to a fast tap from its liquid-travel flight (see
-/// implementation-notes.md's "Minimum press feedback" section for why that
-/// atom was left out).
+/// Used by [CruxButton], [CruxChip], [CruxCard], [CruxIconButton],
+/// and [CruxCheckbox]. Deliberately **not** used by `CruxSwitch`: its
+/// thumb already has enough visual response to a fast tap from its
+/// liquid-travel flight (see implementation-notes.md's "Minimum press
+/// feedback" section for why that atom was left out).
 ///
 /// A [State] wires [down]/[up]/[cancel] to its `GestureDetector`'s
 /// `onTapDown`/`onTapUp`/`onTapCancel`, passing an [onChanged] callback that

@@ -209,17 +209,10 @@ class _PostedConfirmation extends StatelessWidget {
             ),
           ),
           const SizedBox(width: CruxSpacing.s8),
-          Semantics(
-            button: true,
+          CruxIconButton(
+            icon: const Icon(Icons.close, size: 18),
             label: '閉じる',
-            child: GestureDetector(
-              onTap: onDismiss,
-              child: SizedBox(
-                width: 44,
-                height: 44,
-                child: Icon(Icons.close, size: 18, color: colors.textSecondary),
-              ),
-            ),
+            onPressed: onDismiss,
           ),
         ],
       ),
@@ -264,17 +257,10 @@ class _AttachmentPreview extends StatelessWidget {
             style: type.caption.copyWith(color: colors.textSecondary),
           ),
         ),
-        Semantics(
-          button: true,
+        CruxIconButton(
+          icon: const Icon(Icons.close, size: 18),
           label: '添付を外す',
-          child: GestureDetector(
-            onTap: onRemove,
-            child: SizedBox(
-              width: 44,
-              height: 44,
-              child: Icon(Icons.close, size: 18, color: colors.textSecondary),
-            ),
-          ),
+          onPressed: onRemove,
         ),
       ],
     );

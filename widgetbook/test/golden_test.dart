@@ -17,11 +17,14 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:crux_ui/crux_ui.dart';
 import 'package:widgetbook_app/usecases/button.dart';
 import 'package:widgetbook_app/usecases/card.dart';
+import 'package:widgetbook_app/usecases/checkbox.dart';
 import 'package:widgetbook_app/usecases/chip.dart';
 import 'package:widgetbook_app/usecases/composer.dart';
 import 'package:widgetbook_app/usecases/foundations.dart';
+import 'package:widgetbook_app/usecases/icon_button.dart';
 import 'package:widgetbook_app/usecases/input_bar.dart';
 import 'package:widgetbook_app/usecases/list_tile.dart';
+import 'package:widgetbook_app/usecases/spinner.dart';
 import 'package:widgetbook_app/usecases/switch_.dart';
 import 'package:widgetbook_app/usecases/text_form_field.dart';
 
@@ -36,12 +39,25 @@ void main() {
     'list_tile': const ListTileStatesMatrix(),
     'switch': const SwitchStatesMatrix(),
     'text_form_field': const TextFormFieldStatesMatrix(),
+    'spinner': const SpinnerStatesMatrix(),
+    'icon_button': const IconButtonStatesMatrix(),
+    'checkbox': const CheckboxStatesMatrix(),
   };
 
   final Map<String, CruxThemeData> themes = <String, CruxThemeData>{
     'light': CruxThemeData.light(),
     'dark': CruxThemeData.dark(),
   };
+
+  // Matrices that never settle: SpinnerStatesMatrix runs CruxMotion.repeat
+  // continuously (CruxSpinner never stops animating while mounted, by
+  // design — see spinner.dart's class doc), and ButtonStatesMatrix now
+  // includes a loading CruxButton, which embeds that same spinner. Both
+  // would make `pumpAndSettle` below spin forever waiting for a frame with
+  // no pending animation that will never arrive, so these two capture their
+  // golden after a fixed pump instead of settling. Every other matrix keeps
+  // `pumpAndSettle`, so their goldens stay byte-for-byte unchanged.
+  const Set<String> neverSettles = <String>{'spinner', 'button'};
 
   for (final MapEntry<String, Widget> component in matrices.entries) {
     for (final MapEntry<String, CruxThemeData> theme in themes.entries) {
@@ -53,6 +69,7 @@ void main() {
           matrix: component.value,
           theme: theme.value,
           goldenFile: 'goldens/${component.key}_${theme.key}.png',
+          settle: !neverSettles.contains(component.key),
         );
       });
     }
@@ -75,6 +92,7 @@ Future<void> _expectMatrixGolden(
   required Widget matrix,
   required CruxThemeData theme,
   required String goldenFile,
+  bool settle = true,
 }) async {
   tester.view.physicalConstraints = const ui.ViewConstraints(
     maxWidth: 900,
@@ -90,7 +108,16 @@ Future<void> _expectMatrixGolden(
       child: CruxTheme(data: theme, child: matrix),
     ),
   );
-  await tester.pumpAndSettle();
+  if (settle) {
+    await tester.pumpAndSettle();
+  } else {
+    // A continuous animation is present (see `neverSettles`'s doc above):
+    // one initial frame plus a fixed extra 600ms lands on a stable,
+    // reproducible mid-animation frame instead of waiting for a settle that
+    // will never come.
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 600));
+  }
 
   await expectLater(find.byWidget(matrix), matchesGoldenFile(goldenFile));
 }

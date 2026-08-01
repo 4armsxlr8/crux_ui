@@ -41,12 +41,17 @@ Widget _buildPlayground(BuildContext context) {
     label: 'Enabled',
     initialValue: true,
   );
+  final bool loading = context.knobs.boolean(
+    label: 'Loading',
+    initialValue: false,
+  );
 
   return Center(
     child: CruxButton(
       label: label,
       variant: variant,
       size: size,
+      loading: loading,
       onPressed: enabled ? () {} : null,
     ),
   );
@@ -117,6 +122,8 @@ class _VariantSection extends StatelessWidget {
         _StateRow(variant: variant, enabled: true),
         const SizedBox(height: CruxSpacing.s12),
         _StateRow(variant: variant, enabled: false),
+        const SizedBox(height: CruxSpacing.s12),
+        _LoadingRow(variant: variant),
       ],
     );
   }
@@ -188,6 +195,53 @@ class _StateRow extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+}
+
+/// The loading state for [variant], on its own row below the
+/// enabled/disabled × size grid.
+///
+/// `loading` only makes sense paired with a live `onPressed` (the "request
+/// in flight" state a real caller would show), so there is exactly one cell
+/// per variant rather than a size sweep. It used to be appended as a
+/// trailing column inside the enabled [_StateRow]'s horizontal scroller,
+/// which pushed it past the golden canvas's fixed 900px width — the row's
+/// own horizontal `SingleChildScrollView` could reach it by scrolling, but
+/// the golden capture only ever shows the canvas's unscrolled viewport, so
+/// the loading cell never appeared in the image. Giving it its own row below
+/// keeps every cell within the 900px width the golden test captures.
+class _LoadingRow extends StatelessWidget {
+  const _LoadingRow({required this.variant});
+
+  final CruxButtonVariant variant;
+
+  @override
+  Widget build(BuildContext context) {
+    final CruxThemeData theme = CruxTheme.of(context);
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: 64,
+          child: Text(
+            'loading',
+            style: theme.typography.caption.copyWith(color: theme.colors.muted),
+          ),
+        ),
+        Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            CruxButton(
+              label: '${variant.name} loading',
+              variant: variant,
+              loading: true,
+              onPressed: () {},
+            ),
+          ],
+        ),
+      ],
     );
   }
 }

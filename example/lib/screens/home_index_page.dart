@@ -5,6 +5,7 @@ import '../widgets/app_header.dart';
 import 'chat_screen.dart';
 import 'compose_screen.dart';
 import 'login_screen.dart';
+import 'sync_screen.dart';
 import 'task_list_screen.dart';
 
 /// The app's home screen: an index of the sample screens in this gallery,
@@ -104,6 +105,11 @@ final List<_SampleScreenEntry> _sampleScreens = <_SampleScreenEntry>[
     builder: _buildComposeScreen,
     fullscreenDialog: true,
   ),
+  _SampleScreenEntry(
+    title: '同期',
+    subtitle: 'CruxSpinner による同期中表示と、完了後の同期済みリスト・再同期ボタン',
+    builder: _buildSyncScreen,
+  ),
 ];
 
 Widget _buildLoginScreen(BuildContext context) => const LoginScreen();
@@ -113,3 +119,5 @@ Widget _buildTaskListScreen(BuildContext context) => const TaskListScreen();
 Widget _buildChatScreen(BuildContext context) => const ChatScreen();
 
 Widget _buildComposeScreen(BuildContext context) => const ComposeScreen();
+
+Widget _buildSyncScreen(BuildContext context) => const SyncScreen();

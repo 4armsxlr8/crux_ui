@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:crux_ui/crux_ui.dart';
 
@@ -42,6 +44,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _passwordController = TextEditingController();
   final FocusNode _passwordFocusNode = FocusNode();
   bool _validated = false;
+  bool _submitting = false;
 
   @override
   void dispose() {
@@ -71,17 +74,40 @@ class _LoginScreenState extends State<LoginScreen> {
     return null;
   }
 
-  void _submit() {
+  Future<void> _submit() async {
+    if (_submitting) {
+      // Already mid-flight: `CruxButton.loading` disables the button
+      // itself, but the password field's `onSubmitted` (the keyboard's
+      // "Done" key) calls this same method directly and isn't gated by the
+      // button's disabled state, so a second submit could otherwise start
+      // while the first is still awaiting its simulated round trip.
+      return;
+    }
     final FormState? form = _formKey.currentState;
     if (form == null || !form.validate()) {
       return;
     }
     form.save();
     // See this class's own doc comment: there is no backend to
-    // authenticate against, so this deliberately does not fake a network
-    // call or a fake auth result. A form that passes its own validation
-    // simply flips to a visible "validated" state below, in place.
-    setState(() => _validated = true);
+    // authenticate against, so this simulates the round trip a real submit
+    // would make instead -- a brief [CruxButton.loading] spell -- rather
+    // than flipping to "validated" instantly. `CruxButton` itself already
+    // ignores taps while `loading` is `true`, so there's no separate guard
+    // needed against a second tap firing this again mid-flight.
+    setState(() => _submitting = true);
+    await Future<void>.delayed(const Duration(milliseconds: 1500));
+    if (!mounted) {
+      // The screen was popped/disposed while the simulated network delay
+      // was in flight -- bail out instead of calling setState on an
+      // unmounted State.
+      return;
+    }
+    // A form that passes its own validation simply flips to a visible
+    // "validated" state below, in place.
+    setState(() {
+      _submitting = false;
+      _validated = true;
+    });
   }
 
   void _reset() {
@@ -127,6 +153,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         passwordFocusNode: _passwordFocusNode,
                         validateEmail: _validateEmail,
                         validatePassword: _validatePassword,
+                        submitting: _submitting,
                         onSubmit: _submit,
                       ),
               ),
@@ -148,6 +175,7 @@ class _LoginForm extends StatelessWidget {
     required this.passwordFocusNode,
     required this.validateEmail,
     required this.validatePassword,
+    required this.submitting,
     required this.onSubmit,
   });
 
@@ -159,7 +187,17 @@ class _LoginForm extends StatelessWidget {
   final FocusNode passwordFocusNode;
   final FormFieldValidator<String> validateEmail;
   final FormFieldValidator<String> validatePassword;
-  final VoidCallback onSubmit;
+
+  /// Whether the simulated submit round trip (see
+  /// `_LoginScreenState._submit`) is currently in flight -- forwarded
+  /// straight to [CruxButton.loading] below.
+  final bool submitting;
+
+  /// Starts the simulated submit round trip. Returns a [Future] so callers
+  /// that need to wait for it can (none currently do); call sites here
+  /// intentionally fire-and-forget it via [unawaited], since a form submit
+  /// button's own tap handler has nothing useful to do with the result.
+  final Future<void> Function() onSubmit;
 
   @override
   Widget build(BuildContext context) {
@@ -221,12 +259,16 @@ class _LoginForm extends StatelessWidget {
                   textInputAction: TextInputAction.done,
                   autofillHints: const <String>[AutofillHints.password],
                   validator: validatePassword,
-                  onSubmitted: (_) => onSubmit(),
+                  onSubmitted: (_) => unawaited(onSubmit()),
                 ),
                 const SizedBox(height: CruxSpacing.s20),
                 Align(
                   alignment: Alignment.centerRight,
-                  child: CruxButton(label: 'ログイン', onPressed: onSubmit),
+                  child: CruxButton(
+                    label: 'ログイン',
+                    loading: submitting,
+                    onPressed: () => unawaited(onSubmit()),
+                  ),
                 ),
               ],
             ),

@@ -32,3 +32,6 @@ migrate_working_dir/
 .flutter-plugins-dependencies
 /build/
 /coverage/
+
+# Claude Code session artifacts (reports etc.) — not part of the package
+.claude/

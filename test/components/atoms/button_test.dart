@@ -3,6 +3,8 @@
 // feel" quality is out of scope here (per plan) and is checked visually via
 // the example app instead; these tests only assert that scale moves below
 // 1.0 while pressed and returns to 1.0 after release.
+import 'dart:ui' show Tristate;
+
 import 'package:flutter/semantics.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -450,5 +452,162 @@ void main() {
       final Text text = tester.widget<Text>(find.text('Go'));
       expect(text.style?.color, CruxColors.light.textPrimary);
     });
+  });
+
+  // CruxButton's loading state is built on CruxSpinner, which animates
+  // continuously for as long as it is on screen (see spinner_test.dart's
+  // file doc): every test in this group samples at fixed pumped durations
+  // (or none at all), never tester.pumpAndSettle(), which would time out
+  // waiting for an animation that never stops.
+  group('loading state', () {
+    testWidgets(
+      'does not invoke onPressed and does not scale down on tap while '
+      'loading, even though onPressed is set',
+      (WidgetTester tester) async {
+        int calls = 0;
+        await tester.pumpWidget(
+          _wrap(
+            CruxButton(
+              label: 'はじめる',
+              loading: true,
+              onPressed: () => calls++,
+            ),
+          ),
+        );
+
+        final TestGesture gesture = await tester.startGesture(
+          tester.getCenter(find.byType(CruxButton)),
+        );
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 80));
+
+        expect(
+          tester
+              .widget<Transform>(find.byType(Transform))
+              .transform
+              .entry(0, 0),
+          1.0,
+        );
+
+        await gesture.up();
+        await tester.pump();
+
+        expect(calls, 0);
+      },
+    );
+
+    testWidgets(
+      'renders a small CruxSpinner in place of the label while loading',
+      (WidgetTester tester) async {
+        await tester.pumpWidget(
+          _wrap(CruxButton(label: 'はじめる', loading: true, onPressed: () {})),
+        );
+
+        expect(find.byType(CruxSpinner), findsOneWidget);
+        expect(
+          tester.widget<CruxSpinner>(find.byType(CruxSpinner)).size,
+          CruxSpinnerSize.small,
+        );
+      },
+    );
+
+    testWidgets(
+      'renders the loading CruxSpinner at its natural 16x16 size even '
+      'when the label is narrower than that, instead of being squeezed '
+      'into the label\'s width',
+      (WidgetTester tester) async {
+        await tester.pumpWidget(
+          _wrap(CruxButton(label: 'S', loading: true, onPressed: () {})),
+        );
+
+        expect(tester.getSize(find.byType(CruxSpinner)), const Size(16, 16));
+      },
+    );
+
+    testWidgets(
+      'colors the loading spinner onAccent on the default filled variant',
+      (WidgetTester tester) async {
+        await tester.pumpWidget(
+          _wrap(CruxButton(label: 'はじめる', loading: true, onPressed: () {})),
+        );
+
+        expect(
+          tester.widget<CruxSpinner>(find.byType(CruxSpinner)).color,
+          CruxColors.light.onAccent,
+        );
+      },
+    );
+
+    testWidgets(
+      'colors the loading spinner to match the label foreground color on '
+      'the tonal variant',
+      (WidgetTester tester) async {
+        await tester.pumpWidget(
+          _wrap(
+            CruxButton(
+              label: 'はじめる',
+              variant: CruxButtonVariant.tonal,
+              loading: true,
+              onPressed: () {},
+            ),
+          ),
+        );
+
+        expect(
+          tester.widget<CruxSpinner>(find.byType(CruxSpinner)).color,
+          CruxColors.light.textPrimary,
+        );
+      },
+    );
+
+    testWidgets('is not enabled in semantics while loading', (
+      WidgetTester tester,
+    ) async {
+      final SemanticsHandle handle = tester.ensureSemantics();
+      await tester.pumpWidget(
+        _wrap(CruxButton(label: 'はじめる', loading: true, onPressed: () {})),
+      );
+
+      final SemanticsNode node = tester.getSemantics(find.byType(CruxButton));
+      expect(node.flagsCollection.isEnabled, Tristate.isFalse);
+
+      handle.dispose();
+    });
+
+    testWidgets(
+      'keeps announcing the label while loading, instead of going silent '
+      '(WCAG 4.1.2: a screen reader still needs a name for the button)',
+      (WidgetTester tester) async {
+        final SemanticsHandle handle = tester.ensureSemantics();
+        await tester.pumpWidget(
+          _wrap(CruxButton(label: 'はじめる', loading: true, onPressed: () {})),
+        );
+
+        final SemanticsNode node = tester.getSemantics(
+          find.byType(CruxButton),
+        );
+        expect(node.label, 'はじめる');
+
+        handle.dispose();
+      },
+    );
+
+    testWidgets(
+      'keeps the same size whether loading is true or false, for the same '
+      'label and size',
+      (WidgetTester tester) async {
+        await tester.pumpWidget(
+          _wrap(CruxButton(label: 'はじめる', onPressed: () {})),
+        );
+        final Size notLoadingSize = tester.getSize(find.byType(CruxButton));
+
+        await tester.pumpWidget(
+          _wrap(CruxButton(label: 'はじめる', loading: true, onPressed: () {})),
+        );
+        final Size loadingSize = tester.getSize(find.byType(CruxButton));
+
+        expect(loadingSize, notLoadingSize);
+      },
+    );
   });
 }

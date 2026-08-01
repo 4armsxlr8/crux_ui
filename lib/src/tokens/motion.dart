@@ -77,6 +77,39 @@ class CruxMotion {
     duration: Duration(milliseconds: 350),
   );
 
+  /// A bouncier sibling of [_spring], for the single moment this package
+  /// deliberately wants to read as playful rather than restrained: the
+  /// checkmark [CruxCheckbox] springs in with (see plans/atoms-batch-2.md
+  /// -- "checkbox is a bounce/overshoot moment" -- and checkbox.dart's own
+  /// class doc for the "scale 0 -> ~1.15 -> 1.0" spec this spring
+  /// implements).
+  ///
+  /// `CupertinoMotion.snappy`'s `bounce` is `0.15 + extraBounce` (confirmed
+  /// against motor 1.1.0's source, `motion.dart`'s
+  /// `CupertinoMotion.snappy` constructor), and SwiftUI's own `bounce`
+  /// parameter -- which `CupertinoMotion` mirrors -- is defined as `1 -
+  /// dampingRatio`. A step response's overshoot fraction for a
+  /// second-order underdamped system is `exp(-zeta * pi / sqrt(1 -
+  /// zeta^2))` for damping ratio `zeta`. For [_spring]'s `bounce = 0.15`
+  /// (`zeta = 0.85`), that formula evaluates to ~0.63% overshoot --
+  /// imperceptible on screen, and too small to move [CruxCheckbox]'s box
+  /// pulse (which is derived from this same overshoot) past a sub-pixel
+  /// no-op; a review pass measured both directly (1ms-sampled peaks) and
+  /// found [_spring] alone did not satisfy the checkbox's agreed spec (see
+  /// `plans/atoms-batch-2/implementation-notes.md`'s review-follow-up entry
+  /// for the measurement this constant's `extraBounce` was chosen to fix).
+  /// `extraBounce: 0.33` raises the total bounce to `0.48` (`zeta = 0.52`),
+  /// which the same formula puts at ~14.8% overshoot -- comfortably inside
+  /// the "~1.15" the spec calls for, and confirmed against
+  /// `checkbox_test.dart`'s own 1ms-sampled "checkmark overshoot" test.
+  /// `duration` is left at [_spring]'s 200ms so the checkmark's overall
+  /// pace still matches every other press/toggle response in this package;
+  /// only the bounciness changes.
+  static const motor.Motion _playfulSpring = motor.CupertinoMotion.snappy(
+    duration: Duration(milliseconds: 200),
+    extraBounce: 0.33,
+  );
+
   /// Builds [child] wrapped in a scale animation that springs toward
   /// [value] whenever it changes, using Crux's shared spring.
   ///
@@ -119,6 +152,15 @@ class CruxMotion {
   /// source, `base_motion_builder.dart`'s `didUpdateWidget` and
   /// `motion_controller.dart`'s `_redirectSimulation`).
   ///
+  /// Pass `playful: true` to drive this value with [_playfulSpring] instead
+  /// -- a much bouncier sibling of [_spring], reserved for the one moment
+  /// this package wants a pronounced overshoot rather than a barely-there
+  /// one (see [_playfulSpring]'s own doc for the math and
+  /// [CruxCheckbox]'s checkmark, its only caller so far). Mutually
+  /// exclusive with `slow` in practice -- no current atom needs both a
+  /// longer duration and extra bounce at once -- but if both are passed,
+  /// `playful` wins.
+  ///
   /// Like [scale], this is the single choke point atoms route a spring
   /// through so the underlying animation engine can change later without
   /// breaking Crux UI's public API: [builder] and [child] are both plain
@@ -129,9 +171,10 @@ class CruxMotion {
     builder,
     Widget? child,
     bool slow = false,
+    bool playful = false,
   }) {
     return motor.SingleMotionBuilder(
-      motion: slow ? _slowSpring : _spring,
+      motion: playful ? _playfulSpring : (slow ? _slowSpring : _spring),
       value: value,
       builder: builder,
       child: child,
@@ -316,5 +359,90 @@ class CruxMotion {
     return shakeAmplitude *
         math.exp(-_shakeDecayRate * progress) *
         math.sin(_shakeCycles * 2 * math.pi * progress);
+  }
+
+  /// Builds a widget that continuously loops a `0.0 -> 1.0` progress value
+  /// at a constant (linear) rate, calling [builder] on every frame with the
+  /// current progress -- introduced for [CruxSpinner]'s falling dots,
+  /// which need an indefinitely-repeating "how far through this lap" value
+  /// rather than a value that settles toward a persisted target the way
+  /// [scale]/[animatedValue]/[animatedColor] do, or a value that plays once
+  /// and stops the way [shake] does.
+  ///
+  /// [period] is the wall-clock duration of one full `0.0 -> 1.0` lap.
+  /// Once a lap completes, this restarts from `0.0` and keeps going: unlike
+  /// [shake], there is no `trigger` to replay and no way to stop it short of
+  /// unmounting the returned widget -- for [CruxSpinner] that is correct,
+  /// since it only exists on screen for as long as its caller is loading.
+  ///
+  /// Internally wraps `motor`'s [motor.SequenceMotionBuilder] over a
+  /// two-phase [motor.MotionSequence.steps] (`[0.0, 1.0]`) driven by
+  /// [motor.LinearMotion] and set to [motor.LoopMode.seamless]. This
+  /// specific combination was chosen after reading `motor` 1.1.0's source
+  /// (`controllers/motion_controller.dart`,
+  /// `SequenceMotionController._handleSequencePhaseCompletion` and
+  /// `_jumpToSequencePhase`): once the `1.0` phase's `LinearMotion`
+  /// simulation finishes, `LoopMode.seamless` jumps back to the `0.0` phase
+  /// with no animation (a same-frame value reset, not a reverse animation
+  /// like `LoopMode.loop` would play) and then, via a post-frame callback,
+  /// immediately starts animating toward `1.0` again -- so the rendered
+  /// value is an uninterrupted linear sawtooth (`0.0 -> 1.0`, snap to
+  /// `0.0`, `0.0 -> 1.0`, ...) rather than a value that visibly reverses or
+  /// pauses at the seam. `LoopMode.loop` was deliberately not used here: for
+  /// a two-phase sequence it would play the *same* `LinearMotion` simulation
+  /// backwards from `1.0` to `0.0` before going forward again, which reads
+  /// as a back-and-forth wobble, not a one-directional repeating ramp.
+  ///
+  /// The `P` (phase) type parameter `motor.SequenceMotionBuilder` needs is
+  /// filled with `int` (the two step-sequence phase indices, `0` and `1`)
+  /// and never appears in this method's own signature, so -- like every
+  /// other method on this class -- callers only ever see plain Flutter
+  /// types ([BuildContext], [double], [Widget]), never a `motor` type.
+  ///
+  /// [child] is an optional subtree that does not itself depend on the
+  /// animated progress and is rebuilt only when it changes, the same
+  /// `child` optimization [animatedValue] and [scale] offer.
+  ///
+  /// [period] must be positive (`period > Duration.zero`): it is passed
+  /// straight through to [motor.LinearMotion] as the wall-clock duration of
+  /// one lap, and a zero or negative duration would not produce the `0.0 ->
+  /// 1.0` ramp this method promises -- a zero-duration `LinearMotion`
+  /// simulation reports itself done on the very first tick (confirmed
+  /// against motor 1.1.0's source, `simulations/linear_motion.dart`'s
+  /// `isDone`, which is `elapsed >= duration` and therefore trivially true
+  /// once `duration` is zero), so [builder] would only ever be called with
+  /// the loop's endpoints and never see the ramp in between -- the caller
+  /// sees a ticker spinning behind a value that looks stuck rather than an
+  /// animation. This is enforced with an `assert` (debug-only, per this
+  /// package's existing convention) rather than silently clamping, so a
+  /// caller passing an invalid period finds out immediately rather than
+  /// shipping a silently-broken spinner.
+  static Widget repeat({
+    required Duration period,
+    required Widget Function(
+      BuildContext context,
+      double progress,
+      Widget? child,
+    )
+    builder,
+    Widget? child,
+  }) {
+    assert(
+      period > Duration.zero,
+      'CruxMotion.repeat: period must be positive.',
+    );
+    return motor.SequenceMotionBuilder<int, double>(
+      sequence: motor.MotionSequence.steps<double>(
+        const <double>[0.0, 1.0],
+        motion: motor.LinearMotion(period),
+        loop: motor.LoopMode.seamless,
+      ),
+      converter: const motor.SingleMotionConverter(),
+      builder:
+          (BuildContext context, double progress, int phase, Widget? child) {
+            return builder(context, progress, child);
+          },
+      child: child,
+    );
   }
 }

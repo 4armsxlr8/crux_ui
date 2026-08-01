@@ -285,6 +285,87 @@ void main() {
       }
     });
 
+    test('light and dark CruxCheckbox unchecked outline (muted) has at '
+        'least 3.0 non-text contrast (WCAG 1.4.11) against background and '
+        'controlFill', () {
+      // checkbox.dart's `_resolveFillColor` doc records why this outline
+      // uses CruxColors.muted rather than the plan's first-candidate
+      // CruxColors.accentLine: accentLine measures only ~2.90:1 against
+      // controlFill in the light palette, below this 3.0 floor, while muted
+      // clears it in both palettes against both backdrops it can appear on
+      // (a bare checkbox on the page background, or one sitting inside a
+      // controlFill-filled surface such as a form). Measured with this
+      // test's own WCAG math: light ~3.84:1 (background) / ~3.36:1
+      // (controlFill); dark ~3.95:1 (background) / ~3.79:1 (controlFill),
+      // the dark values composited first since CruxColors.muted is
+      // semi-transparent (rgba) in the dark palette.
+      for (final CruxColors c in <CruxColors>[
+        CruxColors.light,
+        CruxColors.dark,
+      ]) {
+        final Color onBackground = _compositeOver(c.muted, c.background);
+        final Color onControlFill = _compositeOver(c.muted, c.controlFill);
+        expect(
+          _contrastRatio(onBackground, c.background),
+          greaterThanOrEqualTo(3.0),
+        );
+        expect(
+          _contrastRatio(onControlFill, c.controlFill),
+          greaterThanOrEqualTo(3.0),
+        );
+      }
+    });
+
+    test('CruxSpinner default color (accent) vs controlFill: dark clears '
+        'the 3.0 non-text contrast guideline, light falls short', () {
+      // CruxSpinner defaults to CruxColors.accent (plans/atoms-batch-2.md
+      // "色は accent"). Measured with this test's own WCAG math: dark
+      // ~4.99:1, comfortably above WCAG 1.4.11's 3.0 non-text floor. Light
+      // measures only ~2.56:1 -- below that floor -- which is not a new
+      // problem this spinner introduces: colors.dart's own accentTint doc
+      // already records that accent's hue sits too close to background's
+      // luminance to clear 3:1 even fully opaque in the light palette. This
+      // is flagged as an issue for user judgment (a spinner rendered
+      // standalone against controlFill in light mode is harder to make out
+      // than the plan's wording implies) rather than silently forced green;
+      // see this task's structured-output notes for the recorded issue.
+      expect(
+        _contrastRatio(
+          CruxColors.light.accent,
+          CruxColors.light.controlFill,
+        ),
+        greaterThanOrEqualTo(2.5),
+      );
+      expect(
+        _contrastRatio(CruxColors.dark.accent, CruxColors.dark.controlFill),
+        greaterThanOrEqualTo(4.5),
+      );
+    });
+
+    test('CruxIconButton neutral-tone mutedFill circle is actually '
+        'visible against the page background (light and dark)', () {
+      // Mirrors the existing "disabled CruxInputBar submit circle" guard
+      // above: the regression this catches is invisibility, not merely low
+      // contrast, so it uses the same 1.1 floor rather than the 3.0 WCAG
+      // non-text guideline (mutedFill is a deliberately subtle wash, not a
+      // state-identifying border -- see its own doc in colors.dart).
+      // Measured with this test's own WCAG math: light ~1.16:1, dark
+      // ~1.37:1, both comfortably above the 1.1 floor.
+      for (final CruxColors c in <CruxColors>[
+        CruxColors.light,
+        CruxColors.dark,
+      ]) {
+        final Color circle = _compositeOver(c.mutedFill, c.background);
+        expect(
+          _contrastRatio(circle, c.background),
+          greaterThanOrEqualTo(1.1),
+          reason:
+              'the neutral icon button circle must not vanish into the '
+              'page background',
+        );
+      }
+    });
+
     testWidgets(
       'filled CruxButton pressed-state background vs onAccent stays at '
       'least 4.5 (light and dark)',

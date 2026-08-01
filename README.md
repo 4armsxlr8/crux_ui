@@ -6,13 +6,14 @@ Crux UI likes people who like Crux UI.
 
 **Under development.** The design token layer is implemented: colors,
 spacing, typography, and radii, plus a `CruxTheme` / `CruxThemeData` pair
-that makes them available to a widget subtree. Eight widget atoms are also
-implemented: `CruxButton`, `CruxChip`, `CruxCard`, `CruxListTile`,
-`CruxSwitch`, `CruxDivider`, `CruxTextFormField`, and `CruxInputBar`.
-Other widgets
-(snackbars and so on) have not been built yet — for now, the rest of a
-screen is composed from plain Flutter widgets plus Crux's tokens, as shown
-in `example/`.
+that makes them available to a widget subtree. Eleven widget atoms are also
+implemented: `CruxButton` (including a `loading` state), `CruxChip`,
+`CruxCard`, `CruxListTile`, `CruxSwitch`, `CruxDivider`,
+`CruxTextFormField`, `CruxInputBar`, `CruxSpinner`, `CruxIconButton`,
+and `CruxCheckbox`, plus one molecule built from them, `CruxComposer` —
+twelve components in total. Other widgets (snackbars and so on) have not
+been built yet — for now, the rest of a screen is composed from plain
+Flutter widgets plus Crux's tokens, as shown in `example/`.
 
 Crux never rewrites Material's `ThemeData`; providing a `CruxTheme` does
 not change the look of `Material`, `Scaffold`, or other Material widgets.

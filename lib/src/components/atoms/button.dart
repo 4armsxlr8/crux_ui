@@ -5,6 +5,7 @@ import '../../tokens/colors.dart';
 import '../../tokens/motion.dart';
 import '../../tokens/spacing.dart';
 import '../../tokens/theme.dart';
+import 'spinner.dart';
 
 /// The minimum tap target size for any [CruxButton], regardless of its
 /// visual [CruxButtonSize] (KB9): 44 logical pixels, matching the common
@@ -104,6 +105,12 @@ enum CruxButtonSize {
 /// This widget is deliberately built from plain [GestureDetector] and
 /// painting widgets rather than Material's `InkWell`/`ElevatedButton`, so it
 /// never depends on or is affected by an ambient Material `ThemeData`.
+///
+/// Set [loading] to `true` to show a submitting/sending state: the label is
+/// replaced by a small [CruxSpinner] and the button stops responding to
+/// taps (even if [onPressed] is non-null), while keeping the exact same
+/// background, border, and size it would have without [loading] -- only the
+/// label's content and the button's interactivity change.
 class CruxButton extends StatefulWidget {
   /// Creates a Crux pill button.
   const CruxButton({
@@ -112,6 +119,7 @@ class CruxButton extends StatefulWidget {
     required this.onPressed,
     this.variant = CruxButtonVariant.filled,
     this.size = CruxButtonSize.medium,
+    this.loading = false,
   });
 
   /// The button's text. Always rendered on a single line with an ellipsis,
@@ -119,6 +127,9 @@ class CruxButton extends StatefulWidget {
   final String label;
 
   /// Called when the button is tapped. Pass `null` to disable the button.
+  ///
+  /// Ignored while [loading] is `true`: the button does not invoke this even
+  /// when it is non-null.
   final VoidCallback? onPressed;
 
   /// The background/emphasis treatment. Defaults to
@@ -127,6 +138,16 @@ class CruxButton extends StatefulWidget {
 
   /// The visual height. Defaults to [CruxButtonSize.medium].
   final CruxButtonSize size;
+
+  /// Whether the button is showing a submitting/sending state. Defaults to
+  /// `false`.
+  ///
+  /// While `true`, [label] is replaced by a small [CruxSpinner] and the
+  /// button becomes unpressable -- taps neither invoke [onPressed] nor show
+  /// the press-scale/state-layer feedback -- but the button's background,
+  /// border, and overall size are unchanged from its non-loading appearance,
+  /// so a caller can flip this flag without the surrounding layout shifting.
+  final bool loading;
 
   @override
   State<CruxButton> createState() => _CruxButtonState();
@@ -143,18 +164,30 @@ class _CruxButtonState extends State<CruxButton> {
     onChanged: (bool value) => setState(() => _pressed = value),
   );
 
-  bool get _enabled => widget.onPressed != null;
+  // Whether an [VoidCallback] was supplied at all -- the Flutter convention
+  // this widget uses for its *visual* enabled/disabled treatment (background,
+  // border, label/spinner color). Deliberately independent of [_interactive]:
+  // a loading button keeps looking exactly like its enabled self (see
+  // [CruxButton.loading]'s doc), it just stops responding to taps.
+  bool get _hasOnPressed => widget.onPressed != null;
 
-  // Only _handleTapDown checks `_enabled`: it is the only handler that
-  // *starts* a press, so gating it there is enough to keep a disabled
-  // button from ever entering the pressed state. _handleTapUp and
+  // Whether the button actually responds to taps right now: it needs both a
+  // callback to call and to not be showing its loading state. This is the
+  // gate used for anything interaction-related (semantics `enabled`,
+  // `onTap`, and starting the press-scale feedback below) -- as opposed to
+  // [_hasOnPressed], which only ever governs the button's *look*.
+  bool get _interactive => _hasOnPressed && !widget.loading;
+
+  // Only _handleTapDown checks `_interactive`: it is the only handler that
+  // *starts* a press, so gating it there is enough to keep a disabled or
+  // loading button from ever entering the pressed state. _handleTapUp and
   // _handleTapCancel always resolve any in-flight press unconditionally,
-  // so a press started while enabled still ends cleanly even if the button
-  // becomes disabled before release (see the onTapDown/Up/Cancel wiring
-  // comment in build() for why these three callbacks are never gated by
-  // `enabled` themselves).
+  // so a press started while interactive still ends cleanly even if the
+  // button stops being interactive before release (see the onTapDown/Up/
+  // Cancel wiring comment in build() for why these three callbacks are never
+  // gated by `_interactive` themselves).
   void _handleTapDown(TapDownDetails details) {
-    if (_enabled) {
+    if (_interactive) {
       _pressFeedback.down();
     }
   }
@@ -173,7 +206,8 @@ class _CruxButtonState extends State<CruxButton> {
   Widget build(BuildContext context) {
     final CruxThemeData theme = CruxTheme.of(context);
     final CruxColors colors = theme.colors;
-    final bool enabled = _enabled;
+    final bool hasOnPressed = _hasOnPressed;
+    final bool interactive = _interactive;
     final ({double height, double horizontalPadding}) metrics = _metricsFor(
       widget.size,
     );
@@ -181,17 +215,22 @@ class _CruxButtonState extends State<CruxButton> {
     final Color? background = _resolveBackground(
       colors: colors,
       variant: widget.variant,
-      enabled: enabled,
+      enabled: hasOnPressed,
       pressed: _pressed,
     );
     final BorderSide side =
-        enabled && widget.variant == CruxButtonVariant.tonal
+        hasOnPressed && widget.variant == CruxButtonVariant.tonal
         ? BorderSide(color: colors.accentLine)
         : BorderSide.none;
+    // Also doubles as the loading spinner's color (KB "accent 塗りのバリアント
+    // ではスピナー色は onAccent。他のバリアントが存在する場合はそのバリアントの
+    // ラベル前景色に合わせ"): this is exactly the label's own foreground color
+    // for whichever variant/enabled state is showing, so reusing it keeps the
+    // spinner visually consistent with the label it temporarily replaces.
     final Color textColor = _resolveTextColor(
       colors: colors,
       variant: widget.variant,
-      enabled: enabled,
+      enabled: hasOnPressed,
     );
     final TextStyle labelStyle =
         (widget.size == CruxButtonSize.small
@@ -202,7 +241,7 @@ class _CruxButtonState extends State<CruxButton> {
     return Semantics(
       container: true,
       button: true,
-      enabled: enabled,
+      enabled: interactive,
       // No explicit `label` here: the child `Text` below already supplies
       // its own automatic semantics label (the same value as widget.label),
       // and neither this Semantics nor RenderParagraph creates a semantics
@@ -227,7 +266,7 @@ class _CruxButtonState extends State<CruxButton> {
         onTapDown: _handleTapDown,
         onTapUp: _handleTapUp,
         onTapCancel: _handleTapCancel,
-        onTap: widget.onPressed,
+        onTap: interactive ? widget.onPressed : null,
         child: CruxMotion.scale(
           value: _pressed ? CruxMotion.pressedScale : 1.0,
           child: ConstrainedBox(
@@ -268,12 +307,60 @@ class _CruxButtonState extends State<CruxButton> {
                   ),
                 ),
                 alignment: Alignment.center,
-                child: Text(
-                  widget.label,
-                  maxLines: 1,
-                  softWrap: false,
-                  overflow: TextOverflow.ellipsis,
-                  style: labelStyle,
+                // The label Text is always laid out (as the Stack's only
+                // non-Positioned child, it alone determines the Stack's --
+                // and therefore the whole button's -- size), just hidden via
+                // Opacity while loading. The spinner is layered on top via
+                // Positioned.fill, which Stack sizing ignores entirely, so
+                // toggling `loading` can never change the button's
+                // dimensions (KB "ボタン自体の寸法は loading の on/off で 1px も
+                // 変わらない").
+                //
+                // Positioned.fill hands its child tight constraints matching
+                // the label's own box, which can be *narrower* than the
+                // spinner's natural 16x16 (e.g. a one-character label like
+                // "S"). Center only loosens the minimum, not the maximum, so
+                // a bare Center would still squeeze the spinner down to fit
+                // -- shrinking its 16x16 dot grid and off-centering it. The
+                // OverflowBox drops the incoming constraints entirely so the
+                // spinner always lays out at its own natural size and stays
+                // centered, painting outside the label's box into the pill's
+                // >=44px tap-target padding when the label is that narrow --
+                // never clipped, since OverflowBox never clips its child.
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: <Widget>[
+                    Opacity(
+                      opacity: widget.loading ? 0 : 1,
+                      // alwaysIncludeSemantics keeps the label Text in the
+                      // semantics tree even at opacity 0: without it,
+                      // RenderOpacity drops a fully-transparent child (and
+                      // the automatic label this Semantics relies on, see
+                      // the comment below) entirely while loading, leaving
+                      // the button with no accessible name (WCAG 4.1.2).
+                      alwaysIncludeSemantics: true,
+                      child: Text(
+                        widget.label,
+                        maxLines: 1,
+                        softWrap: false,
+                        overflow: TextOverflow.ellipsis,
+                        style: labelStyle,
+                      ),
+                    ),
+                    if (widget.loading)
+                      Positioned.fill(
+                        child: OverflowBox(
+                          minWidth: 0,
+                          minHeight: 0,
+                          maxWidth: double.infinity,
+                          maxHeight: double.infinity,
+                          child: CruxSpinner(
+                            size: CruxSpinnerSize.small,
+                            color: textColor,
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
               ),
             ),

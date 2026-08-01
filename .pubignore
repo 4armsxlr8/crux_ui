@@ -1,5 +1,7 @@
 # Internal design/alignment records — not part of the published package.
 unknowns/
+plans/
+.claude/
 output/
 *.iml
 CLAUDE.md
