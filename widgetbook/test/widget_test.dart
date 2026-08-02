@@ -23,6 +23,7 @@
 // in the preview pane. Per-component behavior beyond this is covered by
 // each use-case's own tests/goldens, not here.
 
+import 'package:flutter/material.dart' show BottomNavigationBar;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:widgetbook_app/main.dart';
@@ -59,6 +60,42 @@ void main() {
       // Foundations Playground's default color-token line — rather than a
       // red error screen standing in for it.
       expect(find.text('カラー: accent'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'narrow viewports still show the sidebar navigation, never the bottom nav',
+    (WidgetTester tester) async {
+      // A viewport narrower than Widgetbook's 840px mobile breakpoint
+      // (`ResponsiveLayout` in
+      // `~/.pub-cache/hosted/pub.dev/widgetbook-3.25.0/lib/src/layout/
+      // responsive_layout.dart`) would normally fall back to
+      // `MobileLayout`'s bottom navigation bar. This catalog is desktop-only
+      // by decision (see `unknowns/catalog/implementation-notes.md`), so the
+      // sidebar must stay put no matter how narrow the window gets. 800x600
+      // is the exact size that caused the original incident (the macOS
+      // app's old default window), so this reuses that width; height is
+      // raised to 900 (matching the boot test above) because at a cramped
+      // 600 Widgetbook's own default landing page and nav tree rows overflow
+      // by a fraction of a pixel regardless of mobile vs. desktop layout —
+      // pre-existing widgetbook rendering behavior unrelated to the
+      // width-driven layout switch this test targets.
+      tester.view.physicalSize = const Size(800, 900);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+
+      await tester.pumpWidget(const WidgetbookApp());
+      await tester.pumpAndSettle();
+
+      // The mobile layout's bottom navigation bar must never appear.
+      expect(find.byType(BottomNavigationBar), findsNothing);
+
+      // The desktop sidebar's navigation tree must be showing instead — the
+      // same hint the boot test above uses to reach into it. 'Playground' is
+      // not unique (every component has one), so — like the boot test above
+      // — this only asserts at least one is present.
+      expect(find.text('Playground'), findsWidgets);
     },
   );
 }

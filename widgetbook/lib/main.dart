@@ -39,6 +39,11 @@ class WidgetbookApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Widgetbook(
+      // Widgetbook falls back to a bottom-nav mobile layout below its 840px
+      // width breakpoint (`ResponsiveLayout` in widgetbook's own source).
+      // Setting `panels` here forces the desktop sidebar layout regardless
+      // of window width — see `unknowns/catalog/implementation-notes.md`.
+      initialRoute: '/?panels=navigation,addons,knobs',
       // crux_ui never touches Material theming (see root CLAUDE.md), so
       // the use-case host uses WidgetsApp rather than Widgetbook.material —
       // keeping the catalog's rendering surface consistent with how
