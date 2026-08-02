@@ -177,7 +177,12 @@ class DialogStatesMatrix extends StatelessWidget {
 
     return ColoredBox(
       color: colors.background,
-      child: Padding(
+      // Four rows of dialog cards run taller than a small preview pane, the
+      // same shape of problem button.dart's ButtonStatesMatrix solves --
+      // SingleChildScrollView keeps every row reachable regardless of the
+      // surrounding viewport's height, and is a no-op once the content
+      // already fits (as at the golden test's generous canvas).
+      child: SingleChildScrollView(
         padding: const EdgeInsets.all(CruxSpacing.s16),
         child: Column(
           mainAxisSize: MainAxisSize.min,
