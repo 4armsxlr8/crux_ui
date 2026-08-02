@@ -38,6 +38,14 @@ void main() {
 /// delegates so it reads correctly. `crux_ui` itself never depends on
 /// `flutter_localizations`; that dependency lives only here, in the
 /// consuming app.
+///
+/// **Toasts.** [MaterialApp.builder] wraps the app's [Navigator] (the
+/// `child` that builder receives) in a single [CruxToastHost], once, here
+/// at the root -- so any pushed screen can call `showCruxToast(context,
+/// ...)` (for example `task_list_screen.dart`'s delete-undo toast) without
+/// wrapping itself, and a toast survives whatever screen it was shown from
+/// being popped or replaced, the same way a real app's one global toast
+/// layer would.
 class CruxExampleApp extends StatefulWidget {
   /// Creates the example app.
   const CruxExampleApp({super.key});
@@ -72,6 +80,8 @@ class _CruxExampleAppState extends State<CruxExampleApp> {
             GlobalCupertinoLocalizations.delegate,
             GlobalWidgetsLocalizations.delegate,
           ],
+          builder: (BuildContext context, Widget? child) =>
+              CruxToastHost(child: child!),
           home: const HomeIndexPage(),
         ),
       ),

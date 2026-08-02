@@ -270,6 +270,16 @@ class _DemoListState extends State<_DemoList> {
   /// real task list would for a fresh session.
   final Set<int> _completed = <int>{};
 
+  /// Indices into [_demoListRows] that have been deleted and are hidden from
+  /// [build]'s visible rows -- mirrors [_completed]'s own "track which
+  /// indices changed, leave the underlying [_demoListRows] list itself
+  /// untouched" shape. Because the visible list is always [_demoListRows]
+  /// filtered by this set, undoing a deletion (see [_delete]) needs no
+  /// separate "where did this row used to be" bookkeeping: removing the
+  /// index from this set is enough to bring the row back at its original
+  /// position, with whatever completed state it had before.
+  final Set<int> _deleted = <int>{};
+
   void _toggle(int index, bool checked) {
     setState(() {
       if (checked) {
@@ -280,44 +290,91 @@ class _DemoListState extends State<_DemoList> {
     });
   }
 
+  /// Opens the delete confirmation for the task at [index] -- only
+  /// [_DemoTaskRow]s (real tasks) ever call this; the plain "アーカイブをすべ
+  /// て見る" navigation row has no delete affordance of its own. Confirming
+  /// calls [_delete]; [CruxConfirmDialog.show] closes the dialog itself
+  /// either way (see its own doc), so neither branch needs to do that here.
+  Future<void> _confirmDelete(int index) {
+    final String title = _demoListRows[index].$2;
+    return CruxConfirmDialog.show(
+      context,
+      title: '「$title」を削除しますか？',
+      message: 'この操作はあとで「元に戻す」から取り消せます。',
+      cancelLabel: 'キャンセル',
+      confirmLabel: '削除',
+      onConfirm: () => _delete(index, title),
+    );
+  }
+
+  /// Hides the task at [index] and shows a toast with a "元に戻す" action
+  /// that undoes exactly this deletion.
+  void _delete(int index, String title) {
+    setState(() => _deleted.add(index));
+    showCruxToast(
+      context,
+      message: '「$title」を削除しました',
+      action: CruxToastAction(
+        label: '元に戻す',
+        onPressed: () => setState(() => _deleted.remove(index)),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final List<int> visible = <int>[
+      for (int i = 0; i < _demoListRows.length; i++)
+        if (!_deleted.contains(i)) i,
+    ];
     return Column(
       children: [
-        for (int i = 0; i < _demoListRows.length; i++) ...[
-          _demoListRows[i].$1 == null
-              ? CruxListTile(
-                  title: _demoListRows[i].$2,
-                  subtitle: _demoListRows[i].$3,
-                  trailing: _demoListRows[i].$4,
-                  onTap: () {},
-                )
-              : _DemoTaskRow(
-                  icon: _demoListRows[i].$1!,
-                  title: _demoListRows[i].$2,
-                  subtitle: _demoListRows[i].$3,
-                  trailing: _demoListRows[i].$4,
-                  completed: _completed.contains(i),
-                  colors: widget.colors,
-                  type: widget.type,
-                  onChanged: (bool checked) => _toggle(i, checked),
-                ),
-          if (i != _demoListRows.length - 1)
+        for (int vi = 0; vi < visible.length; vi++) ...[
+          _buildRow(visible[vi]),
+          if (vi != visible.length - 1)
             const CruxDivider(indent: _demoListDividerIndent),
         ],
       ],
+    );
+  }
+
+  /// Builds the row for [index] into [_demoListRows]: the plain navigation
+  /// row for the one entry with no leading emoji (see [_demoListRows]'s own
+  /// doc), or a completable, deletable [_DemoTaskRow] for every other entry.
+  Widget _buildRow(int index) {
+    final (String?, String, String?, String?) row = _demoListRows[index];
+    if (row.$1 == null) {
+      return CruxListTile(
+        title: row.$2,
+        subtitle: row.$3,
+        trailing: row.$4,
+        onTap: () {},
+      );
+    }
+    return _DemoTaskRow(
+      icon: row.$1!,
+      title: row.$2,
+      subtitle: row.$3,
+      trailing: row.$4,
+      completed: _completed.contains(index),
+      colors: widget.colors,
+      type: widget.type,
+      onChanged: (bool checked) => _toggle(index, checked),
+      onDelete: () => _confirmDelete(index),
     );
   }
 }
 
 /// A single completable task row: a leading [CruxCheckbox] the reader can
 /// tap to toggle done/not-done, the same emoji-in-a-circle icon
-/// [_DemoListIcon] the plain rows used before, and a title/subtitle/trailing
-/// layout matching [CruxListTile]'s own. This is a bespoke row rather than
-/// [CruxListTile] itself because [CruxListTile.title] only accepts a
-/// plain [String] with a fixed style -- there is no way to ask it for the
-/// completed-task strikethrough this row needs, so this composes the same
-/// look directly from [CruxCheckbox], [_DemoListIcon], and [Text].
+/// [_DemoListIcon] the plain rows used before, a title/subtitle/trailing
+/// layout matching [CruxListTile]'s own, and a trailing [CruxIconButton]
+/// that opens this task's delete confirmation ([_DemoListState.
+/// _confirmDelete]). This is a bespoke row rather than [CruxListTile]
+/// itself because [CruxListTile.title] only accepts a plain [String] with
+/// a fixed style -- there is no way to ask it for the completed-task
+/// strikethrough this row needs, so this composes the same look directly
+/// from [CruxCheckbox], [_DemoListIcon], and [Text].
 class _DemoTaskRow extends StatelessWidget {
   const _DemoTaskRow({
     required this.icon,
@@ -328,6 +385,7 @@ class _DemoTaskRow extends StatelessWidget {
     required this.colors,
     required this.type,
     required this.onChanged,
+    required this.onDelete,
   });
 
   final String icon;
@@ -338,6 +396,9 @@ class _DemoTaskRow extends StatelessWidget {
   final CruxColors colors;
   final CruxTypography type;
   final ValueChanged<bool> onChanged;
+
+  /// Called when this row's delete icon button is tapped.
+  final VoidCallback onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -357,57 +418,76 @@ class _DemoTaskRow extends StatelessWidget {
         horizontal: CruxSpacing.s16,
         vertical: CruxSpacing.s12,
       ),
-      // MergeSemantics merges the checkbox's own checked/unchecked semantics
-      // with the title (and subtitle/trailing) text below into a single
-      // node, so a screen reader announces "checked, 買い物メモを作成" as one
-      // unit instead of an unlabeled "checkbox, not checked" that gives no
-      // way to tell which task the checkbox belongs to. This changes only
-      // the semantics tree, not layout or paint.
-      child: MergeSemantics(
-        child: Row(
-          children: [
-            CruxCheckbox(
-              checked: completed,
-              onChanged: (bool value) => onChanged(value),
-            ),
-            const SizedBox(width: CruxSpacing.s12),
-            _DemoListIcon(icon: icon, colors: colors),
-            const SizedBox(width: CruxSpacing.s12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
+      child: Row(
+        children: [
+          Expanded(
+            // MergeSemantics merges the checkbox's own checked/unchecked
+            // semantics with the title (and subtitle/trailing) text below
+            // into a single node, so a screen reader announces "checked,
+            // 買い物メモを作成" as one unit instead of an unlabeled "checkbox,
+            // not checked" that gives no way to tell which task the checkbox
+            // belongs to. This changes only the semantics tree, not layout
+            // or paint. Deliberately scoped to just this Expanded (not the
+            // delete button below): merging the button's own semantics in
+            // too would fold two separate actions (toggle done / delete)
+            // into one node, leaving no way for assistive tech to trigger
+            // either individually.
+            child: MergeSemantics(
+              child: Row(
                 children: [
-                  Text(
-                    title,
-                    maxLines: 1,
-                    softWrap: false,
-                    overflow: TextOverflow.ellipsis,
-                    style: titleStyle,
+                  CruxCheckbox(
+                    checked: completed,
+                    onChanged: (bool value) => onChanged(value),
                   ),
-                  if (subtitle != null)
+                  const SizedBox(width: CruxSpacing.s12),
+                  _DemoListIcon(icon: icon, colors: colors),
+                  const SizedBox(width: CruxSpacing.s12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          title,
+                          maxLines: 1,
+                          softWrap: false,
+                          overflow: TextOverflow.ellipsis,
+                          style: titleStyle,
+                        ),
+                        if (subtitle != null)
+                          Text(
+                            subtitle!,
+                            maxLines: 1,
+                            softWrap: false,
+                            overflow: TextOverflow.ellipsis,
+                            style: type.body.copyWith(
+                              color: colors.textSecondary,
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                  if (trailing != null) ...[
+                    const SizedBox(width: CruxSpacing.s12),
                     Text(
-                      subtitle!,
+                      trailing!,
                       maxLines: 1,
                       softWrap: false,
                       overflow: TextOverflow.ellipsis,
-                      style: type.body.copyWith(color: colors.textSecondary),
+                      style: type.caption.copyWith(color: colors.textSecondary),
                     ),
+                  ],
                 ],
               ),
             ),
-            if (trailing != null) ...[
-              const SizedBox(width: CruxSpacing.s12),
-              Text(
-                trailing!,
-                maxLines: 1,
-                softWrap: false,
-                overflow: TextOverflow.ellipsis,
-                style: type.caption.copyWith(color: colors.textSecondary),
-              ),
-            ],
-          ],
-        ),
+          ),
+          const SizedBox(width: CruxSpacing.s4),
+          CruxIconButton(
+            icon: const Icon(Icons.delete_outline, size: 18),
+            label: '「$title」を削除',
+            onPressed: onDelete,
+          ),
+        ],
       ),
     );
   }

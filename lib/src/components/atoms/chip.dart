@@ -41,6 +41,19 @@ const double _pressedOverlayOpacity = 0.08;
 /// ellipsis, so a [CruxChip] can never overflow its layout no matter how
 /// narrow its constraints or how long the label is.
 ///
+/// **[CruxChip] vs. [CruxSegmentedControl]**: these are the two
+/// selection atoms this package ships, and they serve different jobs.
+/// [CruxChip] has no built-in exclusivity at all: a row of [CruxChip]s
+/// is a multi-select filter list, where any number (including zero) can be
+/// [selected] at once, and enforcing "at most one" (if ever needed) is
+/// entirely the caller's own state-management job, not this package's.
+/// Reach for [CruxSegmentedControl] instead when the choice is inherently
+/// one-of-many with exclusivity built in (a view switcher, a unit toggle) --
+/// it always keeps exactly one segment selected and, on every real
+/// selection change, drives its own plate-spring and "kira" sheen feedback
+/// that [CruxChip] does not have. Reach for [CruxChip] when it's a
+/// filter (zero, one, or many active tags).
+///
 /// Three states determine the chip's colors, in priority order:
 ///
 ///  * disabled ([onTap] is `null`): [CruxColors.surface] background,

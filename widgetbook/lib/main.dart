@@ -8,13 +8,17 @@ import 'usecases/card.dart';
 import 'usecases/checkbox.dart';
 import 'usecases/chip.dart';
 import 'usecases/composer.dart';
+import 'usecases/dialog.dart';
 import 'usecases/foundations.dart';
 import 'usecases/icon_button.dart';
 import 'usecases/input_bar.dart';
 import 'usecases/list_tile.dart';
+import 'usecases/segmented_control.dart';
+import 'usecases/slider.dart';
 import 'usecases/spinner.dart';
 import 'usecases/switch_.dart';
 import 'usecases/text_form_field.dart';
+import 'usecases/toast.dart';
 
 /// Entry point of the Crux UI catalog app.
 ///
@@ -152,6 +156,10 @@ final List<WidgetbookNode> _directories = [
       spinnerComponent,
       iconButtonComponent,
       checkboxComponent,
+      dialogComponent,
+      segmentedControlComponent,
+      sliderComponent,
+      toastComponent,
     ],
   ),
 ];

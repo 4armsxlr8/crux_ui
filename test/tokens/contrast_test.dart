@@ -366,6 +366,46 @@ void main() {
       }
     });
 
+    test('CruxSegmentedControl selected-plate fill (controlPlate) has a '
+        'perceptible non-text contrast against the track it sits on '
+        '(controlFill), light and dark', () {
+      // 2026-08-02, "ダークモードの SegmentedControl 選択プレートのコント
+      // ラストを改善する -- 輪郭ではなく色の変更で改善": segmented_control
+      // .dart's `_buildPlate` used to fill the plate with CruxColors
+      // .surface, which measures only ~1.05:1 against CruxColors.dark
+      // .controlFill (the track). A same-day dark-only *hairline outline*
+      // attempt at this problem (a muted 1px border, with its own contrast
+      // test) was superseded by this color-based fix and removed together
+      // with its test.
+      //
+      // CruxColors.controlPlate exists to replace .surface in that role.
+      // It deliberately does NOT clear WCAG 1.4.11's 3:1 non-text floor --
+      // see its own doc in colors.dart for why a 3:1 plate fill was not the
+      // goal, and why the 3:1 floor for the selected state is instead
+      // carried by the label's own color change (textPrimary vs.
+      // textSecondary). These floors are set just below each palette's own
+      // measured ratio (light ~1.2277:1, dark ~1.4254:1 with this test's
+      // own WCAG math) purely as a drift guard: light stays effectively
+      // unguarded relative to its unchanged pre-fix value (CruxColors
+      // .controlPlate.light is defined identical to CruxColors.surface),
+      // while dark is pinned meaningfully above the ~1.05:1 failure this
+      // token exists to fix.
+      expect(
+        _contrastRatio(
+          CruxColors.light.controlPlate,
+          CruxColors.light.controlFill,
+        ),
+        greaterThanOrEqualTo(1.2),
+      );
+      expect(
+        _contrastRatio(
+          CruxColors.dark.controlPlate,
+          CruxColors.dark.controlFill,
+        ),
+        greaterThanOrEqualTo(1.4),
+      );
+    });
+
     testWidgets(
       'filled CruxButton pressed-state background vs onAccent stays at '
       'least 4.5 (light and dark)',

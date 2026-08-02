@@ -5,6 +5,7 @@ import '../widgets/app_header.dart';
 import 'chat_screen.dart';
 import 'compose_screen.dart';
 import 'login_screen.dart';
+import 'settings_screen.dart';
 import 'sync_screen.dart';
 import 'task_list_screen.dart';
 
@@ -110,6 +111,13 @@ final List<_SampleScreenEntry> _sampleScreens = <_SampleScreenEntry>[
     subtitle: 'CruxSpinner による同期中表示と、完了後の同期済みリスト・再同期ボタン',
     builder: _buildSyncScreen,
   ),
+  _SampleScreenEntry(
+    title: '設定',
+    subtitle:
+        'CruxSlider による文字サイズ・通知音量の調整、CruxSegmentedControl による並び順の切り替え、'
+        'CruxConfirmDialog と showCruxToast による設定のリセット確認・取り消し',
+    builder: _buildSettingsScreen,
+  ),
 ];
 
 Widget _buildLoginScreen(BuildContext context) => const LoginScreen();
@@ -121,3 +129,5 @@ Widget _buildChatScreen(BuildContext context) => const ChatScreen();
 Widget _buildComposeScreen(BuildContext context) => const ComposeScreen();
 
 Widget _buildSyncScreen(BuildContext context) => const SyncScreen();
+
+Widget _buildSettingsScreen(BuildContext context) => const SettingsScreen();

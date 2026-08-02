@@ -1,5 +1,130 @@
 # Changelog
 
+## 0.8.0
+
+- Added `CruxShadows`, the package's first elevation token set, wired
+  into `CruxThemeData` as `shadows` (a non-breaking optional field that
+  defaults to the light preset). Semantic names are permanent, values are
+  provisional — the same contract `CruxColors` follows: `sm`/`md`/`lg`
+  are two-layer soft shadow stacks whose ink is a translucent wash of the
+  text-primary hue in light and black in dark; `scrim` is the modal
+  backdrop tint; `hairline` is a 1px edge color for dark mode (fully
+  transparent in light, so callers can always draw the border without
+  branching on brightness); `ink` is the opaque shadow-ink base other
+  components derive tinted lines and shades from; `thumb`/
+  `thumbLifted` are the outline-hugging resting/dragging shadows for a
+  small draggable control cap (introduced for `CruxSlider`); and `xs`
+  is the smallest tier — a single faint, close layer for a surface that
+  should read as only barely lifted, like a segmented control's
+  selected plate. The "raw
+  color values live only in colors.dart" rule is now generalized: raw
+  token values live only in their defining file under `lib/src/tokens/`.
+- Added `CruxColors.controlPlate`, the fill for a filled control's own
+  selected/lifted inner plate (introduced for `CruxSegmentedControl`'s
+  selection plate). `surface` cannot play that role in the dark palette:
+  it measures only ~1.05:1 against `controlFill` there, so a
+  surface-filled plate inside a filled control is nearly invisible.
+  `controlPlate` is `surface`-white in light and a brighter warm gray in
+  dark (~1.43:1 against `controlFill`, floors guarded in
+  `test/tokens/contrast_test.dart`); the selected state's 3:1
+  requirement is still carried by the label color change.
+- Added `CruxDialog`, a two-layer confirmation dialog. The blank layer
+  is `CruxDialogCard` (a statically renderable floating card: surface
+  fill, superellipse corners, the `lg` shadow, no border in either theme)
+  plus `CruxDialog.show`, which floats that card over a scrim with a
+  springy entrance (scale 0.9 → a slight overshoot → 1.0) and a fade-out
+  exit, closing on scrim tap (`barrierDismissible: false` opts out). It is
+  built on a hand-rolled `OverlayEntry` — not Material's `showDialog` — so
+  it works under a bare `WidgetsApp` and never reads `ThemeData`. The
+  modal subtree scopes its own accessibility route, carries
+  `SemanticsRole.dialog`, and blocks the background from the semantics
+  tree (`scopesRoute` + `BlockSemantics`, the same structure Flutter's
+  own dialog route uses); an optional `routeSemanticLabel` names the
+  route for assistive technology, and the scrim's spoken dismiss label
+  is caller-supplied via `barrierSemanticLabel`, hidden from semantics
+  entirely when omitted. The calling context's `CruxTheme` is captured
+  at `show` time and re-provided inside the overlay entry, so a locally
+  scoped theme reaches the floating dialog (a theme change made while
+  the dialog is already open is not picked up — documented trade-off,
+  the same one Material's `showDialog` makes). While the exit fade
+  plays, the whole dialog ignores pointers, so a rapid second tap can
+  never re-fire an action.
+- Added `CruxConfirmDialog`, the ready-made confirmation layer over
+  `CruxDialog` and the package's second molecule: pass `title`,
+  `message`, and cancel/confirm labels plus callbacks and the dialog is
+  complete, with the action row laid out space-between (cancel on the far
+  left, confirm on the far right) using `CruxButton`s. Its `show`
+  convenience method closes the dialog after either action's callback.
+- Added `CruxToast`, a notification toast system with no Material
+  dependency (`ScaffoldMessenger`/`SnackBar` are not involved): wrap a
+  screen in `CruxToastHost`, then call `showCruxToast` with a
+  `message`, an optional caller-supplied `leading` icon, and at most one
+  `CruxToastAction` (label + callback, for example an "undo"). Toasts
+  stack from the bottom, at most three at a time (a fourth dismisses the
+  oldest), and auto-dismiss after ~3 seconds — 6 seconds when an action is
+  attached, so there is time to tap it. A duplicate `message` is never
+  stacked twice: the existing toast shakes (the same decaying wobble
+  `CruxMotion.shake` drives elsewhere, suppressed under reduce-motion),
+  and if it was buried under newer toasts it moves back to the front and
+  restarts its timer so the message can be re-read; a duplicate that is
+  already frontmost only shakes, without extending its life. Toasts can
+  also be swiped away horizontally (touching a toast pauses its dismiss
+  timer, and releasing without dismissing re-grants the full grace
+  period), and each card exposes the equivalent `dismiss` semantics
+  action for assistive technology, which cannot swipe. While the
+  platform's accessible-navigation mode (a screen reader) is active, an
+  actioned toast is held open instead of timing out, following
+  `SnackBar`'s precedent. Each toast is a live region for screen
+  readers, inherits the `CruxTheme` of the context that showed it
+  (captured at show time), and the card draws a hairline border that is
+  visible in dark mode only (where the shadow alone cannot separate it
+  from the background). The static card is exposed as `CruxToastCard`.
+- Added `CruxSegmentedControl`, a single-selection, mutually exclusive
+  segmented control (`CruxSegmentedControl<T>` over a list of
+  `CruxSegment<T>` values with caller-supplied labels). Where
+  `CruxChip` is a non-exclusive multi-select filter, this control owns
+  exclusivity — both dartdocs spell out the split. Selection never slides:
+  the selected plate (surface fill + small shadow) springs in place
+  (fade + scale 0.8 → slight overshoot → 1.0) while the outgoing plate
+  fades, the label layer never moves, and ~90ms after the plate lands a
+  diagonal light band sweeps across it once — tilted 4°, peaking at 0.24
+  opacity, blurred 8px, travelling for 300ms, flanked by faint shades in
+  light mode so it reads on white. The sweep's direction and tilt mirror
+  the direction of travel (moving to a righter segment sweeps left→right
+  at +4°; moving back sweeps right→left at −4°), and it never plays on
+  first build or when re-tapping the already-selected segment. Each
+  segment exposes selected/mutually-exclusive semantics, and the whole
+  effect collapses to an instant state change under reduce-motion.
+- Added `CruxMotion.playOnce`, the generalized "play a one-shot effect
+  each time a trigger counter increments" primitive `CruxMotion.shake`
+  established, now exposing the raw 0→1 progress to its builder so future
+  one-shot effects (like the segmented control's light sweep) don't
+  re-derive the trigger arithmetic. Unlike `shake`'s formula — which is
+  zero at both ends of a leg, hiding this — `playOnce` also corrects the
+  first-build edge case where a freshly mounted widget would read as
+  "already finished" rather than "at rest."
+- Added `CruxSlider`, the package's first horizontally draggable
+  control: `value`/`onChanged` plus `min`/`max`, optional
+  `onChangeStart`/`onChangeEnd`, an optional `valueLabelBuilder`, and
+  optional `divisions` for discrete values. The thumb is a flat
+  fader-style cap (30×20, radius 6, surface-colored) with a center accent
+  grip line and two flanking grip lines (shadow-ink-tinted in light, the
+  dark hairline color in dark), sitting on a flat 6px track
+  (`controlFill` with an accent progress fill). While dragging, the cap
+  tracks the finger directly, scales up 1.1×, shows a value bubble above
+  itself, and swaps its outline-hugging shadow from
+  `CruxShadows.thumb` to the more lifted `thumbLifted`; released or
+  programmatic changes settle through the shared spring. With
+  `divisions`, values snap continuously *during* the drag (matching
+  Flutter's own slider behavior) and small tick dots mark each division
+  on the track. Tapping the track jumps straight to that position, and
+  the whole control mirrors under right-to-left text direction. Exposes
+  adjustable semantics with increase/decrease actions (one division per
+  step, or 10% of the range when continuous), announcing the same text
+  the value bubble shows — by default a percentage of the range (the
+  same format Material's slider announces), overridable with
+  `valueLabelBuilder`.
+
 ## 0.7.0
 
 - Added `CruxSpinner`, Crux UI's branded loading indicator: three

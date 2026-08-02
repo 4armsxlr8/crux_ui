@@ -361,6 +361,156 @@ class CruxMotion {
         math.sin(_shakeCycles * 2 * math.pi * progress);
   }
 
+  /// Builds a widget that plays a `0.0 -> 1.0` progress value once, every
+  /// time [trigger] changes from whatever value it had on the previous
+  /// build, and hands that raw progress to [builder] -- introduced for
+  /// `CruxSegmentedControl`'s "kira" sheen, the diagonal light sweep that
+  /// plays once after a selection change.
+  ///
+  /// This generalizes [shake]: where [shake] bakes a single fixed
+  /// decaying-sine formula into its own builder, this exposes the bare
+  /// progress so a caller can drive an arbitrary one-shot paint effect off
+  /// it (the sheen's position, skew, and edge-shadow opacity are all
+  /// functions of the same progress, but don't reduce to one formula the
+  /// way [shake]'s horizontal offset does). Both share the same contract
+  /// (see [shake]'s doc for the full reasoning): an unchanged [trigger]
+  /// across a rebuild plays nothing -- `progress` reads a steady `0.0` for
+  /// as long as [trigger] has never changed, including on the widget's very
+  /// first build (this needed its own fix during implementation: naively
+  /// reusing [shake]'s own `animatedValue - (trigger - 1)` formula reads
+  /// `1.0` -- "already finished" -- on a fresh mount instead of `0.0`,
+  /// because the underlying `motor` controller's `initialValue` would be
+  /// [trigger] itself, not `trigger - 1`, if fed [trigger] directly; [shake]
+  /// never notices because its decaying-sine formula happens to be zero at
+  /// *both* ends of a leg, but a caller reading raw progress, like this
+  /// method's, would see the wrong end. Fixed by tracking a
+  /// `_baselineTrigger` against `_PlayOnceState`'s own internally-normalized
+  /// play count (see this doc's "Contract" paragraph above for why that
+  /// count exists at all) rather than [trigger] directly: `_baselineTrigger`
+  /// starts at that count's own initial value (`0`, matching the
+  /// controller's real starting point) and only advances to the count's
+  /// previous value once a real [trigger] change is observed; see
+  /// `test/tokens/motion_oneshot_test.dart`'s "plays nothing while trigger
+  /// stays unchanged" case, which failed before this fix).
+  /// A [trigger] incremented by exactly 1 plays once from a standing start,
+  /// even when nothing about the *represented* state changed.
+  ///
+  /// **Contract**: exactly like [shake]'s own documented contract,
+  /// [trigger] must be incremented by exactly 1 per new shot -- never
+  /// skipped ahead by more, never decremented -- for [duration] to time
+  /// that shot correctly end-to-end. A caller-side jump of more than 1
+  /// would otherwise make the underlying spring/curve cover a *larger*
+  /// span of value in the same wall-clock [duration], finishing early: this
+  /// was a real, measured bug (`CruxSegmentedControl`'s kira sheen
+  /// briefly reaching its end in roughly a third of its 300ms [duration]
+  /// after a caller-side trigger jump -- see
+  /// `unknowns/atoms-batch-3/ledger.md`'s review follow-up). As insurance
+  /// against a caller drifting from that contract anyway, this method also
+  /// normalizes internally: `_PlayOnceState`'s own play count advances by
+  /// exactly 1 on *every* detected [trigger] change, whatever that
+  /// change's own magnitude or sign, and that normalized count -- not
+  /// [trigger] itself -- is what actually drives the underlying motor
+  /// value, so [duration] stays correct end-to-end regardless of how far
+  /// [trigger] itself moved (see `test/tokens/motion_oneshot_test.dart`'s
+  /// "a trigger jump of more than 1" case). This normalization is *not* a
+  /// substitute for a caller correctly gating a segment's own trigger to
+  /// only the real events meant for it, though -- see
+  /// `CruxSegmentedControl`'s own `_scheduleSheen` doc for a case where
+  /// the actual fix had to be "never send this widget a change it isn't
+  /// meant to react to" rather than anything playOnce itself could paper
+  /// over.
+  ///
+  /// A retrigger before the previous shot settles redirects the underlying
+  /// simulation
+  /// without a value jump (the same `motor` redirect-simulation guarantee
+  /// [animatedValue]'s doc cites), but -- exactly like [shake]'s own
+  /// documented "rare-and-harmless exception" -- the *rescaled* `progress`
+  /// this method reports can briefly read low (clamped toward `0.0`) rather
+  /// than perfectly continuing from its pre-retrigger fraction, because the
+  /// rescale assumes the interrupted leg would have settled at its own
+  /// target first; this is bounded (progress never leaves `[0.0, 1.0]`, no
+  /// exception, and it still reaches `1.0` once the new leg's [duration]
+  /// elapses), just not pixel-perfectly seamless across that one instant --
+  /// acceptable for the same reason [shake] accepts it: a rapid retrigger of
+  /// the *same* one-shot is a rare interaction, and a decorative effect
+  /// briefly compressing rather than glitching is a minor cosmetic
+  /// trade-off, not a functional break.
+  ///
+  /// Drives progress with a `Motion.curved(duration)` -- the same
+  /// fixed-duration curve family [shake] uses via [_shakeMotion], not a
+  /// spring -- so [progress] reaches *exactly* `1.0` once [duration]
+  /// elapses rather than merely settling near it (see [shake]'s doc for why
+  /// a spring's asymptotic settle cannot back this guarantee). Unlike
+  /// [_shakeMotion], which is a single `static const` instance because
+  /// [shakeDuration] is fixed, [duration] here is caller-supplied: although
+  /// `CurvedMotion` does define a structural `==`/`hashCode` (confirmed
+  /// against motor 1.1.0's source, `motion.dart`'s `CurvedMotion`, so a
+  /// freshly-built `Motion.curved(duration)` would in fact already compare
+  /// equal to a previous instance with the same `duration`/`curve`), this
+  /// method still caches one instance per element for the lifetime of a
+  /// given [duration] rather than relying on that: `Motion`'s own base type
+  /// documents no such contract, and a future non-`CurvedMotion` case (or a
+  /// `motor` upgrade) silently losing that override would otherwise
+  /// resurface `BaseMotionBuilderState.didUpdateWidget`'s unconditional
+  /// `controller.motion = motion` whenever `widget.motion != oldWidget
+  /// .motion` (confirmed against `base_motion_builder.dart`) redirecting --
+  /// restarting the in-flight simulation's elapsed clock -- on every
+  /// unrelated rebuild while a shot is mid-flight, not just on a genuine
+  /// retrigger (see `test/tokens/motion_oneshot_test.dart`'s "unrelated
+  /// rebuild mid-flight" regression test for the scenario this guards).
+  ///
+  /// Pass `reduceMotion: true` -- from [MediaQuery.disableAnimationsOf] --
+  /// to suppress the effect entirely: no motor widget is built at all, and
+  /// [builder] is called exactly once with `progress` pinned at `1.0` (the
+  /// one-shot's settled end state). This mirrors [shake]'s `reduceMotion`
+  /// contract of "as if it already happened, no in-between motion ever
+  /// painted" -- there, returning [child] unwrapped is equivalent to
+  /// [shake]'s own formula's value at both its start *and* end, since a
+  /// shake decays back to the zero offset it started from; a one-shot that
+  /// moves between two different visual extremes, like the sheen, has to
+  /// pick one of those two endpoints instead, and this method picks the
+  /// *end* one, since "reduced" reads more naturally as "already resolved"
+  /// than "not yet begun".
+  ///
+  /// [duration] must be positive (`duration > Duration.zero`), matching
+  /// [repeat]'s own `period` contract: it is passed straight through to
+  /// [motor.Motion.curved] as the wall-clock length of the one-shot, and a
+  /// zero duration risks a `0/0` (`NaN`) progress fraction rather than a
+  /// clean `0.0 -> 1.0` ramp, while a negative duration would never advance
+  /// `progress` from `0.0` to `1.0` at all. Enforced with an `assert`
+  /// (debug-only, per this package's existing convention, matching
+  /// [repeat]'s) so a caller passing an invalid duration finds out
+  /// immediately rather than shipping a one-shot that silently never
+  /// reaches its end state.
+  static Widget playOnce({
+    required int trigger,
+    required Duration duration,
+    required Widget Function(
+      BuildContext context,
+      double progress,
+      Widget? child,
+    )
+    builder,
+    Widget? child,
+    bool reduceMotion = false,
+  }) {
+    assert(
+      duration > Duration.zero,
+      'CruxMotion.playOnce: duration must be positive.',
+    );
+    if (reduceMotion) {
+      return Builder(
+        builder: (BuildContext context) => builder(context, 1.0, child),
+      );
+    }
+    return _PlayOnce(
+      trigger: trigger,
+      duration: duration,
+      builder: builder,
+      child: child,
+    );
+  }
+
   /// Builds a widget that continuously loops a `0.0 -> 1.0` progress value
   /// at a constant (linear) rate, calling [builder] on every frame with the
   /// current progress -- introduced for [CruxSpinner]'s falling dots,
@@ -443,6 +593,83 @@ class CruxMotion {
             return builder(context, progress, child);
           },
       child: child,
+    );
+  }
+}
+
+/// The private [StatefulWidget] backing [CruxMotion.playOnce] -- see that
+/// method's doc for why this exists as a stateful widget (to cache a
+/// [motor.Motion] instance across rebuilds) rather than being built inline
+/// as a plain function the way [CruxMotion.scale]/[CruxMotion
+/// .animatedValue] are.
+class _PlayOnce extends StatefulWidget {
+  const _PlayOnce({
+    required this.trigger,
+    required this.duration,
+    required this.builder,
+    this.child,
+  });
+
+  final int trigger;
+  final Duration duration;
+  final Widget Function(BuildContext context, double progress, Widget? child)
+  builder;
+  final Widget? child;
+
+  @override
+  State<_PlayOnce> createState() => _PlayOnceState();
+}
+
+class _PlayOnceState extends State<_PlayOnce> {
+  late motor.Motion _motion = motor.Motion.curved(widget.duration);
+
+  // An internally-normalized play count -- insurance against a caller
+  // violating playOnce's "increment [trigger] by exactly 1 per shot"
+  // contract (see playOnce's own doc for the full reasoning and the real
+  // bug this insures against). Incremented by exactly 1 every time
+  // [widget.trigger] changes, regardless of how far -- or in which
+  // direction -- [widget.trigger] itself actually moved. This is what
+  // drives the `motor` value in `build` below, instead of [widget.trigger]
+  // directly, so that value always advances by a single normalized step
+  // per detected change and [duration] stays correct end-to-end even when
+  // a caller's own trigger jumps by more than 1. Starts at `0`.
+  int _normalizedTrigger = 0;
+
+  // The `_normalizedTrigger` value `animatedValue` currently reads relative
+  // to: `0.0` once subtracted from `animatedValue` should mean "at rest,
+  // this shot hasn't started". Starts at `_normalizedTrigger`'s own initial
+  // value (`0`), matching the `motor` controller's own `initialValue`
+  // (also `0` -- see [CruxMotion.playOnce]'s doc), and advances to
+  // `_normalizedTrigger`'s *previous* value only once a real
+  // [widget.trigger] change is observed, mirroring [shake]'s
+  // `trigger - 1` convention from that point on.
+  int _baselineTrigger = 0;
+
+  @override
+  void didUpdateWidget(covariant _PlayOnce oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.duration != oldWidget.duration) {
+      _motion = motor.Motion.curved(widget.duration);
+    }
+    if (widget.trigger != oldWidget.trigger) {
+      _baselineTrigger = _normalizedTrigger;
+      _normalizedTrigger++;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return motor.SingleMotionBuilder(
+      motion: _motion,
+      value: _normalizedTrigger.toDouble(),
+      builder: (BuildContext context, double animatedValue, Widget? child) {
+        final double progress = (animatedValue - _baselineTrigger).clamp(
+          0.0,
+          1.0,
+        );
+        return widget.builder(context, progress, child);
+      },
+      child: widget.child,
     );
   }
 }

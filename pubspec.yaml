@@ -1,10 +1,12 @@
 name: crux_ui
 description: >-
-  A playful Flutter UI kit. Design tokens, a theme layer, and twelve
+  A playful Flutter UI kit. Design tokens, a theme layer, and sixteen
   components: CruxButton, CruxChip, CruxCard, CruxListTile,
   CruxSwitch, CruxDivider, CruxTextFormField, CruxInputBar,
-  CruxComposer, CruxSpinner, CruxIconButton, CruxCheckbox.
-version: 0.7.0
+  CruxComposer, CruxSpinner, CruxIconButton, CruxCheckbox,
+  CruxDialog (with CruxConfirmDialog), CruxToast,
+  CruxSegmentedControl, CruxSlider.
+version: 0.8.0
 
 topics:
   - ui

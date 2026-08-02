@@ -30,6 +30,7 @@ class CruxColors {
     required this.controlFill,
     this.onAccent = const Color(0xFF26251E),
     this.mutedFill = const Color.fromRGBO(38, 37, 30, 0.08),
+    this.controlPlate = const Color(0xFFFFFFFF),
   });
 
   /// The light color palette.
@@ -47,6 +48,7 @@ class CruxColors {
     error: Color(0xFFCF2D56),
     controlFill: Color(0xFFE9E8E2),
     mutedFill: Color.fromRGBO(38, 37, 30, 0.08),
+    controlPlate: Color(0xFFFFFFFF),
   );
 
   /// The dark color palette.
@@ -64,6 +66,7 @@ class CruxColors {
     error: Color(0xFFFF5B78),
     controlFill: Color(0xFF262319),
     mutedFill: Color.fromRGBO(246, 245, 239, 0.12),
+    controlPlate: Color(0xFF3F3C33),
   );
 
   /// The base page background color.
@@ -149,4 +152,36 @@ class CruxColors {
   /// Composite it over whatever it actually sits on before measuring
   /// contrast against it (see `test/contrast_test.dart`).
   final Color mutedFill;
+
+  /// The fill for a filled control's own selected/lifted inner plate --
+  /// for example [CruxSegmentedControl]'s selected-segment plate, drawn
+  /// on top of [controlFill]'s track.
+  ///
+  /// This token exists because [surface] cannot play that role in the dark
+  /// palette: there, [surface] (`#211F18`) and [controlFill] (`#262319`)
+  /// sit only ~1.05:1 apart (measured with `test/tokens/contrast_test.dart`'s
+  /// own WCAG math) -- close enough that a [surface]-filled plate is
+  /// essentially indistinguishable from the track it is meant to lift off
+  /// of. The light palette has no such problem ([surface] is pure white
+  /// against [controlFill]'s `#E9E8E2`, ~1.23:1), so [light]'s value below
+  /// is identical to [surface] and the light appearance is unchanged.
+  ///
+  /// The dark value, `#3F3C33`, is [mutedFill]'s dark wash
+  /// (`rgba(246, 245, 239, 0.12)`) alpha-composited over [controlFill] and
+  /// flattened to the single opaque color that composite produces on
+  /// screen. It is stored opaque rather than kept as a translucent wash
+  /// like [mutedFill] itself, because the plate this token fills is also
+  /// painted with a drop shadow -- a translucent fill would let whatever
+  /// sits underneath the plate show through and muddy that shadow.
+  /// Measured against [controlFill] with this same WCAG math: light
+  /// ~1.23:1, dark ~1.43:1 (`test/tokens/contrast_test.dart`) -- a
+  /// perceptible, tasteful lift rather than a WCAG 1.4.11 3:1 non-text
+  /// floor; for a selected segment, that 3:1 floor is still carried by the
+  /// label's own color change ([textPrimary] vs. [textSecondary]), not by
+  /// this plate fill.
+  ///
+  /// Like every value in this file, both `#FFFFFF` and `#3F3C33` are
+  /// provisional (the borrowed "Mimir" palette) and may change on a future
+  /// palette swap -- see this class's own doc.
+  final Color controlPlate;
 }

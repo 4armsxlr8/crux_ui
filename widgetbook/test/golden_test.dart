@@ -20,13 +20,17 @@ import 'package:widgetbook_app/usecases/card.dart';
 import 'package:widgetbook_app/usecases/checkbox.dart';
 import 'package:widgetbook_app/usecases/chip.dart';
 import 'package:widgetbook_app/usecases/composer.dart';
+import 'package:widgetbook_app/usecases/dialog.dart';
 import 'package:widgetbook_app/usecases/foundations.dart';
 import 'package:widgetbook_app/usecases/icon_button.dart';
 import 'package:widgetbook_app/usecases/input_bar.dart';
 import 'package:widgetbook_app/usecases/list_tile.dart';
+import 'package:widgetbook_app/usecases/segmented_control.dart';
+import 'package:widgetbook_app/usecases/slider.dart';
 import 'package:widgetbook_app/usecases/spinner.dart';
 import 'package:widgetbook_app/usecases/switch_.dart';
 import 'package:widgetbook_app/usecases/text_form_field.dart';
+import 'package:widgetbook_app/usecases/toast.dart';
 
 void main() {
   final Map<String, Widget> matrices = <String, Widget>{
@@ -42,6 +46,10 @@ void main() {
     'spinner': const SpinnerStatesMatrix(),
     'icon_button': const IconButtonStatesMatrix(),
     'checkbox': const CheckboxStatesMatrix(),
+    'dialog': const DialogStatesMatrix(),
+    'segmented_control': const SegmentedControlStatesMatrix(),
+    'slider': const SliderStatesMatrix(),
+    'toast': const ToastStatesMatrix(),
   };
 
   final Map<String, CruxThemeData> themes = <String, CruxThemeData>{
