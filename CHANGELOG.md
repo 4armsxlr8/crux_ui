@@ -1,5 +1,145 @@
 # Changelog
 
+## 0.9.0
+
+- Added `CruxNavBar<T>` (with `CruxNavItem<T>`), a floating pill-shaped
+  bottom navigation bar for 3-5 top-level destinations, each an icon over an
+  always-visible label. It is a controlled widget (`items`/`selected`/
+  `onChanged`, the same convention `CruxSegmentedControl` uses: `onChanged:
+  null` disables every item, and re-tapping the already-selected item is a
+  no-op) that borrows `CruxSegmentedControl`'s confirmed "案A" selection
+  language rather than a sliding thumb — the selected item's own plate fades
+  and scale-springs in (`0.8 -> ~1.02 -> 1.0`), and about 90ms after a real
+  selection change a direction-aware "kira" light sweep plays once across
+  it, tilted and swept the way the selection actually moved. Nothing ever
+  slides between items. The plate is painted with **no shadow** — an
+  earlier cut carried `CruxShadows.xs`, the same shadow
+  `CruxSegmentedControl`'s own plate still uses, but a 2026-08-06
+  side-by-side comparison settled on dropping it entirely, relying only on
+  the plate's own fill color to separate it from the pill:
+  `CruxColors.controlFill` in light, `CruxColors.controlPlate` in dark
+  (light previously reused `controlPlate` too, but that token is defined
+  identical to `CruxColors.surface` — the same color as the pill itself —
+  which had left the light plate distinguishable only by its now-removed
+  shadow). This plate/sheen machinery is reimplemented locally in
+  `nav_bar.dart` rather than shared with `CruxSegmentedControl` (this
+  milestone deliberately does not refactor either component into shared
+  code — see `unknowns/navigation-bars/impact.md`), with every constant's
+  dartdoc noting the `segmented_control.dart` constant it mirrors. The bar
+  reads its own bottom safe-area inset (via `MediaQuery.maybePaddingOf`, so
+  it still renders with no `MediaQuery` ancestor) and bakes its own
+  floating bottom margin (safe-area-bottom + 0px — a 2026-08-06 final
+  value, down from an initially confirmed 24px after a real-device
+  side-by-side comparison) into its own layout — the package's first
+  component to manage safe area itself, rather than leaving it to the host
+  (see below) — so a host only needs to place it at the bottom of a
+  `Stack`/`Column`, for example `Stack(alignment: Alignment.bottomCenter,
+  children: [content, CruxNavBar(...)])`. The pill's background is
+  `CruxColors.surface` with `CruxShadows.sm`; icons are caller-supplied
+  `Widget`s (never `IconData`) rendered at a fixed 24px via an ambient
+  `IconTheme`. Every tab keeps at least a 44 logical pixel tap target.
+  Respects `MediaQuery.disableAnimationsOf` (the plate settles instantly
+  and the sheen never sweeps).
+- **The pill is compact and horizontally centered, not always full-width**
+  — a 2026-08-06 user decision ("（タブの）数に応じてコンパクトになるように
+  したい") first made the pill hug its own tabs' content instead of always
+  stretching to fill this widget's full available width. A 2026-08-07
+  follow-up user decision, based on a reference design whose own single-tab
+  cell measured 102x54, replaced that content-hugging measurement with a
+  **fixed tab width**. That 102px reference measurement was itself
+  provisional: a same-day real-device side-by-side comparison across
+  102/88/76/68 settled on **88** as the shipped value (68 was rejected —
+  narrow enough to ellipsize the catalog's own four-character "チャット"
+  label). The pill's width is now exactly `88 * itemCount + 8` logical
+  pixels — driven purely by how many tabs it has, never by any tab's own
+  label length, so two bars with the same item count always float the
+  identical pill width no matter how long or short their labels are. A
+  3-item bar's pill is exactly 88px narrower than a 4-item bar's. Every
+  tab still shares that one equal 88px width; a label too wide for its own
+  tab (64px of content width once its own padding is subtracted) falls back
+  to its existing single-line ellipsis rather than widening the tab. The
+  previous 16px left/right margin is still a *minimum*: the pill is
+  centered horizontally and clamped so it can never get closer than 16px to
+  either edge, and a host too narrow for every tab's fixed width shrinks
+  every tab by an equal share (falling back to the same ellipsis) rather
+  than overflowing. The backdrop-fade band described below is unaffected —
+  it stays this widget's own full, edge-to-edge width regardless of how
+  compact the pill itself gets.
+- **The selected tab's label is now bold** — a 2026-08-07 user decision.
+  On top of the pre-existing selected/unselected color distinction
+  (`CruxColors.textPrimary` vs. `textSecondary`), the selected tab's
+  label also switches to `FontWeight.bold` (`w700`, up one step from
+  `CruxTypography.label`'s own `w600` base weight, which the unselected
+  label still uses untouched). This was chosen because a color-only
+  difference reads too subtly at this label's small 11px size on some
+  devices, whereas a one-step weight bump stays legible even that small.
+  `CruxSegmentedControl`'s own segment label is unaffected by this
+  decision and keeps its color-only selection distinction. Because the
+  pill's tab width is fixed (88px, never derived from a label's own
+  measured width), the selected label's own slightly wider bold glyphs
+  never move or resize its tab.
+- `CruxNavBar` also draws its own **backdrop-fade band** directly behind
+  the floating pill, on by default (`backdropFade: true`): a full-width,
+  edge-to-edge band, 160 logical pixels tall, anchored to the widget's own
+  bottom edge, so scrolling content placed behind it in a host `Stack`
+  appears to melt into the page as it approaches the screen's bottom edge —
+  mirroring `CruxTopFade`'s own top-edge fade, top-to-bottom. Two layers,
+  reusing that file's proven "no visible banding" recipe: a
+  `CruxColors.background` gradient scrim (5 stops, biased by a 1.6 power
+  curve) and, when `backdropBlurSigma` is greater than zero (default `8`,
+  matching `CruxTopFade`'s own default), 6 compounding, gradient-masked
+  `BackdropFilter` layers. Set `backdropBlurSigma: 0` to keep the scrim but
+  skip every `BackdropFilter` (no backdrop-filter compositing cost paid for
+  an effect nobody asked for), or `backdropFade: false` to skip the entire
+  band, scrim included. The whole band is wrapped in `IgnorePointer`, so it
+  never intercepts a tap or scroll gesture meant for whatever sits behind
+  `CruxNavBar` in its host's own `Stack` — the pill itself (a separate
+  sibling widget, not nested inside the band) keeps its own tap handling
+  and semantics completely untouched. Because the scrim is a flat
+  `CruxColors.background` wash rather than a true blur-through of what is
+  actually behind it, this only reads correctly when the host's own content
+  sits on `CruxColors.background` — pass `backdropFade: false` for any
+  other backdrop (for example a full-bleed image) rather than accepting a
+  visibly mistinted scrim.
+- Added `CruxTopFade`, an atom that wraps scrollable content and dissolves
+  it near its own top edge — meant to sit over a status bar / safe-area-top
+  region so content scrolling up underneath melts away instead of being
+  hard-cut by the device's own opaque chrome. It is a static mask, not a
+  scroll-position-driven effect: it never reads a `ScrollController`. Two
+  effects run over the same 160px band measured down from the child's own
+  top edge: a `ShaderMask`/`BlendMode.dstIn` alpha fade (5 stops, biased by
+  a 1.6 power curve, so content stays mostly visible until it dissolves in
+  the final third of the band) that only ever multiplies the child's already
+  -painted alpha — never its color, so it works identically over light or
+  dark content — and an optional progressive blur (six stacked,
+  gradient-masked `BackdropFilter` layers, default sigma `8`) that
+  compounds: each layer blurs everything already composited beneath it, so
+  the effect reads as continuously strong near the top and continuously
+  weaker toward the band's lower edge rather than one flat blurred pane.
+  Pass `blurSigma: 0` to skip the blur overlay's entire tree (no
+  `BackdropFilter`, no masking `ShaderMask`, no `IgnorePointer`) rather than
+  merely blurring at zero radius, so there is no backdrop-filter compositing
+  cost at all when a caller doesn't want the effect. Content shorter than
+  the 160px band is handled without overflow: the alpha fade's own stops
+  clamp down to the child's actual height, and the blur band's fixed
+  `Positioned` height is cropped by `Stack`'s own default clip behavior.
+  There is no animation anywhere in this widget, so unlike most other Crux
+  atoms it has no reduce-motion branch to honor.
+- **Safe area is now a pattern this package uses directly** — `CruxNavBar`
+  reads `MediaQuery`'s safe-area insets itself (always via the `maybe`
+  -family accessors, so it still renders with no `MediaQuery` ancestor at
+  all) and bakes them into its own floating margins, rather than expecting a
+  host to place and margin it. This is the package's first use of that
+  pattern; it does not change how any existing component (for example
+  `CruxToastHost`'s own, differently-shaped fixed insets) reads safe area,
+  and nothing here retrofits it onto them.
+- `example/` gained two new sample screens, reachable from the home index:
+  a household-ledger-style list screen demonstrating `CruxTopFade` (an
+  edge-to-edge scrolling list of date-grouped expense rows, filterable by
+  category chip, that visibly melts away as it scrolls past the top), and a
+  tab-switching shell screen demonstrating `CruxNavBar` (four dummy tabs —
+  home, chat, post, settings — switched via a floating bottom nav bar).
+
 ## 0.8.0
 
 - Added `CruxShadows`, the package's first elevation token set, wired

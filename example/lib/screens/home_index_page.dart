@@ -4,9 +4,11 @@ import 'package:crux_ui/crux_ui.dart';
 import '../widgets/app_header.dart';
 import 'chat_screen.dart';
 import 'compose_screen.dart';
+import 'household_ledger_screen.dart';
 import 'login_screen.dart';
 import 'settings_screen.dart';
 import 'sync_screen.dart';
+import 'tab_shell_screen.dart';
 import 'task_list_screen.dart';
 
 /// The app's home screen: an index of the sample screens in this gallery,
@@ -118,6 +120,17 @@ final List<_SampleScreenEntry> _sampleScreens = <_SampleScreenEntry>[
         'CruxConfirmDialog と showCruxToast による設定のリセット確認・取り消し',
     builder: _buildSettingsScreen,
   ),
+  _SampleScreenEntry(
+    title: '家計簿',
+    subtitle:
+        'CruxTopFade によるエッジツーエッジの溶ける上端。スクロールで支出リストの先頭が status bar 際で溶けて消える',
+    builder: _buildHouseholdLedgerScreen,
+  ),
+  _SampleScreenEntry(
+    title: 'タブ切替',
+    subtitle: 'CruxNavBar によるホーム・チャット・投稿・設定タブのフローティングボトムナビ',
+    builder: _buildTabShellScreen,
+  ),
 ];
 
 Widget _buildLoginScreen(BuildContext context) => const LoginScreen();
@@ -131,3 +144,8 @@ Widget _buildComposeScreen(BuildContext context) => const ComposeScreen();
 Widget _buildSyncScreen(BuildContext context) => const SyncScreen();
 
 Widget _buildSettingsScreen(BuildContext context) => const SettingsScreen();
+
+Widget _buildHouseholdLedgerScreen(BuildContext context) =>
+    const HouseholdLedgerScreen();
+
+Widget _buildTabShellScreen(BuildContext context) => const TabShellScreen();

@@ -28,12 +28,14 @@ import 'package:widgetbook_app/usecases/foundations.dart';
 import 'package:widgetbook_app/usecases/icon_button.dart';
 import 'package:widgetbook_app/usecases/input_bar.dart';
 import 'package:widgetbook_app/usecases/list_tile.dart';
+import 'package:widgetbook_app/usecases/nav_bar.dart';
 import 'package:widgetbook_app/usecases/segmented_control.dart';
 import 'package:widgetbook_app/usecases/slider.dart';
 import 'package:widgetbook_app/usecases/spinner.dart';
 import 'package:widgetbook_app/usecases/switch_.dart';
 import 'package:widgetbook_app/usecases/text_form_field.dart';
 import 'package:widgetbook_app/usecases/toast.dart';
+import 'package:widgetbook_app/usecases/top_fade.dart';
 
 void main() {
   final Map<String, Widget> matrices = <String, Widget>{
@@ -53,6 +55,8 @@ void main() {
     'segmented_control': const SegmentedControlStatesMatrix(),
     'slider': const SliderStatesMatrix(),
     'toast': const ToastStatesMatrix(),
+    'nav_bar': const NavBarStatesMatrix(),
+    'top_fade': const TopFadeStatesMatrix(),
   };
 
   // Same two matrices `golden_test.dart` singles out: SpinnerStatesMatrix
