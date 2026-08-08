@@ -2,14 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:crux_ui/crux_ui.dart';
 
-import 'screens/home_index_page.dart';
+import 'screens/login_screen.dart';
+import 'state/app_state.dart';
 import 'theme_mode_scope.dart';
 
 void main() {
   runApp(const CruxExampleApp());
 }
 
-/// Root widget of the gallery app.
+/// Root widget of this sample app: 「ミモザ」, a 1:1 life-organizing app
+/// with an AI companion.
 ///
 /// Holds which [CruxThemeData] (light or dark) is currently active and
 /// provides it to the whole subtree via [CruxTheme]. Note that this does
@@ -19,13 +21,12 @@ void main() {
 /// pixel is painted by widgets that read colors and type styles straight
 /// from [CruxTheme.of] so that they follow the toggle.
 ///
-/// **Screens.** [MaterialApp.home] is [HomeIndexPage]: a gallery index that
-/// lists one sample screen per component use case and pushes to whichever
-/// one is tapped (see that class's own doc comment, and root `CLAUDE.md`'s
-/// catalog operating rule). The current light/dark flag and its setter are
-/// exposed to every pushed screen through [ThemeModeScope] rather than
-/// threaded through each screen's constructor, so [HomeIndexPage] and every
-/// screen under `screens/` stay free of that plumbing.
+/// **Screens.** [MaterialApp.home] is [LoginScreen]; a successful sign-in
+/// replaces it with `MainShell`, the four-tab app shell (ホーム / ミモザ /
+/// 家計簿 / 設定). The current light/dark flag and its setter are exposed to
+/// every screen through [ThemeModeScope] rather than threaded through each
+/// screen's constructor, and the shared task/きろく/chat state is likewise
+/// exposed through [AppStateScope] -- see that class's own doc.
 ///
 /// **Localization.** Every visible string in this app is hard-coded
 /// Japanese, so [MaterialApp] is pinned to `Locale('ja')` rather than left
@@ -70,19 +71,21 @@ class _CruxExampleAppState extends State<CruxExampleApp> {
       child: ThemeModeScope(
         isDark: _cruxTheme.brightness == Brightness.dark,
         onDarkChanged: _setDark,
-        child: MaterialApp(
-          title: 'Crux UI Sample',
-          debugShowCheckedModeBanner: false,
-          locale: const Locale('ja'),
-          supportedLocales: const <Locale>[Locale('ja'), Locale('en')],
-          localizationsDelegates: const <LocalizationsDelegate<dynamic>>[
-            GlobalMaterialLocalizations.delegate,
-            GlobalCupertinoLocalizations.delegate,
-            GlobalWidgetsLocalizations.delegate,
-          ],
-          builder: (BuildContext context, Widget? child) =>
-              CruxToastHost(child: child!),
-          home: const HomeIndexPage(),
+        child: AppStateScope(
+          child: MaterialApp(
+            title: 'ミモザ',
+            debugShowCheckedModeBanner: false,
+            locale: const Locale('ja'),
+            supportedLocales: const <Locale>[Locale('ja'), Locale('en')],
+            localizationsDelegates: const <LocalizationsDelegate<dynamic>>[
+              GlobalMaterialLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+            ],
+            builder: (BuildContext context, Widget? child) =>
+                CruxToastHost(child: child!),
+            home: const LoginScreen(),
+          ),
         ),
       ),
     );

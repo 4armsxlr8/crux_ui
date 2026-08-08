@@ -1,64 +1,73 @@
-// A basic smoke test for the Crux UI gallery example app.
-//
-// The app's home screen is now HomeIndexPage, a gallery index listing one
-// sample screen per component use case (see home_index_page_test.dart for
-// a test of the index itself). This file exercises the "タスク一覧" screen
-// reached from that index, and asserts that the token/atom-catalog
-// sections removed from this app during its earlier "スリム化" (see
-// unknowns/) still do not reappear here -- that full catalog lives in
-// widgetbook/ instead.
+// Regression guard: this app used to be a token/atom catalog (a color
+// table, a type scale, a spacing scale, per-variant state grids) before
+// that coverage moved to widgetbook/. example/ is now one signed-in mock
+// app -- ログイン screen, then a four-tab main shell -- reached the way a
+// user reaches it, and none of that catalog content may reappear here.
+// Coverage of each individual tab/screen lives in this directory's other
+// test files, not here.
 
 import 'package:example/main.dart';
-import 'package:example/widgets/app_header.dart';
-import 'package:flutter/material.dart';
+import 'package:example/screens/login_screen.dart';
+import 'package:example/screens/main_shell.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:crux_ui/crux_ui.dart';
 
+/// Logs in with valid credentials and advances past the simulated network
+/// delay and page-transition animation, landing on [MainShell].
+///
+/// Uses fixed [WidgetTester.pump] durations rather than
+/// [WidgetTester.pumpAndSettle]: while the sign-in is in flight,
+/// [LoginScreen] shows a [CruxSpinner], which animates continuously and
+/// would make pumpAndSettle time out waiting for it to stop.
+Future<void> _logIn(WidgetTester tester) async {
+  await tester.pumpWidget(const CruxExampleApp());
+  await tester.enterText(
+    find.byType(CruxTextFormField).at(0),
+    'taro@example.com',
+  );
+  await tester.enterText(find.byType(CruxTextFormField).at(1), 'password123');
+  await tester.tap(find.widgetWithText(CruxButton, 'ログイン'));
+  await tester.pump();
+  await tester.pump(const Duration(milliseconds: 1500));
+  await tester.pump(const Duration(milliseconds: 500));
+}
+
 void main() {
-  testWidgets('navigates to the task list screen and toggles light/dark', (
-    WidgetTester tester,
-  ) async {
+  testWidgets('launches to the login screen', (WidgetTester tester) async {
     await tester.pumpWidget(const CruxExampleApp());
-
-    await tester.tap(find.text('タスク一覧'));
-    await tester.pumpAndSettle();
-
-    // The task-list screen renders the real-world sample built from Crux
-    // atoms used together in context.
-    expect(find.text('今日のミモザ'), findsOneWidget); // CruxCard content
-    expect(find.text('はじめる'), findsOneWidget); // CruxButton inside the card
-    expect(find.text('おすすめ'), findsOneWidget); // CruxChip
-    expect(find.text('買い物メモを作成'), findsOneWidget); // CruxListTile row
-
-    // The token/atom-state catalog sections (color table, type scale,
-    // spacing scale, per-variant state grids) live in widgetbook/ and must
-    // not reappear here.
-    expect(find.text('カラー'), findsNothing);
-    expect(find.text('タイプスケール'), findsNothing);
-    expect(find.text('スペーシング'), findsNothing);
-
-    // The light/dark toggle is a self-built widget (not a Material [Switch]),
-    // exposed to assistive tech as a togglable control with this label, and
-    // is shared across every screen via the app's header.
-    final Finder toggle = find.bySemanticsLabel('ダーク表示の切り替え');
-    expect(toggle, findsOneWidget);
-
-    // The header title is painted straight from CruxColors, so its text
-    // color is a direct, public signal of which palette is active. Scoped
-    // to a descendant of AppHeader since "タスク一覧" is also this screen's
-    // index-row label back on HomeIndexPage.
-    final Finder title = find.descendant(
-      of: find.byType(AppHeader),
-      matching: find.text('タスク一覧'),
-    );
-    final Text lightTitle = tester.widget(title);
-    expect(lightTitle.style?.color, CruxColors.light.textPrimary);
-
-    // Flipping the toggle swaps to the dark Crux theme without throwing.
-    await tester.tap(toggle);
     await tester.pump();
 
-    final Text darkTitle = tester.widget(title);
-    expect(darkTitle.style?.color, CruxColors.dark.textPrimary);
+    expect(find.byType(LoginScreen), findsOneWidget);
+    expect(find.text('ログイン'), findsOneWidget);
   });
+
+  testWidgets(
+    'a valid sign-in reaches the four-tab main shell, not a token/atom '
+    'catalog',
+    (WidgetTester tester) async {
+      await _logIn(tester);
+
+      expect(find.byType(MainShell), findsOneWidget);
+      expect(find.byType(CruxNavBar<AppTab>), findsOneWidget);
+      expect(find.text('ホーム'), findsWidgets);
+      // findsWidgets, not findsOneWidget: the ホーム tab's own greeting card
+      // shows this app's name as a small label, in addition to the nav
+      // item's own tab label below.
+      expect(find.text('ミモザ'), findsWidgets);
+      expect(find.text('家計簿'), findsOneWidget);
+      expect(find.text('設定'), findsOneWidget);
+
+      // The token table, type scale, spacing scale, and per-variant state
+      // grid that used to live in this app were withdrawn to widgetbook/
+      // and must not come back, on any tab -- skipOffstage: false so this
+      // also scans the three tabs IndexedStack keeps mounted but offstage,
+      // not only ホーム (the selected one).
+      expect(find.text('カラー', skipOffstage: false), findsNothing);
+      expect(find.text('タイプスケール', skipOffstage: false), findsNothing);
+      expect(find.text('スペーシング', skipOffstage: false), findsNothing);
+      expect(find.text('Playground', skipOffstage: false), findsNothing);
+      expect(find.text('States matrix', skipOffstage: false), findsNothing);
+      expect(find.text('Edge cases', skipOffstage: false), findsNothing);
+    },
+  );
 }

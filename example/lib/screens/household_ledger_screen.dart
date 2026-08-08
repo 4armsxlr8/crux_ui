@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:crux_ui/crux_ui.dart';
 
+import '../data/mimosa_world.dart';
+
 /// Extra vertical space added on top of the safe-area top inset, so the
 /// scrolling list's first row starts with a small, deliberate gap below the
 /// status bar instead of butting right up against it.
@@ -9,105 +11,68 @@ import 'package:crux_ui/crux_ui.dart';
 /// [SafeArea] (see [HouseholdLedgerScreen]'s own doc for why), so the
 /// list's own top padding has to do the safe-area job itself:
 /// [MediaQuery.paddingOf]'s `top` covers the status bar / notch, and this
-/// constant on top of that is nothing more than a breathing-room gap --
-/// this screen floats no chrome of its own over the list, so there is no
-/// button clearance to account for.
+/// constant on top of that is nothing more than a breathing-room gap.
 const double _topBreathingRoom = CruxSpacing.s16;
 
-/// One line item in the household ledger: an emoji shown in a small colored
-/// circle, the spending category, the store/memo text, and the amount in
-/// yen (a positive integer; this sample only ever shows expenses, never
-/// income, so there is no sign to track).
-class _LedgerEntry {
-  const _LedgerEntry({
-    required this.emoji,
-    required this.category,
-    required this.memo,
-    required this.amount,
-  });
+/// Extra bottom padding, on top of the safe-area bottom inset, so the
+/// list's last row clears the main shell's floating [CruxNavBar] pill
+/// instead of disappearing under it. The pill's own rendered height is
+/// private to the package, so this is a fixed generous clearance rather
+/// than a value read from it.
+const double _navBarClearance = 96;
 
-  final String emoji;
-  final String category;
-  final String memo;
-  final int amount;
+/// One calendar day's worth of [MimosaExpense] rows, shown under a shared
+/// date heading. Built by [_groupByDate], which assumes same-day entries
+/// already sit consecutively in the source list (true of
+/// [initialMimosaExpenses]) rather than re-sorting them.
+class _LedgerDaySection {
+  _LedgerDaySection(this.dateLabel);
+
+  final String dateLabel;
+  final List<MimosaExpense> entries = <MimosaExpense>[];
 }
 
-/// One calendar day's worth of [_LedgerEntry] rows, shown under a shared
-/// date heading.
-class _LedgerDay {
-  const _LedgerDay({required this.date, required this.entries});
-
-  final String date;
-  final List<_LedgerEntry> entries;
+List<_LedgerDaySection> _groupByDate(List<MimosaExpense> expenses) {
+  final List<_LedgerDaySection> sections = <_LedgerDaySection>[];
+  for (final MimosaExpense expense in expenses) {
+    if (sections.isEmpty || sections.last.dateLabel != expense.dateLabel) {
+      sections.add(_LedgerDaySection(expense.dateLabel));
+    }
+    sections.last.entries.add(expense);
+  }
+  return sections;
 }
 
-/// The categories offered by [_CategoryFilterRow], in display order. Kept
-/// as a single source of truth so the filter chips and the sample data
-/// below stay in sync.
-const List<String> _ledgerCategories = <String>['食費', '交通', '日用品', '娯楽', '光熱費'];
+/// Every category appearing in [expenses], in first-appearance order and
+/// without duplicates -- the source for [_CategoryFilterRow]'s chips.
+List<String> _uniqueCategories(List<MimosaExpense> expenses) {
+  final List<String> categories = <String>[];
+  for (final MimosaExpense expense in expenses) {
+    if (!categories.contains(expense.category)) {
+      categories.add(expense.category);
+    }
+  }
+  return categories;
+}
 
-/// Sample spending data, newest day first: enough days and rows that the
-/// list is taller than one screen, so scrolling it actually exercises
-/// [CruxTopFade]'s dissolve at the top edge rather than never reaching it.
-const List<_LedgerDay> _ledgerDays = <_LedgerDay>[
-  _LedgerDay(
-    date: '8月5日（水）',
-    entries: <_LedgerEntry>[
-      _LedgerEntry(emoji: '🍙', category: '食費', memo: 'コンビニ弁当', amount: 580),
-      _LedgerEntry(emoji: '☕', category: '食費', memo: '朝のコーヒー', amount: 420),
-      _LedgerEntry(emoji: '🚃', category: '交通', memo: '定期区間外乗車', amount: 260),
-    ],
-  ),
-  _LedgerDay(
-    date: '8月4日（火）',
-    entries: <_LedgerEntry>[
-      _LedgerEntry(emoji: '🛒', category: '日用品', memo: 'ドラッグストア', amount: 1980),
-      _LedgerEntry(emoji: '🎬', category: '娯楽', memo: '映画チケット', amount: 1800),
-      _LedgerEntry(emoji: '🍜', category: '食費', memo: 'ラーメン店', amount: 950),
-      _LedgerEntry(emoji: '⚡', category: '光熱費', memo: '電気料金', amount: 6400),
-    ],
-  ),
-  _LedgerDay(
-    date: '8月3日（月）',
-    entries: <_LedgerEntry>[
-      _LedgerEntry(emoji: '🚕', category: '交通', memo: '深夜タクシー', amount: 2200),
-      _LedgerEntry(emoji: '🥗', category: '食費', memo: 'スーパー買い出し', amount: 3140),
-    ],
-  ),
-  _LedgerDay(
-    date: '8月2日（日）',
-    entries: <_LedgerEntry>[
-      _LedgerEntry(emoji: '📚', category: '娯楽', memo: '書店', amount: 1650),
-      _LedgerEntry(
-        emoji: '🧴',
-        category: '日用品',
-        memo: 'シャンプー詰め替え',
-        amount: 890,
-      ),
-      _LedgerEntry(emoji: '🍱', category: '食費', memo: 'テイクアウト', amount: 720),
-    ],
-  ),
-  _LedgerDay(
-    date: '8月1日（土）',
-    entries: <_LedgerEntry>[
-      _LedgerEntry(emoji: '🎮', category: '娯楽', memo: 'ゲームソフト', amount: 5980),
-      _LedgerEntry(emoji: '🚌', category: '交通', memo: 'バス回数券', amount: 1200),
-      _LedgerEntry(emoji: '💧', category: '光熱費', memo: '水道料金', amount: 3200),
-    ],
-  ),
-  _LedgerDay(
-    date: '7月31日（金）',
-    entries: <_LedgerEntry>[
-      _LedgerEntry(emoji: '🍞', category: '食費', memo: 'パン屋', amount: 480),
-      _LedgerEntry(
-        emoji: '🧻',
-        category: '日用品',
-        memo: 'ティッシュ・洗剤',
-        amount: 1340,
-      ),
-    ],
-  ),
-];
+final List<_LedgerDaySection> _ledgerDaySections = _groupByDate(
+  initialMimosaExpenses,
+);
+final List<String> _ledgerCategories = _uniqueCategories(initialMimosaExpenses);
+
+/// The month's total spend across every entry in [initialMimosaExpenses],
+/// unaffected by [_HouseholdLedgerScreenState._categoryFilter] -- the
+/// filter narrows which rows the list shows, not what the monthly total
+/// means.
+int _sumAmounts(List<MimosaExpense> expenses) {
+  int total = 0;
+  for (final MimosaExpense expense in expenses) {
+    total += expense.amount;
+  }
+  return total;
+}
+
+final int _ledgerMonthTotal = _sumAmounts(initialMimosaExpenses);
 
 /// Formats [amount] as a yen amount with thousands separators, for example
 /// `1200` becomes `¥1,200`. `example/` has no `intl` dependency (the
@@ -126,61 +91,42 @@ String _formatYen(int amount) {
   return '¥$grouped';
 }
 
-/// One sample screen in this gallery (see `screens/home_index_page.dart`):
-/// a household-ledger-style expense list demonstrating [CruxTopFade],
-/// reached from the home index's "家計簿" row.
+/// The 家計簿 (household ledger) tab: this month's spending, grouped by day,
+/// with a category filter row above the list -- see
+/// `unknowns/navigation-bars/ledger.md` for why it stays headerless.
 ///
 /// This screen shows nothing but the fading list itself -- no title, no
-/// back button, no search/add affordance -- matching the reference this
-/// milestone follows, https://flutterpro.design/details/progressive-fade,
-/// whose own screenshot floats no chrome over the list at all. An earlier
-/// version of this screen paired [CruxTopFade] with a floating header
-/// (a back button, a "家計簿" title, and 検索/追加 action buttons); that
-/// header component was withdrawn after a 2026-08-05 real-device review
-/// concluded the reference's chrome-free look was the better fit for this
-/// screen -- see `unknowns/navigation-bars/ledger.md`'s dated entry for the
-/// decision. Leaving out a back button is deliberate, not an omission:
-/// this screen is only ever reached via `Navigator.push` from the home
-/// index (`home_index_page.dart`'s "家計簿" row), so the platform's own
-/// back affordance -- an edge swipe on iOS, the system back gesture/button
-/// on Android -- already returns to the previous screen without this
-/// screen needing to draw one of its own.
+/// back button, no search/add affordance. It is one of the main shell's
+/// four permanent tabs, never pushed with `Navigator`, so there is no
+/// previous screen for a back button to return to.
 ///
-/// Unlike every other screen in this gallery, this one does not use the
-/// shared `AppHeader`, and its [Scaffold.body] is wrapped in a [SafeArea]
-/// with both `top: false` and `bottom: false` -- not a plain [SafeArea].
-/// Both choices are deliberate: [CruxTopFade] needs content that
-/// actually runs edge-to-edge under the status bar to have anything to
-/// dissolve — consuming the top inset here would push the list's first row
-/// below the status bar and leave [CruxTopFade]'s fade band dissolving
-/// nothing but blank background. The list's own top padding does the
-/// safe-area job for the top edge instead ([MediaQuery.paddingOf]'s `top`
-/// plus a small [_topBreathingRoom] gap); `bottom` is left unconsumed for
-/// the same "not this screen's job" reason ([CruxTopFade]'s own fade
-/// band is a top-edge-only concern, so nothing here reads or reacts to the
-/// bottom inset either). Left/right *are* consumed by this [SafeArea],
-/// though: neither [CruxTopFade] nor this screen's own [ListView]
-/// padding reads the device's left/right safe-area inset itself, so on a
-/// device whose rounded corners or a landscape notch eat into the
-/// left/right edges (for example a landscape iPhone), leaving those two
-/// sides unconsumed would let the list's own horizontal padding sit partly
-/// under that cutout. Consuming left/right here (while leaving top/bottom
-/// alone) fixes that without touching `top_fade.dart` itself -- the same
-/// "wrap in `SafeArea` with only the sides this screen doesn't already
-/// handle disabled" pattern `tab_shell_screen.dart` uses for its own
-/// bottom-only exception.
+/// This tab draws no header chrome of its own -- its [Scaffold.body] is
+/// wrapped in a [SafeArea] with both `top:
+/// false` and `bottom: false` -- not a plain [SafeArea]. Both choices are
+/// deliberate: [CruxTopFade] needs content that actually runs
+/// edge-to-edge under the status bar to have anything to dissolve --
+/// consuming the top inset here would push the list's first row below the
+/// status bar and leave [CruxTopFade]'s fade band dissolving nothing but
+/// blank background. The list's own top padding does the safe-area job for
+/// the top edge instead ([MediaQuery.paddingOf]'s `top` plus a small
+/// [_topBreathingRoom] gap); `bottom` is left unconsumed for the same "not
+/// this screen's job" reason -- the list's own bottom padding accounts for
+/// both the safe-area inset and [_navBarClearance] instead. Left/right
+/// *are* consumed by this [SafeArea]: neither [CruxTopFade] nor this
+/// screen's own [ListView] padding reads the device's left/right
+/// safe-area inset itself, so on a device whose rounded corners or a
+/// landscape notch eat into the left/right edges (for example a landscape
+/// iPhone), leaving those two sides unconsumed would let the list's own
+/// horizontal padding sit partly under that cutout.
 ///
 /// The body is a single, full-bleed [CruxTopFade] wrapping the scrolling
 /// expense list -- no [Stack], since there is no floating chrome left to
-/// layer in front of it. The list itself groups sample expenses by date
-/// under a small heading, each day's rows inside a [CruxCard], built
-/// from [CruxListTile] and [CruxDivider] — with a summary [CruxCard]
-/// and a [CruxChip] category filter row above the grouped list, giving
-/// [CruxChip]'s exclusive-selection use (as opposed to
-/// `task_list_screen.dart`'s independent toggle chips) its own natural
-/// home.
+/// layer in front of it. The list groups [initialMimosaExpenses] by date
+/// under a small heading, each day's rows inside a [CruxCard] built from
+/// [CruxListTile] and [CruxDivider], with a monthly-total [CruxCard]
+/// and a [CruxChip] category filter row above the grouped list.
 class HouseholdLedgerScreen extends StatefulWidget {
-  /// Creates the household-ledger sample screen.
+  /// Creates the household-ledger tab.
   const HouseholdLedgerScreen({super.key});
 
   @override
@@ -189,50 +135,24 @@ class HouseholdLedgerScreen extends StatefulWidget {
 
 class _HouseholdLedgerScreenState extends State<HouseholdLedgerScreen> {
   /// The currently selected category filter, or `null` for "すべて" (every
-  /// category). Purely local UI state, the same "no backend, this sample
-  /// just demonstrates the interaction" honesty `settings_screen.dart`'s
-  /// own state documents for itself.
+  /// category). Purely local UI state -- this tab has no add/edit affordance
+  /// of its own, so nothing else in the app needs to observe it.
   String? _categoryFilter;
-
-  int _totalFor(String? category) {
-    int total = 0;
-    for (final _LedgerDay day in _ledgerDays) {
-      for (final _LedgerEntry entry in day.entries) {
-        if (category == null || entry.category == category) {
-          total += entry.amount;
-        }
-      }
-    }
-    return total;
-  }
-
-  int _countFor(String? category) {
-    int count = 0;
-    for (final _LedgerDay day in _ledgerDays) {
-      for (final _LedgerEntry entry in day.entries) {
-        if (category == null || entry.category == category) {
-          count++;
-        }
-      }
-    }
-    return count;
-  }
 
   @override
   Widget build(BuildContext context) {
     final CruxThemeData theme = CruxTheme.of(context);
     final CruxColors colors = theme.colors;
     final CruxTypography type = theme.typography;
-    final double topPadding =
-        MediaQuery.paddingOf(context).top + _topBreathingRoom;
+    final EdgeInsets safeArea = MediaQuery.paddingOf(context);
 
     return Scaffold(
       backgroundColor: colors.background,
       // `top`/`bottom: false`: see this class's own doc for why those two
       // edges are deliberately left for `CruxTopFade` (top) and this
-      // screen's own unchanged padding (bottom) to handle, while left/right
-      // -- read by neither of those -- fall through to this `SafeArea`'s
-      // default handling instead.
+      // screen's own padding (bottom) to handle, while left/right -- read
+      // by neither of those -- fall through to this `SafeArea`'s default
+      // handling instead.
       body: SafeArea(
         top: false,
         bottom: false,
@@ -240,18 +160,12 @@ class _HouseholdLedgerScreenState extends State<HouseholdLedgerScreen> {
           child: ListView(
             padding: EdgeInsets.fromLTRB(
               CruxSpacing.s20,
-              topPadding,
+              safeArea.top + _topBreathingRoom,
               CruxSpacing.s20,
-              CruxSpacing.s32,
+              safeArea.bottom + _navBarClearance,
             ),
             children: [
-              _SummaryCard(
-                colors: colors,
-                type: type,
-                label: _categoryFilter ?? 'すべての支出',
-                total: _totalFor(_categoryFilter),
-                count: _countFor(_categoryFilter),
-              ),
+              _SummaryCard(colors: colors, type: type),
               const SizedBox(height: CruxSpacing.s20),
               _CategoryFilterRow(
                 selected: _categoryFilter,
@@ -259,9 +173,9 @@ class _HouseholdLedgerScreenState extends State<HouseholdLedgerScreen> {
                     setState(() => _categoryFilter = value),
               ),
               const SizedBox(height: CruxSpacing.s24),
-              for (final _LedgerDay day in _ledgerDays)
+              for (final _LedgerDaySection section in _ledgerDaySections)
                 _DaySection(
-                  day: day,
+                  section: section,
                   categoryFilter: _categoryFilter,
                   colors: colors,
                   type: type,
@@ -274,24 +188,14 @@ class _HouseholdLedgerScreenState extends State<HouseholdLedgerScreen> {
   }
 }
 
-/// The totals card sitting above the filter row and grouped list: shows
-/// what [_HouseholdLedgerScreenState._categoryFilter] currently narrows the
-/// list down to, so switching the filter chips has a visible effect even
-/// before scrolling down to the rows themselves.
+/// The totals card sitting above the filter row and grouped list: the
+/// month's fixed total plus ミモザ's small aside, unaffected by which
+/// category chip is selected below it.
 class _SummaryCard extends StatelessWidget {
-  const _SummaryCard({
-    required this.colors,
-    required this.type,
-    required this.label,
-    required this.total,
-    required this.count,
-  });
+  const _SummaryCard({required this.colors, required this.type});
 
   final CruxColors colors;
   final CruxTypography type;
-  final String label;
-  final int total;
-  final int count;
 
   @override
   Widget build(BuildContext context) {
@@ -299,19 +203,19 @@ class _SummaryCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: type.body.copyWith(color: colors.textSecondary)),
-          const SizedBox(height: CruxSpacing.s8),
           Text(
-            _formatYen(total),
-            style: type.title.copyWith(
-              color: colors.textPrimary,
-              fontWeight: FontWeight.w700,
-            ),
+            mimosaLedgerMonthLabel,
+            style: type.caption.copyWith(color: colors.textSecondary),
+          ),
+          const SizedBox(height: CruxSpacing.s2),
+          Text(
+            _formatYen(_ledgerMonthTotal),
+            style: type.display.copyWith(color: colors.textPrimary),
           ),
           const SizedBox(height: CruxSpacing.s4),
           Text(
-            '$count件の記録',
-            style: type.caption.copyWith(color: colors.textSecondary),
+            mimosaLedgerNote,
+            style: type.caption.copyWith(color: colors.muted),
           ),
         ],
       ),
@@ -354,29 +258,30 @@ class _CategoryFilterRow extends StatelessWidget {
 }
 
 /// One date-grouped section of the ledger: a small date heading followed by
-/// a [CruxCard] containing that day's matching [_LedgerEntry] rows
+/// a [CruxCard] containing that day's matching [MimosaExpense] rows
 /// ([_LedgerRow], separated by indented [CruxDivider]s). Renders nothing
-/// at all when [categoryFilter] excludes every entry for [day], so
+/// at all when [categoryFilter] excludes every entry in [section], so
 /// selecting a category collapses days with no matching spending instead of
 /// showing an empty card.
 class _DaySection extends StatelessWidget {
   const _DaySection({
-    required this.day,
+    required this.section,
     required this.categoryFilter,
     required this.colors,
     required this.type,
   });
 
-  final _LedgerDay day;
+  final _LedgerDaySection section;
   final String? categoryFilter;
   final CruxColors colors;
   final CruxTypography type;
 
   @override
   Widget build(BuildContext context) {
-    final List<_LedgerEntry> entries = <_LedgerEntry>[
-      for (final _LedgerEntry entry in day.entries)
-        if (categoryFilter == null || entry.category == categoryFilter) entry,
+    final List<MimosaExpense> entries = <MimosaExpense>[
+      for (final MimosaExpense expense in section.entries)
+        if (categoryFilter == null || expense.category == categoryFilter)
+          expense,
     ];
     if (entries.isEmpty) {
       return const SizedBox.shrink();
@@ -389,7 +294,7 @@ class _DaySection extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.only(bottom: CruxSpacing.s8),
             child: Text(
-              day.date,
+              section.dateLabel,
               style: type.caption.copyWith(
                 color: colors.textSecondary,
                 fontWeight: FontWeight.w600,
@@ -401,11 +306,9 @@ class _DaySection extends StatelessWidget {
             child: Column(
               children: [
                 for (int i = 0; i < entries.length; i++) ...[
-                  _LedgerRow(entry: entries[i], colors: colors, type: type),
+                  _LedgerRow(expense: entries[i]),
                   if (i != entries.length - 1)
-                    const CruxDivider(
-                      indent: CruxSpacing.s16 + 44 + CruxSpacing.s12,
-                    ),
+                    const CruxDivider(indent: CruxSpacing.s16),
                 ],
               ],
             ),
@@ -416,52 +319,19 @@ class _DaySection extends StatelessWidget {
   }
 }
 
-/// One expense line: [CruxListTile] with [_EntryIcon] as its leading
-/// widget, the category as the title, the store/memo as the subtitle, and
-/// the formatted amount as the trailing text.
+/// One expense line: [CruxListTile] with the store as the title, the
+/// category as the subtitle, and the formatted amount as the trailing text.
 class _LedgerRow extends StatelessWidget {
-  const _LedgerRow({
-    required this.entry,
-    required this.colors,
-    required this.type,
-  });
+  const _LedgerRow({required this.expense});
 
-  final _LedgerEntry entry;
-  final CruxColors colors;
-  final CruxTypography type;
+  final MimosaExpense expense;
 
   @override
   Widget build(BuildContext context) {
     return CruxListTile(
-      leading: _EntryIcon(emoji: entry.emoji, colors: colors),
-      title: entry.category,
-      subtitle: entry.memo,
-      trailing: _formatYen(entry.amount),
-    );
-  }
-}
-
-/// The small emoji-in-a-circle leading widget for each [_LedgerRow], the
-/// same shape `task_list_screen.dart`'s own `_DemoListIcon` uses for its
-/// rows -- duplicated locally rather than shared because that class is
-/// private to that file.
-class _EntryIcon extends StatelessWidget {
-  const _EntryIcon({required this.emoji, required this.colors});
-
-  final String emoji;
-  final CruxColors colors;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 36,
-      height: 36,
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        color: colors.accentTint,
-        shape: BoxShape.circle,
-      ),
-      child: Text(emoji),
+      title: expense.store,
+      subtitle: expense.category,
+      trailing: _formatYen(expense.amount),
     );
   }
 }

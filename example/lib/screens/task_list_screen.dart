@@ -1,43 +1,493 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:crux_ui/crux_ui.dart';
 
-import '../widgets/app_header.dart';
+import '../data/mimosa_world.dart';
+import '../state/app_state.dart';
+import 'compose_screen.dart';
 
-/// One sample screen in this gallery (see `screens/home_index_page.dart`):
-/// a small task-list screen composed only from Crux atoms
-/// ([CruxCard], [CruxButton], [CruxChip], [CruxTextFormField],
-/// [CruxListTile], [CruxDivider]) used together the way a consuming app
-/// actually would, reached from the home index's "タスク一覧" row.
+/// [CruxNavBar]'s own rendered height plus a breathing-room gap.
+/// [MainShell] floats that bar as an overlay above this screen's content
+/// rather than this screen laying it out itself, so this is a local
+/// estimate (the bar exposes no public height constant), not a value read
+/// from the bar itself.
+const double _navBarClearance = 64 + CruxSpacing.s16;
+
+/// [CruxIconButtonSize.large]'s own circle diameter, matching the きろく
+/// button below.
+const double _fabDiameter = 56;
+
+/// Bottom padding for the scrollable content so its last row never sits
+/// underneath the floating きろく button, which itself floats above
+/// [_navBarClearance].
+const double _scrollBottomClearance =
+    _navBarClearance + _fabDiameter + CruxSpacing.s20;
+
+/// Fixed white, since the delete-swipe background always sits on
+/// [CruxColors.error]'s red regardless of theme (mirrors
+/// `main_shell.dart`'s own `_navBadgeTextColor`).
+const Color _deleteSwipeIconColor = Color(0xFFFFFFFF);
+
+/// Which [MimosaTask]s the home tab's filter chips show.
+enum _HomeTaskFilter {
+  /// Every task.
+  all,
+
+  /// Only tasks with [MimosaTask.dueToday] set, regardless of completion.
+  today,
+
+  /// Only tasks with [MimosaTask.done] set.
+  done,
+}
+
+extension _HomeTaskFilterLabel on _HomeTaskFilter {
+  String get label => switch (this) {
+    _HomeTaskFilter.all => 'すべて',
+    _HomeTaskFilter.today => '今日',
+    _HomeTaskFilter.done => '完了',
+  };
+}
+
+/// The ホーム tab of [MainShell]: ミモザ's greeting, the [AppState.records]
+/// list, a filter chip row, [AppState.sortedTasks] below that, and a
+/// floating きろく button.
 ///
-/// This screen is deliberately a "this is what it looks like in a real
-/// screen" demo, not a token or atom-state catalog — those full listings
-/// (color/type/spacing tables, per-variant × per-state grids, edge cases)
-/// live in `widgetbook/` instead. See root `CLAUDE.md`'s catalog operating
-/// rule.
-class TaskListScreen extends StatelessWidget {
-  /// Creates the task-list sample screen.
+/// Task data comes entirely from [AppState]: checking a row calls
+/// [AppState.toggleTaskDone], adding one through the bottom form calls
+/// [AppState.addTask] (which also queues ミモザ's chat reaction and bumps
+/// the unread badge -- both are [MainShell]'s and `ChatScreen`'s concern,
+/// not this screen's), and [AppState.sortOrder] (set from the settings tab)
+/// decides the list's order via [AppState.sortedTasks].
+///
+/// **Deleting a task.** Swiping a row end-to-start opens a
+/// [CruxConfirmDialog]; confirming hides the row and shows a
+/// [showCruxToast] with a "元に戻す" action. That hide is local to this
+/// screen's own [State] (a set of hidden ids over [AppState.sortedTasks]),
+/// not [AppState.deleteTask] -- [AppState] has no way to reinsert a task
+/// with its original id, due label, and completion state, so hiding rather
+/// than truly deleting is what lets "元に戻す" restore the exact row.
+///
+/// The floating きろく button pushes `ComposeScreen` as a full-screen modal
+/// (`MaterialPageRoute(fullscreenDialog: true)`); what that screen does
+/// with a submitted きろく is its own concern, not this screen's.
+class TaskListScreen extends StatefulWidget {
+  /// Creates the ホーム tab.
   const TaskListScreen({super.key});
+
+  @override
+  State<TaskListScreen> createState() => _TaskListScreenState();
+}
+
+class _TaskListScreenState extends State<TaskListScreen> {
+  _HomeTaskFilter _filter = _HomeTaskFilter.all;
+
+  /// [MimosaTask.id]s hidden by a confirmed swipe-delete -- see this
+  /// widget's own class doc for why this is local, hide-only state rather
+  /// than an [AppState.deleteTask] call.
+  final Set<int> _hiddenTaskIds = <int>{};
+
+  /// Ids in [_hiddenTaskIds] still awaiting restore by a "元に戻す" tap,
+  /// keyed by the exact toast message they were hidden under.
+  ///
+  /// `CruxToastHost` (`lib/src/components/atoms/toast.dart`) treats two
+  /// toasts with the same message as one card and keeps only the action
+  /// from that message's first `showCruxToast` call -- so deleting two
+  /// same-titled tasks in a row shares a single toast and a single "元に戻
+  /// す" tap, and that tap must restore every id queued under that message,
+  /// not just the id the first delete's closure captured.
+  final Map<String, List<int>> _pendingRestoreIds = <String, List<int>>{};
+
+  bool _matchesFilter(MimosaTask task) => switch (_filter) {
+    _HomeTaskFilter.all => true,
+    _HomeTaskFilter.today => task.dueToday,
+    _HomeTaskFilter.done => task.done,
+  };
+
+  /// Opens the delete confirmation for [task], returning whether it was
+  /// confirmed. Used both by [Dismissible.confirmDismiss] (the swipe path)
+  /// and [_requestDelete] (the accessibility path) so the dialog's wording
+  /// and behavior stay in exactly one place.
+  Future<bool> _confirmDelete(MimosaTask task) async {
+    bool confirmed = false;
+    await CruxConfirmDialog.show(
+      context,
+      title: '「${task.title}」を削除しますか？',
+      message: 'この操作はあとで「元に戻す」から取り消せます。',
+      cancelLabel: 'キャンセル',
+      confirmLabel: '削除',
+      onConfirm: () => confirmed = true,
+    );
+    return confirmed;
+  }
+
+  /// Hides [task] and shows the undo toast. Called once a swipe-delete has
+  /// actually been confirmed -- by [Dismissible.onDismissed] after its own
+  /// dismiss animation finishes, or directly by [_requestDelete].
+  void _handleDismissed(MimosaTask task) {
+    final String message = '「${task.title}」を削除しました';
+    setState(() => _hiddenTaskIds.add(task.id));
+    _pendingRestoreIds.putIfAbsent(message, () => <int>[]).add(task.id);
+    showCruxToast(
+      context,
+      message: message,
+      action: CruxToastAction(
+        label: '元に戻す',
+        onPressed: () => _restorePending(message),
+      ),
+    );
+  }
+
+  /// Restores every id queued in [_pendingRestoreIds] under [message] --
+  /// see that field's own doc for why a single "元に戻す" tap must restore
+  /// more than one id. Guarded by [mounted]: `CruxToastHost` (main.dart)
+  /// sits above the app's `Navigator`, so this can still fire after this
+  /// screen itself has been popped and disposed, e.g. by a logout.
+  void _restorePending(String message) {
+    if (!mounted) {
+      return;
+    }
+    final List<int>? ids = _pendingRestoreIds.remove(message);
+    if (ids == null) {
+      return;
+    }
+    setState(() => _hiddenTaskIds.removeAll(ids));
+  }
+
+  /// The accessibility fallback for deleting a row without a swipe gesture
+  /// -- wired to [Semantics.onDismiss] below, so VoiceOver/TalkBack's own
+  /// "dismiss" custom action reaches the same confirm-then-hide flow a
+  /// swipe does.
+  Future<void> _requestDelete(MimosaTask task) async {
+    final bool confirmed = await _confirmDelete(task);
+    if (!mounted) {
+      return;
+    }
+    if (confirmed) {
+      _handleDismissed(task);
+    }
+  }
+
+  void _openComposeScreen() {
+    unawaited(
+      Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          fullscreenDialog: true,
+          builder: (BuildContext context) => const ComposeScreen(),
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     final CruxThemeData theme = CruxTheme.of(context);
     final CruxColors colors = theme.colors;
     final CruxTypography type = theme.typography;
+    final AppState appState = AppState.of(context);
+
+    final List<MimosaTask> visibleTasks = <MimosaTask>[
+      for (final MimosaTask task in appState.sortedTasks)
+        if (!_hiddenTaskIds.contains(task.id) && _matchesFilter(task)) task,
+    ];
 
     return Scaffold(
       backgroundColor: colors.background,
       body: SafeArea(
-        child: Column(
+        child: Stack(
           children: [
-            const AppHeader(title: 'タスク一覧'),
-            Expanded(
-              child: Container(
-                width: double.infinity,
-                color: colors.background,
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(CruxSpacing.s20),
-                  child: _TaskListBody(colors: colors, type: type),
+            SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(
+                CruxSpacing.s20,
+                CruxSpacing.s12,
+                CruxSpacing.s20,
+                _scrollBottomClearance,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'ホーム',
+                    style: type.headline.copyWith(color: colors.textPrimary),
+                  ),
+                  const SizedBox(height: CruxSpacing.s16),
+                  _GreetingCard(colors: colors, type: type),
+                  const SizedBox(height: CruxSpacing.s20),
+                  _RecordsSection(
+                    records: appState.records,
+                    colors: colors,
+                    type: type,
+                  ),
+                  const SizedBox(height: CruxSpacing.s16),
+                  _FilterChipRow(
+                    selected: _filter,
+                    onChanged: (_HomeTaskFilter filter) =>
+                        setState(() => _filter = filter),
+                  ),
+                  const SizedBox(height: CruxSpacing.s16),
+                  if (visibleTasks.isEmpty)
+                    _EmptyTasksMessage(colors: colors, type: type)
+                  else
+                    for (final MimosaTask task in visibleTasks)
+                      _buildTaskRow(task, colors, type, appState),
+                  const SizedBox(height: CruxSpacing.s20),
+                  _AddTaskForm(onAdd: appState.addTask),
+                ],
+              ),
+            ),
+            Positioned(
+              right: CruxSpacing.s20,
+              bottom: _navBarClearance,
+              child: CruxIconButton(
+                icon: const Icon(Icons.add, size: 26),
+                label: mimosaComposeButtonLabel,
+                tone: CruxIconButtonTone.primary,
+                size: CruxIconButtonSize.large,
+                onPressed: _openComposeScreen,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// One swipeable task row: a [_TaskRow] wrapped in a [Dismissible] (see
+  /// this class's own doc for the confirm/hide flow it drives) clipped to
+  /// the row's own [CruxRadii.l] corner radius so [_DeleteSwipeBackground]
+  /// never pokes past a rounded corner mid-swipe.
+  Widget _buildTaskRow(
+    MimosaTask task,
+    CruxColors colors,
+    CruxTypography type,
+    AppState appState,
+  ) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: CruxSpacing.s8),
+      child: ClipRRect(
+        borderRadius: const BorderRadius.all(Radius.circular(CruxRadii.l)),
+        child: Dismissible(
+          key: ValueKey<int>(task.id),
+          direction: DismissDirection.endToStart,
+          confirmDismiss: (DismissDirection _) => _confirmDelete(task),
+          onDismissed: (DismissDirection _) => _handleDismissed(task),
+          background: _DeleteSwipeBackground(colors: colors),
+          child: Semantics(
+            onDismiss: () => unawaited(_requestDelete(task)),
+            child: _TaskRow(
+              task: task,
+              colors: colors,
+              type: type,
+              onToggle: (_) => appState.toggleTaskDone(task.id),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// ミモザ's avatar and a static greeting line, atop the home tab.
+class _GreetingCard extends StatelessWidget {
+  const _GreetingCard({required this.colors, required this.type});
+
+  final CruxColors colors;
+  final CruxTypography type;
+
+  @override
+  Widget build(BuildContext context) {
+    return CruxCard(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(mimosaAvatarEmoji, style: TextStyle(fontSize: 28)),
+          const SizedBox(width: CruxSpacing.s12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  mimosaAppName,
+                  style: type.caption.copyWith(
+                    color: colors.accent,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
+                const SizedBox(height: CruxSpacing.s4),
+                Text(
+                  mimosaHomeGreeting,
+                  style: type.body.copyWith(color: colors.textPrimary),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// The [mimosaRecordsSectionTitle] label followed by every [AppState.records]
+/// entry, each as its own compact card.
+class _RecordsSection extends StatelessWidget {
+  const _RecordsSection({
+    required this.records,
+    required this.colors,
+    required this.type,
+  });
+
+  final List<MimosaRecord> records;
+  final CruxColors colors;
+  final CruxTypography type;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          mimosaRecordsSectionTitle,
+          style: type.caption.copyWith(
+            color: colors.muted,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        const SizedBox(height: CruxSpacing.s8),
+        for (final MimosaRecord record in records)
+          Padding(
+            padding: const EdgeInsets.only(bottom: CruxSpacing.s8),
+            child: CruxCard(
+              padding: const EdgeInsets.symmetric(
+                horizontal: CruxSpacing.s16,
+                vertical: CruxSpacing.s12,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    record.text,
+                    style: type.body.copyWith(color: colors.textPrimary),
+                  ),
+                  const SizedBox(height: CruxSpacing.s4),
+                  Text(
+                    record.timeLabel,
+                    style: type.caption.copyWith(color: colors.muted),
+                  ),
+                ],
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+/// The すべて/今日/完了 filter row, [_HomeTaskFilter]'s three values shown
+/// as mutually exclusive [CruxChip]s.
+class _FilterChipRow extends StatelessWidget {
+  const _FilterChipRow({required this.selected, required this.onChanged});
+
+  final _HomeTaskFilter selected;
+  final ValueChanged<_HomeTaskFilter> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      spacing: CruxSpacing.s8,
+      runSpacing: CruxSpacing.s8,
+      children: [
+        for (final _HomeTaskFilter filter in _HomeTaskFilter.values)
+          CruxChip(
+            label: filter.label,
+            selected: filter == selected,
+            onTap: () => onChanged(filter),
+          ),
+      ],
+    );
+  }
+}
+
+/// Shown instead of the task list when the current filter matches nothing.
+class _EmptyTasksMessage extends StatelessWidget {
+  const _EmptyTasksMessage({required this.colors, required this.type});
+
+  final CruxColors colors;
+  final CruxTypography type;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: CruxSpacing.s24),
+      child: Center(
+        child: Text(
+          mimosaEmptyTasksMessage,
+          style: type.body.copyWith(color: colors.muted),
+        ),
+      ),
+    );
+  }
+}
+
+/// One task row's static content: a [CruxCheckbox], the title
+/// (strikethrough once [MimosaTask.done]), and [MimosaTask.dueLabel] --
+/// [_TaskListScreenState._buildTaskRow] wraps this in the [Dismissible]
+/// that gives it its swipe-to-delete behavior.
+class _TaskRow extends StatelessWidget {
+  const _TaskRow({
+    required this.task,
+    required this.colors,
+    required this.type,
+    required this.onToggle,
+  });
+
+  final MimosaTask task;
+  final CruxColors colors;
+  final CruxTypography type;
+  final ValueChanged<bool> onToggle;
+
+  @override
+  Widget build(BuildContext context) {
+    final TextStyle titleStyle = type.body.copyWith(
+      fontWeight: FontWeight.w600,
+      color: task.done ? colors.textSecondary : colors.textPrimary,
+      decoration: task.done ? TextDecoration.lineThrough : TextDecoration.none,
+      decorationColor: colors.textSecondary,
+    );
+
+    return CruxCard(
+      padding: const EdgeInsets.symmetric(
+        horizontal: CruxSpacing.s16,
+        vertical: CruxSpacing.s12,
+      ),
+      // Merges the checkbox's checked/unchecked semantics with the title
+      // and due label into one node, so a screen reader announces them
+      // together rather than an unlabeled "checkbox" with no task name.
+      child: MergeSemantics(
+        child: Row(
+          children: [
+            CruxCheckbox(checked: task.done, onChanged: onToggle),
+            const SizedBox(width: CruxSpacing.s12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    task.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: titleStyle,
+                  ),
+                  const SizedBox(height: CruxSpacing.s2),
+                  Text(
+                    task.dueLabel,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: type.caption.copyWith(color: colors.muted),
+                  ),
+                ],
               ),
             ),
           ],
@@ -47,136 +497,36 @@ class TaskListScreen extends StatelessWidget {
   }
 }
 
-/// The real-world sample body: a card, a chip row, an add-task form, and a
-/// list, laid out together inside one rounded container.
-class _TaskListBody extends StatelessWidget {
-  const _TaskListBody({required this.colors, required this.type});
+/// The red delete affordance revealed behind a [_TaskRow] mid-swipe.
+class _DeleteSwipeBackground extends StatelessWidget {
+  const _DeleteSwipeBackground({required this.colors});
 
   final CruxColors colors;
-  final CruxTypography type;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      // Only vertical padding here: the list section (_DemoList) must sit
-      // flush against this container's own left/right edges, so its
-      // CruxListTile rows' own default horizontal padding is what
-      // produces the visual inset — and so a pressed row's state-layer
-      // highlight runs edge-to-edge of this rounded container, iOS
-      // Settings-app style, instead of stopping short at some extra gutter.
-      // _DemoCard and _DemoChipRow are not full-bleed, so each wraps itself
-      // in its own horizontal Padding below to keep the same inset they had
-      // before.
-      padding: const EdgeInsets.symmetric(vertical: CruxSpacing.s16),
-      decoration: BoxDecoration(
-        color: colors.background,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: colors.separator),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: CruxSpacing.s16),
-            child: _DemoCard(colors: colors, type: type),
-          ),
-          const SizedBox(height: CruxSpacing.s24),
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: CruxSpacing.s16),
-            child: _DemoChipRow(),
-          ),
-          const SizedBox(height: CruxSpacing.s24),
-          const Padding(
-            padding: EdgeInsets.symmetric(horizontal: CruxSpacing.s16),
-            child: _AddTaskForm(),
-          ),
-          const SizedBox(height: CruxSpacing.s24),
-          _DemoList(colors: colors, type: type),
-        ],
+      color: colors.error,
+      alignment: Alignment.centerRight,
+      padding: const EdgeInsets.symmetric(horizontal: CruxSpacing.s20),
+      child: const Icon(
+        Icons.delete_outline,
+        color: _deleteSwipeIconColor,
+        size: 22,
       ),
     );
   }
 }
 
-class _DemoCard extends StatelessWidget {
-  const _DemoCard({required this.colors, required this.type});
-
-  final CruxColors colors;
-  final CruxTypography type;
-
-  @override
-  Widget build(BuildContext context) {
-    return CruxCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('今日のミモザ', style: type.title.copyWith(color: colors.textPrimary)),
-          const SizedBox(height: CruxSpacing.s8),
-          Text(
-            'おすすめのタスクを3件見つけました。空いた時間に少しずつ進めましょう。',
-            style: type.body.copyWith(color: colors.textSecondary),
-          ),
-          const SizedBox(height: CruxSpacing.s16),
-          Align(
-            alignment: Alignment.centerLeft,
-            child: CruxButton(
-              label: 'はじめる',
-              variant: CruxButtonVariant.tonal,
-              onPressed: () {},
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// A row of [CruxChip]s: two toggle their own [CruxChip.selected] state
-/// on tap, and the third is a fixed disabled example (mirroring the
-/// previous mock's "muted" chip).
-class _DemoChipRow extends StatefulWidget {
-  const _DemoChipRow();
-
-  @override
-  State<_DemoChipRow> createState() => _DemoChipRowState();
-}
-
-class _DemoChipRowState extends State<_DemoChipRow> {
-  bool _recommendedSelected = true;
-  bool _dueTodaySelected = false;
-
-  @override
-  Widget build(BuildContext context) {
-    return Wrap(
-      spacing: CruxSpacing.s8,
-      runSpacing: CruxSpacing.s8,
-      children: [
-        CruxChip(
-          label: 'おすすめ',
-          selected: _recommendedSelected,
-          onTap: () =>
-              setState(() => _recommendedSelected = !_recommendedSelected),
-        ),
-        CruxChip(
-          label: '今日中',
-          selected: _dueTodaySelected,
-          onTap: () => setState(() => _dueTodaySelected = !_dueTodaySelected),
-        ),
-        const CruxChip(label: '下書き', onTap: null),
-      ],
-    );
-  }
-}
-
-/// A small "add a task" form: this is the sample's one natural typing
-/// moment, and wraps [CruxTextFormField] in a [Form] so the field's
-/// `validator` / [FormState.validate] integration is visible in a real
-/// screen, not just in widgetbook's isolated states catalog. Submitting an
-/// empty task name surfaces the field's own validation error instead of
-/// doing anything; submitting a non-empty one clears the field, the same
-/// round trip a real "quick add" box would do.
+/// The bottom "add a task" form: a [Form] wrapping one
+/// [CruxTextFormField] with a non-empty-title validator, calling [onAdd]
+/// (bound to [AppState.addTask] by the caller) on a valid submit and
+/// clearing the field afterward.
 class _AddTaskForm extends StatefulWidget {
-  const _AddTaskForm();
+  const _AddTaskForm({required this.onAdd});
+
+  /// Called with the trimmed title once a non-empty submit validates.
+  final ValueChanged<String> onAdd;
 
   @override
   State<_AddTaskForm> createState() => _AddTaskFormState();
@@ -196,6 +546,7 @@ class _AddTaskFormState extends State<_AddTaskForm> {
     final FormState? form = _formKey.currentState;
     if (form != null && form.validate()) {
       form.save();
+      widget.onAdd(_controller.text.trim());
       _controller.clear();
     }
   }
@@ -213,7 +564,9 @@ class _AddTaskFormState extends State<_AddTaskForm> {
             controller: _controller,
             textInputAction: TextInputAction.done,
             validator: (String? value) =>
-                (value == null || value.isEmpty) ? 'タスク名を入力してください' : null,
+                (value == null || value.trim().isEmpty)
+                ? 'タスク名を入力してください'
+                : null,
             onSubmitted: (_) => _submit(),
           ),
           const SizedBox(height: CruxSpacing.s12),
@@ -223,294 +576,6 @@ class _AddTaskFormState extends State<_AddTaskForm> {
           ),
         ],
       ),
-    );
-  }
-}
-
-/// The [CruxDivider.indent] that aligns a divider's start with where each
-/// row's title text starts: [CruxListTile]'s own default horizontal
-/// padding ([CruxSpacing.s16]) + its 44 logical pixel `leading` frame +
-/// the [CruxSpacing.s12] gap between `leading` and the title. The list
-/// section is full-bleed (no horizontal padding of its own) and each row
-/// supplies its own inset instead, so this indent must grow by that same
-/// [CruxSpacing.s16] to keep lining up with the title.
-const double _demoListDividerIndent =
-    CruxSpacing.s16 + 44 + CruxSpacing.s12;
-
-class _DemoList extends StatefulWidget {
-  const _DemoList({required this.colors, required this.type});
-
-  final CruxColors colors;
-  final CruxTypography type;
-
-  @override
-  State<_DemoList> createState() => _DemoListState();
-}
-
-/// The sample tasks shown by [_DemoList]. Rows with a non-null leading
-/// emoji are real "tasks" that [_DemoListState] tracks completion for via
-/// [CruxCheckbox]; the trailing row (no leading, no subtitle) is a plain
-/// navigation-style action row and stays a completion-agnostic
-/// [CruxListTile], the same as before this screen grew a completion
-/// toggle.
-const List<(String?, String, String?, String?)> _demoListRows =
-    <(String?, String, String?, String?)>[
-      ('📝', '買い物メモを作成', '週末の買い出し用', '10分前'),
-      ('📅', '歯医者の予約確認', '来週火曜 14:00', '1時間前'),
-      ('💬', '友達からのメッセージ', '週末どこ行く?', '昨日'),
-      // Title-only row: no subtitle, showing the single-line variant.
-      ('☕', 'コーヒー豆を注文', null, '3日前'),
-      // Most compact form: title only, no leading/subtitle/trailing.
-      (null, 'アーカイブをすべて見る', null, null),
-    ];
-
-class _DemoListState extends State<_DemoList> {
-  /// Indices into [_demoListRows] whose task has been marked done. Empty by
-  /// default -- this sample starts with nothing completed, the same way a
-  /// real task list would for a fresh session.
-  final Set<int> _completed = <int>{};
-
-  /// Indices into [_demoListRows] that have been deleted and are hidden from
-  /// [build]'s visible rows -- mirrors [_completed]'s own "track which
-  /// indices changed, leave the underlying [_demoListRows] list itself
-  /// untouched" shape. Because the visible list is always [_demoListRows]
-  /// filtered by this set, undoing a deletion (see [_delete]) needs no
-  /// separate "where did this row used to be" bookkeeping: removing the
-  /// index from this set is enough to bring the row back at its original
-  /// position, with whatever completed state it had before.
-  final Set<int> _deleted = <int>{};
-
-  void _toggle(int index, bool checked) {
-    setState(() {
-      if (checked) {
-        _completed.add(index);
-      } else {
-        _completed.remove(index);
-      }
-    });
-  }
-
-  /// Opens the delete confirmation for the task at [index] -- only
-  /// [_DemoTaskRow]s (real tasks) ever call this; the plain "アーカイブをすべ
-  /// て見る" navigation row has no delete affordance of its own. Confirming
-  /// calls [_delete]; [CruxConfirmDialog.show] closes the dialog itself
-  /// either way (see its own doc), so neither branch needs to do that here.
-  Future<void> _confirmDelete(int index) {
-    final String title = _demoListRows[index].$2;
-    return CruxConfirmDialog.show(
-      context,
-      title: '「$title」を削除しますか？',
-      message: 'この操作はあとで「元に戻す」から取り消せます。',
-      cancelLabel: 'キャンセル',
-      confirmLabel: '削除',
-      onConfirm: () => _delete(index, title),
-    );
-  }
-
-  /// Hides the task at [index] and shows a toast with a "元に戻す" action
-  /// that undoes exactly this deletion.
-  void _delete(int index, String title) {
-    setState(() => _deleted.add(index));
-    showCruxToast(
-      context,
-      message: '「$title」を削除しました',
-      action: CruxToastAction(
-        label: '元に戻す',
-        onPressed: () => setState(() => _deleted.remove(index)),
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final List<int> visible = <int>[
-      for (int i = 0; i < _demoListRows.length; i++)
-        if (!_deleted.contains(i)) i,
-    ];
-    return Column(
-      children: [
-        for (int vi = 0; vi < visible.length; vi++) ...[
-          _buildRow(visible[vi]),
-          if (vi != visible.length - 1)
-            const CruxDivider(indent: _demoListDividerIndent),
-        ],
-      ],
-    );
-  }
-
-  /// Builds the row for [index] into [_demoListRows]: the plain navigation
-  /// row for the one entry with no leading emoji (see [_demoListRows]'s own
-  /// doc), or a completable, deletable [_DemoTaskRow] for every other entry.
-  Widget _buildRow(int index) {
-    final (String?, String, String?, String?) row = _demoListRows[index];
-    if (row.$1 == null) {
-      return CruxListTile(
-        title: row.$2,
-        subtitle: row.$3,
-        trailing: row.$4,
-        onTap: () {},
-      );
-    }
-    return _DemoTaskRow(
-      icon: row.$1!,
-      title: row.$2,
-      subtitle: row.$3,
-      trailing: row.$4,
-      completed: _completed.contains(index),
-      colors: widget.colors,
-      type: widget.type,
-      onChanged: (bool checked) => _toggle(index, checked),
-      onDelete: () => _confirmDelete(index),
-    );
-  }
-}
-
-/// A single completable task row: a leading [CruxCheckbox] the reader can
-/// tap to toggle done/not-done, the same emoji-in-a-circle icon
-/// [_DemoListIcon] the plain rows used before, a title/subtitle/trailing
-/// layout matching [CruxListTile]'s own, and a trailing [CruxIconButton]
-/// that opens this task's delete confirmation ([_DemoListState.
-/// _confirmDelete]). This is a bespoke row rather than [CruxListTile]
-/// itself because [CruxListTile.title] only accepts a plain [String] with
-/// a fixed style -- there is no way to ask it for the completed-task
-/// strikethrough this row needs, so this composes the same look directly
-/// from [CruxCheckbox], [_DemoListIcon], and [Text].
-class _DemoTaskRow extends StatelessWidget {
-  const _DemoTaskRow({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.trailing,
-    required this.completed,
-    required this.colors,
-    required this.type,
-    required this.onChanged,
-    required this.onDelete,
-  });
-
-  final String icon;
-  final String title;
-  final String? subtitle;
-  final String? trailing;
-  final bool completed;
-  final CruxColors colors;
-  final CruxTypography type;
-  final ValueChanged<bool> onChanged;
-
-  /// Called when this row's delete icon button is tapped.
-  final VoidCallback onDelete;
-
-  @override
-  Widget build(BuildContext context) {
-    // A completed task's title gets a restrained strikethrough rather than
-    // vanishing or turning a loud color: it fades to the same
-    // [CruxColors.textSecondary] tone this screen already uses for
-    // subtitles, so "done" reads as de-emphasized, not broken.
-    final TextStyle titleStyle = type.body.copyWith(
-      fontWeight: FontWeight.w600,
-      color: completed ? colors.textSecondary : colors.textPrimary,
-      decoration: completed ? TextDecoration.lineThrough : TextDecoration.none,
-      decorationColor: colors.textSecondary,
-    );
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(
-        horizontal: CruxSpacing.s16,
-        vertical: CruxSpacing.s12,
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            // MergeSemantics merges the checkbox's own checked/unchecked
-            // semantics with the title (and subtitle/trailing) text below
-            // into a single node, so a screen reader announces "checked,
-            // 買い物メモを作成" as one unit instead of an unlabeled "checkbox,
-            // not checked" that gives no way to tell which task the checkbox
-            // belongs to. This changes only the semantics tree, not layout
-            // or paint. Deliberately scoped to just this Expanded (not the
-            // delete button below): merging the button's own semantics in
-            // too would fold two separate actions (toggle done / delete)
-            // into one node, leaving no way for assistive tech to trigger
-            // either individually.
-            child: MergeSemantics(
-              child: Row(
-                children: [
-                  CruxCheckbox(
-                    checked: completed,
-                    onChanged: (bool value) => onChanged(value),
-                  ),
-                  const SizedBox(width: CruxSpacing.s12),
-                  _DemoListIcon(icon: icon, colors: colors),
-                  const SizedBox(width: CruxSpacing.s12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          title,
-                          maxLines: 1,
-                          softWrap: false,
-                          overflow: TextOverflow.ellipsis,
-                          style: titleStyle,
-                        ),
-                        if (subtitle != null)
-                          Text(
-                            subtitle!,
-                            maxLines: 1,
-                            softWrap: false,
-                            overflow: TextOverflow.ellipsis,
-                            style: type.body.copyWith(
-                              color: colors.textSecondary,
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-                  if (trailing != null) ...[
-                    const SizedBox(width: CruxSpacing.s12),
-                    Text(
-                      trailing!,
-                      maxLines: 1,
-                      softWrap: false,
-                      overflow: TextOverflow.ellipsis,
-                      style: type.caption.copyWith(color: colors.textSecondary),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(width: CruxSpacing.s4),
-          CruxIconButton(
-            icon: const Icon(Icons.delete_outline, size: 18),
-            label: '「$title」を削除',
-            onPressed: onDelete,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// The small emoji-in-a-circle leading widget for each [_DemoList] row.
-class _DemoListIcon extends StatelessWidget {
-  const _DemoListIcon({required this.icon, required this.colors});
-
-  final String icon;
-  final CruxColors colors;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 36,
-      height: 36,
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        color: colors.accentTint,
-        shape: BoxShape.circle,
-      ),
-      child: Text(icon),
     );
   }
 }

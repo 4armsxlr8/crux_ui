@@ -3,7 +3,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:crux_ui/crux_ui.dart';
 
-import '../widgets/app_header.dart';
+import '../data/mimosa_world.dart';
+import 'main_shell.dart';
 
 /// A deliberately non-exhaustive email shape check for [LoginScreen]'s email
 /// field: it rejects obviously malformed input (no `@`, no dot-separated
@@ -18,18 +19,17 @@ final RegExp _loginEmailShapePattern = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
 /// keep in sync by hand.
 const int _loginMinPasswordLength = 8;
 
-/// One sample screen in this gallery (see `screens/home_index_page.dart`):
-/// a login form demonstrating [CruxTextFormField]'s `Form`/`validator`
-/// wiring, reached from the home index's "ログイン" row.
-///
-/// This is a real client-side form (a [Form] wrapping two
-/// [CruxTextFormField]s, each with its own `validator`), not a fake
-/// network round trip: this sample app has no backend to authenticate
-/// against, so a successful [FormState.validate] only flips this screen to
-/// a visible "validated" state in place — see [_LoginScreenState._submit] —
-/// rather than pretending to navigate anywhere or check credentials against
-/// a server. That is the honest limit of what a form with no backend can
-/// promise.
+/// This app's launch screen: a real client-side sign-in form (a [Form]
+/// wrapping two [CruxTextFormField]s, each with its own `validator`), not
+/// a fake network round trip -- this sample app has no backend to
+/// authenticate against, so a validated submit simulates the round trip a
+/// real one would take (see [_LoginScreenState._submit]) and then replaces
+/// this screen with `MainShell` rather than checking credentials against a
+/// server. That is the honest limit of what a form with no backend can
+/// promise. Both fields start pre-filled with [mimosaDemoEmail]/
+/// [mimosaDemoPassword], so launching the app and tapping ログイン alone
+/// signs in; the validators still run and reject a field that's been
+/// cleared.
 class LoginScreen extends StatefulWidget {
   /// Creates the login screen.
   const LoginScreen({super.key});
@@ -40,10 +40,13 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
-  final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController(
+    text: mimosaDemoEmail,
+  );
+  final TextEditingController _passwordController = TextEditingController(
+    text: mimosaDemoPassword,
+  );
   final FocusNode _passwordFocusNode = FocusNode();
-  bool _validated = false;
   bool _submitting = false;
 
   @override
@@ -90,31 +93,22 @@ class _LoginScreenState extends State<LoginScreen> {
     form.save();
     // See this class's own doc comment: there is no backend to
     // authenticate against, so this simulates the round trip a real submit
-    // would make instead -- a brief [CruxButton.loading] spell -- rather
-    // than flipping to "validated" instantly. `CruxButton` itself already
-    // ignores taps while `loading` is `true`, so there's no separate guard
-    // needed against a second tap firing this again mid-flight.
+    // would make instead -- a brief [CruxButton.loading] spell -- before
+    // moving on to `MainShell`. `CruxButton` itself already ignores taps
+    // while `loading` is `true`, so there's no separate guard needed
+    // against a second tap firing this again mid-flight.
     setState(() => _submitting = true);
     await Future<void>.delayed(const Duration(milliseconds: 1500));
     if (!mounted) {
       // The screen was popped/disposed while the simulated network delay
-      // was in flight -- bail out instead of calling setState on an
-      // unmounted State.
+      // was in flight -- bail out instead of using a stale BuildContext.
       return;
     }
-    // A form that passes its own validation simply flips to a visible
-    // "validated" state below, in place.
-    setState(() {
-      _submitting = false;
-      _validated = true;
-    });
-  }
-
-  void _reset() {
-    _formKey.currentState?.reset();
-    _emailController.clear();
-    _passwordController.clear();
-    setState(() => _validated = false);
+    await Navigator.of(context).pushReplacement(
+      MaterialPageRoute<void>(
+        builder: (BuildContext context) => const MainShell(),
+      ),
+    );
   }
 
   @override
@@ -126,39 +120,56 @@ class _LoginScreenState extends State<LoginScreen> {
     return Scaffold(
       backgroundColor: colors.background,
       body: SafeArea(
-        child: Column(
-          children: [
-            const AppHeader(title: 'ログイン'),
-            Expanded(
-              // SingleChildScrollView (rather than a fixed-height Column) is
-              // what keeps both fields reachable once the on-screen keyboard
-              // opens on a phone: Scaffold already resizes for the keyboard
-              // by default, and this lets the content scroll within
-              // whatever space is left instead of the password field being
-              // pushed off-screen behind the keyboard.
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(CruxSpacing.s20),
-                child: _validated
-                    ? _LoginSuccessView(
-                        colors: colors,
-                        type: type,
-                        onReset: _reset,
-                      )
-                    : _LoginForm(
-                        colors: colors,
-                        type: type,
-                        formKey: _formKey,
-                        emailController: _emailController,
-                        passwordController: _passwordController,
-                        passwordFocusNode: _passwordFocusNode,
-                        validateEmail: _validateEmail,
-                        validatePassword: _validatePassword,
-                        submitting: _submitting,
-                        onSubmit: _submit,
-                      ),
-              ),
+        child: Center(
+          // SingleChildScrollView (rather than a fixed-height Column) is
+          // what keeps both fields reachable once the on-screen keyboard
+          // opens on a phone: this lets the content scroll within whatever
+          // space is left instead of the password field being pushed
+          // off-screen behind the keyboard.
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(CruxSpacing.s20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  mimosaAvatarEmoji,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(fontSize: 40),
+                ),
+                const SizedBox(height: CruxSpacing.s8),
+                Text(
+                  mimosaAppName,
+                  textAlign: TextAlign.center,
+                  style: type.display.copyWith(color: colors.textPrimary),
+                ),
+                const SizedBox(height: CruxSpacing.s4),
+                Text(
+                  mimosaLoginCatchphrase,
+                  textAlign: TextAlign.center,
+                  style: type.body.copyWith(color: colors.textSecondary),
+                ),
+                const SizedBox(height: CruxSpacing.s24),
+                _LoginForm(
+                  colors: colors,
+                  formKey: _formKey,
+                  emailController: _emailController,
+                  passwordController: _passwordController,
+                  passwordFocusNode: _passwordFocusNode,
+                  validateEmail: _validateEmail,
+                  validatePassword: _validatePassword,
+                  submitting: _submitting,
+                  onSubmit: _submit,
+                ),
+                const SizedBox(height: CruxSpacing.s20),
+                Text(
+                  mimosaLoginFootnote,
+                  textAlign: TextAlign.center,
+                  style: type.caption.copyWith(color: colors.muted),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
@@ -168,7 +179,6 @@ class _LoginScreenState extends State<LoginScreen> {
 class _LoginForm extends StatelessWidget {
   const _LoginForm({
     required this.colors,
-    required this.type,
     required this.formKey,
     required this.emailController,
     required this.passwordController,
@@ -180,7 +190,6 @@ class _LoginForm extends StatelessWidget {
   });
 
   final CruxColors colors;
-  final CruxTypography type;
   final GlobalKey<FormState> formKey;
   final TextEditingController emailController;
   final TextEditingController passwordController;
@@ -204,12 +213,6 @@ class _LoginForm extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text(
-          'メールアドレスとパスワードでログインしてください。',
-          textAlign: TextAlign.center,
-          style: type.body.copyWith(color: colors.textSecondary),
-        ),
-        const SizedBox(height: CruxSpacing.s24),
         CruxCard(
           child: Form(
             key: formKey,
@@ -275,55 +278,6 @@ class _LoginForm extends StatelessWidget {
           ),
         ),
       ],
-    );
-  }
-}
-
-/// The visible, honest "success" state [LoginScreen] flips to once its form
-/// validates: it says plainly that no server was contacted, rather than
-/// implying a real sign-in happened.
-class _LoginSuccessView extends StatelessWidget {
-  const _LoginSuccessView({
-    required this.colors,
-    required this.type,
-    required this.onReset,
-  });
-
-  final CruxColors colors;
-  final CruxTypography type;
-  final VoidCallback onReset;
-
-  @override
-  Widget build(BuildContext context) {
-    return CruxCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.check_circle, size: 40, color: colors.success),
-          const SizedBox(height: CruxSpacing.s12),
-          Text(
-            '入力内容の検証に成功しました',
-            textAlign: TextAlign.center,
-            style: type.title.copyWith(color: colors.textPrimary),
-          ),
-          const SizedBox(height: CruxSpacing.s8),
-          Text(
-            'このサンプルに接続先のサーバーはなく、実際の認証は行っていません。'
-            'ここまでは CruxTextFormField と Form によるバリデーションだけで完結しています。',
-            textAlign: TextAlign.center,
-            style: type.body.copyWith(color: colors.textSecondary),
-          ),
-          const SizedBox(height: CruxSpacing.s20),
-          Center(
-            child: CruxButton(
-              label: 'もう一度試す',
-              variant: CruxButtonVariant.tonal,
-              onPressed: onReset,
-            ),
-          ),
-        ],
-      ),
     );
   }
 }

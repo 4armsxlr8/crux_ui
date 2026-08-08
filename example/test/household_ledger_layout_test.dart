@@ -18,18 +18,34 @@
 // as a general smoke test for the same two user-visible symptoms the
 // original bug produced (the list not actually filling the screen, and its
 // content not actually being reachable by touch), guarding against any
-// future layout change that reintroduces either one.
+// future layout change that reintroduces either one -- including
+// MainShell's own outer Stack (IndexedStack + the floating CruxNavBar),
+// this screen's new host as of the 家計簿 tab.
 
 import 'package:example/main.dart';
+import 'package:example/screens/main_shell.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:crux_ui/crux_ui.dart';
 
-/// Navigates from the home index to HouseholdLedgerScreen, the way a user
-/// would (see `home_index_page.dart`'s "家計簿" row).
-Future<void> _openHouseholdLedgerScreen(WidgetTester tester) async {
+/// Logs in with valid credentials and switches to the 家計簿 tab, the way a
+/// user would reach [HouseholdLedgerScreen].
+Future<void> _openHouseholdLedgerTab(WidgetTester tester) async {
   await tester.pumpWidget(const CruxExampleApp());
-  await tester.tap(find.text('家計簿'));
+  await tester.enterText(
+    find.byType(CruxTextFormField).at(0),
+    'taro@example.com',
+  );
+  await tester.enterText(find.byType(CruxTextFormField).at(1), 'password123');
+  await tester.tap(find.widgetWithText(CruxButton, 'ログイン'));
+  await tester.pumpAndSettle();
+
+  await tester.tap(
+    find.descendant(
+      of: find.byType(CruxNavBar<AppTab>),
+      matching: find.text('家計簿'),
+    ),
+  );
   await tester.pumpAndSettle();
 }
 
@@ -38,7 +54,7 @@ void main() {
     'the ledger list fills the screen instead of collapsing to a shorter '
     'sibling ancestor',
     (WidgetTester tester) async {
-      await _openHouseholdLedgerScreen(tester);
+      await _openHouseholdLedgerTab(tester);
 
       final Size screenSize =
           tester.view.physicalSize / tester.view.devicePixelRatio;
@@ -56,10 +72,10 @@ void main() {
   );
 
   testWidgets(
-    'the summary label text is actually reachable by touch, not clipped '
+    'the monthly total label is actually reachable by touch, not clipped '
     'away by a collapsed ancestor',
     (WidgetTester tester) async {
-      await _openHouseholdLedgerScreen(tester);
+      await _openHouseholdLedgerTab(tester);
 
       // `Finder.hitTestable()` walks from the root view down to this exact
       // widget's own paint position: it only matches when every ancestor
@@ -68,8 +84,8 @@ void main() {
       // `findsOneWidget` (it still exists in the tree, still has a size)
       // while being unreachable this way, which is exactly what the
       // collapsed-Stack bug does to this label.
-      expect(find.text('すべての支出'), findsOneWidget);
-      expect(find.text('すべての支出').hitTestable(), findsOneWidget);
+      expect(find.text('8月の支出'), findsOneWidget);
+      expect(find.text('8月の支出').hitTestable(), findsOneWidget);
     },
   );
 }

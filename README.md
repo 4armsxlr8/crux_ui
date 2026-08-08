@@ -131,13 +131,15 @@ itself never depends on `flutter_localizations`, so this is setup a
 consuming app adds itself rather than something this package could do for
 you.
 
-See `example/` for a gallery of real-world sample screens, one per use
-case (a task list, a login form, and so on), reached from a home index and
-sharing one header with a light/dark toggle — see `example/lib/main.dart`
-for the app shell and `example/lib/screens/` for each sample screen. For
-the color palette, type scale, spacing scale, and radii tokens, and for
-every atom's full Playground/States matrix/Edge cases catalog, run the dev
-catalog app in `widgetbook/` (`cd widgetbook && flutter run -d macos`).
+`example/` is a single mock app, "ミモザとの暮らし" (life with Mimosa, an
+AI companion): a login screen leads into a 4-tab shell (home/tasks,
+Mimosa/chat, household ledger, settings) plus a "きろく" (journal entry)
+post modal opened from home's FAB. See `example/lib/main.dart` for the app
+shell and `example/lib/screens/` for each screen, all built from Crux's
+components in the context of that one app. For the color palette, type
+scale, spacing scale, and radii tokens, and for every atom's full
+Playground/States matrix/Edge cases catalog, run the dev catalog app in
+`widgetbook/` (`cd widgetbook && flutter run -d macos`).
 
 ## Getting started
 
