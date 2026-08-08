@@ -40,6 +40,15 @@ When opening an HTML file (reports, previews, etc.), open it in Orca's built-in 
 - **Components stop at organisms**: `lib/src/components/` holds atoms, molecules, and — once one exists — organisms. Full-screen templates or pages are never added to the package; assembling real screens is `example/`'s job.
 - **Catalog operating rule**: `widgetbook/` (repo root, sibling to `example/`) is the dev catalog app — `widgetbook: ^3.25.0` is a dependency of that app only, never of the package itself. **Every new component must land with a widgetbook use-case set (Playground / States matrix / Edge cases, in `widgetbook/lib/usecases/<name>.dart`) plus a golden test pair (light + dark) in `widgetbook/test/golden_test.dart`**, following the contract in `widgetbook/lib/usecases/CONVENTIONS.md`. `example/` is a gallery of real screens: a home list that navigates to one sample screen per use case (task list, login form, and so on), sharing a header with the light/dark toggle. When a component's use case is not yet represented, add a screen for it. It still never grows a token table or a per-variant state grid — those belong in widgetbook.
 
+## Comment policy
+
+Comments state the contract and the constraints — never the history.
+
+- Public (exported) declarations keep their `///` docs (`public_member_api_docs` fails the analyzer without them), written for the pub.dev consumer: what it is, how to use it, caller-visible behavior and gotchas. No decision dates, no design-history narration, no citations of `unknowns/` documents.
+- Private declarations get a doc comment only when the meaning or constraint is non-obvious — a few lines at most.
+- `//` body comments exist only to state a constraint the code cannot show (an invariant, a hazard, why the obvious alternative is wrong), as compactly as possible. Never narrate what the next line does, and never record what a value used to be.
+- Decision history, tuning logs, and measurements live in the milestone's `unknowns/<milestone>/` docs (`implementation-notes.md`, `ledger.md`). When a comment must justify a non-obvious value, one pointer line — `// See unknowns/<milestone>/implementation-notes.md ("<section>").` — is the maximum; move the story into the doc if it is not already there.
+
 ## Analysis rules that will bite you
 
 `analysis_options.yaml` goes beyond `flutter_lints`:
