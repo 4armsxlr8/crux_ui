@@ -11,29 +11,23 @@ import '../../tokens/typography.dart';
 /// The fixed size of every tappable slot [CruxComposer] renders inside its
 /// own action row -- each [CruxComposerAction] and the counter/submit pair
 /// on the opposite edge. Matches this package's usual 44 logical pixel
-/// minimum tap target (see `button.dart`/`input_bar.dart`'s identically
-/// -shaped, independently-declared constants -- per this package's
-/// established convention, this is a fresh, file-local copy, not a shared
-/// token).
+/// minimum tap target; a file-local copy rather than a shared token.
 const double _slotSize = 44;
 
 /// The opacity [CruxComposer]'s action-row buttons render at while
-/// [CruxComposer.enabled] is `false`. Matches
-/// `text_form_field.dart`/`input_bar.dart`'s own `_disabledOpacity` value --
-/// again, a fresh file-local copy of the same agreed number, not a shared
-/// token.
+/// [CruxComposer.enabled] is `false`. A file-local copy rather than a
+/// shared token.
 const double _disabledOpacity = 0.55;
 
 /// A single caller-defined button in [CruxComposer]'s action row -- for
 /// example an attachment or camera button.
 ///
-/// [icon] and [label] are both caller-supplied, the same reason
-/// `CruxInputBarClear`/`CruxInputBarSubmit`'s are (see `input_bar.dart`):
-/// this package has no fixed glyph or language of its own to fall back to.
-/// Unlike those two, [onPressed] is bundled into this class too rather than
-/// living as a separate [CruxComposer] callback: [CruxComposer.actions]
-/// is a variable-length list, so a single fixed callback slot on the widget
-/// itself cannot address more than one of them.
+/// [icon] and [label] are both caller-supplied: this package has no fixed
+/// glyph or language of its own to fall back to. [onPressed] is bundled
+/// into this class too rather than living as a separate [CruxComposer]
+/// callback, since [CruxComposer.actions] is a variable-length list and a
+/// single fixed callback slot on the widget itself couldn't address more
+/// than one of them.
 @immutable
 class CruxComposerAction {
   /// Creates an action-row button for [CruxComposer.actions].
@@ -56,7 +50,7 @@ class CruxComposerAction {
 /// The submit ("post") button [CruxComposer] shows at the trailing edge of
 /// its action row whenever supplied. Rendered as a
 /// [CruxButton](variant: [CruxButtonVariant.filled], size:
-/// [CruxButtonSize.small]) internally (CP-D06).
+/// [CruxButtonSize.small]) internally.
 @immutable
 class CruxComposerSubmit {
   /// Creates a submit button for [CruxComposer.submit].
@@ -69,12 +63,11 @@ class CruxComposerSubmit {
 
 /// A [TextEditingController] subclass built for [CruxComposer]: overrides
 /// [buildTextSpan] so that whatever text falls beyond a caller-configured
-/// grapheme-cluster limit renders in a distinct "overflow" color (CP-A02's
-/// "text is never truncated, only the overflow is highlighted" contract) --
-/// a bare [TextEditingController] cannot express this at all, because
+/// grapheme-cluster limit renders in a distinct "overflow" color -- a bare
+/// [TextEditingController] cannot express this at all, because
 /// [buildTextSpan] is a method [EditableTextState] calls virtually on
 /// whatever controller it is given, not something a caller can inject from
-/// outside (see `unknowns/composer/impact.md`).
+/// outside.
 ///
 /// [CruxComposer] is the only intended caller of the package-private
 /// configuration this class exposes -- from any other angle, this behaves
@@ -100,22 +93,21 @@ class CruxComposerController extends TextEditingController {
 
   /// Configures the grapheme-cluster limit and highlight color
   /// [buildTextSpan] renders overflowing text in. Called by [CruxComposer]
-  /// on every build (see this class's own doc), and reset back to `null` /
-  /// `null` whenever this controller stops being that widget's active one
-  /// (see `_CruxComposerState._resetOverflowStyle`), so a caller-owned
+  /// on every build, and reset back to `null` / `null` whenever this
+  /// controller stops being that widget's active one, so a caller-owned
   /// controller genuinely reverts to plain, unconfigured behavior once
   /// detached.
   ///
   /// This has no leading underscore -- and so is technically callable by
   /// any importer of `package:crux_ui` -- purely because Dart's privacy is
   /// per-library (per file): this package's own tests exercise
-  /// [buildTextSpan] directly, from a separate test file, precisely to pin
-  /// down the grapheme-boundary split without going through a full
-  /// [CruxComposer] widget tree, and a leading-underscore name would make
-  /// that impossible from outside this file. [CruxComposer] is still the
-  /// only caller this method is meant to have in ordinary use; calling it
-  /// directly from application code is unsupported and its shape may change
-  /// without notice.
+  /// [buildTextSpan] directly, from a separate test file, to pin down the
+  /// grapheme-boundary split without going through a full [CruxComposer]
+  /// widget tree, and a leading-underscore name would make that impossible
+  /// from outside this file. [CruxComposer] is still the only caller this
+  /// method is meant to have in ordinary use; calling it directly from
+  /// application code is unsupported and its shape may change without
+  /// notice.
   void applyOverflowStyle({required int? maxLength, required Color? color}) {
     _overflowLimit = maxLength;
     _overflowColor = color;
@@ -129,11 +121,10 @@ class CruxComposerController extends TextEditingController {
   }) {
     final int? maxLength = _overflowLimit;
     final Color? overflowColor = _overflowColor;
-    // A negative `maxLength` has no meaningful grapheme boundary to split
-    // at (and would crash `Characters.take` below), so it is treated the
-    // same as "no limit" -- this mirrors the constructor-level `assert` on
-    // [CruxComposer] itself, but as a non-debug-only guard too, since this
-    // controller can be driven directly without going through that widget.
+    // A negative `maxLength` has no meaningful grapheme boundary to split at
+    // (and would crash `Characters.take` below), so it is treated as "no
+    // limit". Checked here too (not just as CruxComposer's debug-only
+    // assert) since this controller can be driven directly.
     if (maxLength == null || overflowColor == null || maxLength < 0) {
       return super.buildTextSpan(
         context: context,
@@ -219,7 +210,7 @@ class CruxComposerController extends TextEditingController {
 }
 
 /// A borderless, height-filling text area for composing a post: Crux UI's
-/// third and last text-input atom (H5), completing the split alongside
+/// third and last text-input atom, completing the split alongside
 /// [CruxTextFormField] and `CruxInputBar`.
 ///
 /// ```dart
@@ -231,13 +222,13 @@ class CruxComposerController extends TextEditingController {
 /// )
 /// ```
 ///
-/// **Everything below the text itself is optional (CP-A01).** Pass no
-/// [actions], no [submit], and no [maxLength], and this renders as a bare,
-/// borderless text area with nothing else -- the action row described below
-/// does not exist at all in that case, not merely render empty. The row
-/// appears the moment any one of the three is supplied.
+/// **Everything below the text itself is optional.** Pass no [actions], no
+/// [submit], and no [maxLength], and this renders as a bare, borderless
+/// text area with nothing else -- the action row described below does not
+/// exist at all in that case, not merely render empty. The row appears the
+/// moment any one of the three is supplied.
 ///
-/// **Fills the height it is given, and scrolls internally (CP-D02).** Unlike
+/// **Fills the height it is given, and scrolls internally.** Unlike
 /// `CruxInputBar`, this does not grow line-by-line with its content --
 /// place it inside an [Expanded] (or any other box that hands it a bounded
 /// height) and it fills exactly that height, with its own text scrolling
@@ -258,31 +249,30 @@ class CruxComposerController extends TextEditingController {
 ///
 /// **The action row**, when it exists, is a single row pinned to the
 /// bottom: [actions] on the start edge (each a [_slotSize] tap target), and
-/// the character counter plus [submit] on the end edge (mock-c's layout).
+/// the character counter plus [submit] on the end edge.
 ///
-/// **The counter** ("`n / max`") appears only while [maxLength] is non
-/// -null (CP-D07), in [CruxTypography.caption], and counts *grapheme
-/// clusters* via [Characters] -- an emoji or other combined character counts
-/// as one (CP-D03), matching how a person actually perceives "one
-/// character". It reads [CruxColors.textSecondary] normally and
-/// [CruxColors.error] once the text exceeds [maxLength] (CP-D05: only
-/// these two states -- there is no intermediate "running low" warning
-/// color), transitioning between them via [CruxMotion.animatedColor]
-/// rather than snapping.
+/// **The counter** ("`n / max`") appears only while [maxLength] is
+/// non-null, in [CruxTypography.caption], and counts *grapheme clusters*
+/// via [Characters] -- an emoji or other combined character counts as one,
+/// matching how a person actually perceives "one character". It reads
+/// [CruxColors.textSecondary] normally and [CruxColors.error] once the
+/// text exceeds [maxLength] (only these two states -- there is no
+/// intermediate "running low" warning color), transitioning between them
+/// via [CruxMotion.animatedColor] rather than snapping.
 ///
-/// **Going over [maxLength] is accepted, never truncated (CP-A02).** Typing
-/// or pasting past the limit keeps every character: the counter turns
+/// **Going over [maxLength] is accepted, never truncated.** Typing or
+/// pasting past the limit keeps every character: the counter turns
 /// [CruxColors.error], the text beyond the limit renders in
 /// [CruxColors.error] too (via [CruxComposerController.buildTextSpan]),
 /// and only [submit] disables -- there is no hard stop.
 ///
 /// **[submit] is enabled iff** [enabled] is `true`, the text is non-empty,
-/// the text is not over [maxLength] (CP-A02), and [onSubmit] is actually
-/// supplied -- a [submit] bundle with no [onSubmit] stays disabled rather
-/// than looking tappable and silently doing nothing, the same "nullable
-/// callback means disabled" convention every other Crux control follows.
-/// Tapping it while enabled calls [onSubmit] with the controller's current
-/// text; it never clears the text itself.
+/// the text is not over [maxLength], and [onSubmit] is actually supplied --
+/// a [submit] bundle with no [onSubmit] stays disabled rather than looking
+/// tappable and silently doing nothing, the same "nullable callback means
+/// disabled" convention every other Crux control follows. Tapping it
+/// while enabled calls [onSubmit] with the controller's current text; it
+/// never clears the text itself.
 class CruxComposer extends StatefulWidget {
   /// Creates a Crux composer.
   const CruxComposer({
@@ -325,10 +315,10 @@ class CruxComposer extends StatefulWidget {
   final bool enabled;
 
   /// The grapheme-cluster limit the counter measures against. `null` (the
-  /// default) hides the counter entirely (CP-D07) and disables the
-  /// over-limit highlight/submit-gating behavior described in this class's
-  /// own doc -- text can grow to any length. Must be `null` or non-negative;
-  /// a negative value fails an `assert` at construction time.
+  /// default) hides the counter entirely and disables the over-limit
+  /// highlight/submit-gating behavior described in this class's own doc --
+  /// text can grow to any length. Must be `null` or non-negative; a
+  /// negative value fails an `assert` at construction time.
   final int? maxLength;
 
   /// The caller-defined buttons shown at the action row's start edge (for
@@ -418,17 +408,12 @@ class _CruxComposerState extends State<CruxComposer> {
   }
 
   /// Clears any overflow-highlight configuration this widget applied to
-  /// [controller] via [CruxComposerController.applyOverflowStyle],
-  /// restoring it to a plain, unconfigured state. Called whenever
-  /// [controller] stops being this state's active controller -- a swap in
-  /// [didUpdateWidget], or this state's own [dispose] -- so a caller-owned,
-  /// externally-supplied [CruxComposerController] genuinely reverts to
-  /// behaving like an ordinary [TextEditingController] once detached from
-  /// this widget, rather than continuing to color text using this
-  /// composer's last-applied limit/color. This is what keeps the "safe to
-  /// reuse elsewhere" promise in [CruxComposerController]'s own class doc
-  /// (and CHANGELOG.md) true even after detachment, not just for a
-  /// controller that was never attached in the first place.
+  /// [controller], restoring it to a plain, unconfigured state. Called
+  /// whenever [controller] stops being this state's active controller, so a
+  /// caller-owned, externally-supplied [CruxComposerController] genuinely
+  /// reverts to ordinary [TextEditingController] behavior once detached
+  /// instead of continuing to color text using this composer's
+  /// last-applied limit/color.
   void _resetOverflowStyle(CruxComposerController controller) {
     controller.applyOverflowStyle(maxLength: null, color: null);
   }
@@ -472,13 +457,10 @@ class _CruxComposerState extends State<CruxComposer> {
       onChanged: widget.onChanged,
       expands: true,
       textAlignVertical: TextAlignVertical.top,
-      // Zero bottom inset, unlike the shared core's default
-      // `EdgeInsets.all(12)` (`_defaultContentPadding` in
-      // text_field_core.dart) -- left/top/right stay at the core's usual
-      // 12, but the bottom edge is dropped entirely so the last line of
-      // typed text sits flush against the hairline separator below, per
-      // the user's explicit spacing decision confirmed via the temporary
-      // tuner screen (see unknowns/composer/implementation-notes.md).
+      // Zero bottom inset, unlike the shared core's default (which pads all
+      // four sides equally): the bottom edge is dropped entirely so the
+      // last line of typed text sits flush against the hairline separator
+      // below.
       contentPadding: const EdgeInsets.only(
         left: CruxSpacing.s12,
         top: CruxSpacing.s12,
@@ -545,13 +527,10 @@ class _CruxComposerState extends State<CruxComposer> {
       if (trailing.isNotEmpty) {
         trailing.add(const SizedBox(width: CruxSpacing.s8));
       }
-      // Gated on `widget.onSubmit != null` too, not just the three CP-A02
+      // Gated on `widget.onSubmit != null` too, not just the other enabled
       // conditions: without it, a caller that supplies `submit` but forgets
       // `onSubmit` would see a button that looks and announces itself as
-      // enabled, yet silently does nothing when tapped (`_handleSubmitTap`
-      // only ever calls `widget.onSubmit?.call(...)`) -- the same
-      // "nullable callback means disabled" convention every other Crux
-      // control (including this same [CruxButton]) already follows.
+      // enabled, yet silently does nothing when tapped.
       final bool submitEnabled =
           enabled && hasText && !overLimit && widget.onSubmit != null;
       trailing.add(
@@ -588,14 +567,11 @@ class _CruxComposerState extends State<CruxComposer> {
         border: Border(top: BorderSide(color: colors.separator, width: 1)),
       ),
       child: Padding(
-        // Half of the original horizontal padding (12). The spacing scale
-        // has no single s6 token, so the value is expressed as the sum of
-        // the two tokens that add up to it rather than a bare literal. Top
-        // and bottom are both 8 (the original bottom-only value was 4): an
-        // 8px gap now separates the separator above from the row's content,
-        // and an 8px gap of breathing room sits below it, per the user's
-        // explicit spacing decision confirmed via the temporary tuner
-        // screen (see unknowns/composer/implementation-notes.md).
+        // Horizontal padding is 6px; the spacing scale has no single s6
+        // token, so it's expressed as the sum of the two tokens that add up
+        // to it rather than a bare literal. Top and bottom are both 8: an
+        // 8px gap separates the separator above from the row's content, and
+        // an 8px gap of breathing room sits below it.
         padding: const EdgeInsets.only(
           left: CruxSpacing.s4 + CruxSpacing.s2,
           right: CruxSpacing.s4 + CruxSpacing.s2,
@@ -609,17 +585,13 @@ class _CruxComposerState extends State<CruxComposer> {
               // cluster (counter/submit) does not need, and its own
               // horizontal scroll view absorbs an arbitrarily long `actions`
               // list by scrolling instead of forcing the whole Row into a
-              // hard RenderFlex overflow: unlike CruxInputBar's fixed
-              // leading/clear/submit slots, `actions` has no declared
-              // maximum length. Using exactly one flex child here (rather
-              // than a `Spacer` *and* a `Flexible` counter both claiming a
-              // share of the same leftover space) is also what keeps the
-              // counter/submit pair pinned flush against the trailing edge:
-              // two independent flex children of equal weight would each
+              // hard RenderFlex overflow. Using exactly one flex child
+              // (rather than a `Spacer` *and* a `Flexible` counter both
+              // claiming a share of the same leftover space) is also what
+              // keeps the counter/submit pair pinned flush against the
+              // trailing edge -- two equal-weight flex children would each
               // reserve half the leftover space regardless of how much
-              // either one actually renders at, leaving unclaimed space
-              // stranded after the last child instead of at the true
-              // trailing edge.
+              // either one actually renders at.
               Expanded(
                 child: SingleChildScrollView(
                   scrollDirection: Axis.horizontal,
@@ -646,10 +618,7 @@ class _CruxComposerState extends State<CruxComposer> {
         // `excludeSemantics: true` above drops every semantics node the
         // GestureDetector below would otherwise contribute -- including its
         // own tap action -- so this node needs its own `onTap` to stay
-        // activatable by assistive technology (a screen reader's
-        // double-tap gesture has nothing else to call otherwise; see
-        // `SemanticsAction.tap`'s own doc on how `Semantics.onTap` supplies
-        // exactly this).
+        // activatable by assistive technology.
         onTap: enabled ? action.onPressed : null,
         child: GestureDetector(
           behavior: HitTestBehavior.opaque,

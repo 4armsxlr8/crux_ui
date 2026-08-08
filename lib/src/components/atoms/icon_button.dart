@@ -10,42 +10,31 @@ import '../../tokens/theme.dart';
 /// Unlike [CruxButtonSize] (whose visible pill is often taller than its
 /// own 44 logical pixel tap target requirement), a [CruxIconButton]'s
 /// visible circle *is* its tap target at every size offered today: there is
-/// no extra invisible padding around a smaller glyph the way this widget's
-/// first shipped version (a fixed 32 logical pixel circle inside a 44
-/// logical pixel target -- the same split `CruxInputBar`'s submit button
-/// still uses) worked. New values may be added in a future minor release;
-/// an exhaustive `switch` over this enum can break when that happens, so
-/// prefer a `default` case (or an equivalent fallback) at call sites that
-/// don't need to special-case every size, the same non-exhaustiveness note
-/// [CruxSpinnerSize] documents.
+/// no extra invisible padding around a smaller glyph. New values may be
+/// added in a future minor release; an exhaustive `switch` over this enum
+/// can break when that happens, so prefer a `default` case (or an
+/// equivalent fallback) at call sites that don't need to special-case every
+/// size.
 enum CruxIconButtonSize {
-  /// A 44 logical pixel circle -- this package's usual 44 logical pixel
-  /// minimum tap target (see
-  /// `button.dart`/`chip.dart`/`switch.dart`/`input_bar.dart`'s
-  /// identically-shaped, independently-declared constants), doubling here
-  /// as the visible circle itself. The default.
+  /// A 44 logical pixel circle -- this package's usual minimum tap target,
+  /// doubling here as the visible circle itself. The default.
   medium,
 
   /// A 56 logical pixel circle. Already at or above the 44 logical pixel
   /// minimum tap target on its own, so no extra invisible tap padding
   /// surrounds it. Pair with [CruxIconButtonTone.primary] for a floating
-  /// action button (FAB) -- see `example/`'s sync screen for a worked
-  /// example. A somewhat larger [CruxIconButton.icon] than usual keeps
-  /// the glyph in visual balance with the bigger circle.
+  /// action button (FAB). A somewhat larger [CruxIconButton.icon] than
+  /// usual keeps the glyph in visual balance with the bigger circle.
   large,
 }
 
 /// Resolves the fixed layout metrics (tap target side length and visible
 /// circle diameter) for a [CruxIconButtonSize].
 ///
-/// The two are equal for every size offered today -- see
-/// [CruxIconButtonSize]'s own doc -- but are modeled as independent
-/// fields rather than a single `double` so a future size whose visible
-/// circle is again smaller than its own tap target (the shape both current
-/// sizes moved away from) could be added without changing this function's
-/// return shape, the same forward-compatible intent
-/// [CruxIconButtonSize]'s non-exhaustiveness note calls out for the enum
-/// itself.
+/// The two are equal for every size offered today, but are modeled as
+/// independent fields rather than a single `double` so a future size whose
+/// visible circle is smaller than its own tap target could be added
+/// without changing this function's return shape.
 ({double tapTarget, double circleDiameter}) _metricsFor(
   CruxIconButtonSize size,
 ) {
@@ -83,12 +72,10 @@ Color _resolveBackground({
   required CruxIconButtonTone tone,
   required bool enabled,
 }) {
-  // Disabled renders the same mutedFill circle regardless of tone -- the
-  // same "disabled fill is mutedFill, not separator" reasoning
-  // `CruxInputBar`'s submit button uses (see colors.dart's
-  // [CruxColors.mutedFill] doc): this circle can sit on top of another
-  // filled surface, where a fainter token like `separator` would risk
-  // disappearing.
+  // Disabled renders the same mutedFill circle regardless of tone: this
+  // circle can sit on top of another filled surface, where a fainter token
+  // like `separator` would risk disappearing (see colors.dart's
+  // [CruxColors.mutedFill] doc).
   if (!enabled) {
     return colors.mutedFill;
   }
@@ -205,14 +192,11 @@ class _CruxIconButtonState extends State<CruxIconButton> {
 
   bool get _enabled => widget.onPressed != null;
 
-  // Only _handleTapDown checks `_enabled`: it is the only handler that
-  // *starts* a press, so gating it there is enough to keep a disabled
-  // button from ever entering the pressed state. _handleTapUp and
-  // _handleTapCancel always resolve any in-flight press unconditionally, so
-  // a press started while enabled still ends cleanly even if the button
-  // becomes disabled before release -- see button.dart's identical
-  // onTapDown/Up/Cancel wiring comment for why these three callbacks stay
-  // wired unconditionally rather than gated by `enabled` themselves.
+  // Only _handleTapDown checks `_enabled`, since it is the only handler
+  // that *starts* a press. _handleTapUp and _handleTapCancel always resolve
+  // any in-flight press unconditionally -- gating them by `enabled` instead
+  // would tear the in-flight TapGestureRecognizer out of the gesture arena
+  // if the button becomes disabled mid-press.
   void _handleTapDown(TapDownDetails details) {
     if (_enabled) {
       _pressFeedback.down();
@@ -253,12 +237,10 @@ class _CruxIconButtonState extends State<CruxIconButton> {
       container: true,
       button: true,
       enabled: enabled,
-      // Unlike CruxButton (whose label comes for free from its child
-      // Text's own automatic semantics), this button has no descendant
-      // text to rely on and `icon` is an arbitrary caller-supplied widget
-      // that may carry unrelated or absent semantics of its own -- so this
-      // sets an explicit label and excludes descendant semantics, the same
-      // pattern `_ObscureToggleButton` and `CruxInputBarSubmit` use.
+      // `icon` is an arbitrary caller-supplied widget with no reliable
+      // semantics of its own (unlike CruxButton's child Text, which
+      // supplies a label for free), so this sets an explicit label and
+      // excludes descendant semantics.
       label: widget.label,
       excludeSemantics: true,
       child: GestureDetector(

@@ -10,174 +10,113 @@ import '../../tokens/shadows.dart';
 import '../../tokens/spacing.dart';
 import '../../tokens/theme.dart';
 
-/// The minimum tap target size for a [CruxToastCard]'s action button
-/// (matching every other pressable Crux atom's K B9 rule): 44 logical
-/// pixels, even though the visible label is smaller than that.
+/// The minimum tap target size for a [CruxToastCard]'s action button: 44
+/// logical pixels, even though the visible label is smaller than that --
+/// matching every other pressable Crux atom.
 const double _minTapTarget = 44;
 
-/// The most toasts [CruxToastHost] shows at once (plan's "画面下部・最大3件").
-/// A 4th distinct message evicts the oldest currently-active toast.
+/// The most toasts [CruxToastHost] shows at once. A 4th distinct message
+/// evicts the oldest currently-active toast.
 const int _maxToasts = 3;
 
 /// The most toast cards -- active *and* still mid-exit ([_ToastEntry.
-/// leaving]) combined -- [CruxToastHost] ever mounts at once (self-decided,
-/// codex review's "画面を溢れうる" finding: a rapid burst of distinct
-/// messages, each one arriving faster than [_exitAnimationDuration], can pile
-/// up more leaving entries than [_maxToasts] alone bounds, since a leaving
-/// entry keeps occupying a slot in the stack until its exit animation
-/// finishes).
-///
-/// [_maxToasts] (3) plus 2: normal operation already produces at most one
-/// leaving entry beyond the 3 active ones (a single 4th-message eviction), so
-/// this cap only ever engages for a burst well outside that steady state --
-/// exactly the runaway case this guards against -- while still giving a
-/// second leaving card room to overlap the first's exit before anything gets
-/// force-evicted. Once [_entries] would exceed this count,
+/// leaving]) combined -- [CruxToastHost] ever mounts at once. A leaving
+/// entry keeps occupying a slot until its exit animation finishes, so a
+/// burst of distinct messages arriving faster than [_exitAnimationDuration]
+/// can otherwise pile up more leaving entries than [_maxToasts] alone
+/// bounds. Once [_entries] would exceed this count,
 /// [_CruxToastHostState._enforceRenderCap] removes the oldest
-/// [_ToastEntry.leaving] entry immediately, skipping its exit animation --
-/// unlike [_CruxToastHostState._dismiss]'s normal path, there is no room
-/// left on screen to animate it out gracefully.
+/// [_ToastEntry.leaving] entry immediately, skipping its exit animation.
 const int _maxRenderedTotal = _maxToasts + 2;
 
 /// How long a toast with no [CruxToastAction] stays on screen before
-/// auto-dismissing (plan's "約3秒"), once shown or re-shown while already
-/// frontmost.
+/// auto-dismissing, once shown or re-shown while already frontmost.
 const Duration _defaultDismissDuration = Duration(seconds: 3);
 
 /// How long a toast *with* a [CruxToastAction] stays on screen before
-/// auto-dismissing.
-///
-/// Twice [_defaultDismissDuration]: long enough to register that an action
-/// exists, decide whether to use it, and actually tap it, without leaving a
-/// stale toast on screen indefinitely -- self-decided (the plan leaves this
-/// duration to be "調整して記録"), recorded here rather than in a design doc
-/// per this package's existing convention of documenting tuned constants
-/// alongside their declaration (see motion.dart's shake constants).
+/// auto-dismissing: twice [_defaultDismissDuration], long enough to notice
+/// the action, decide whether to use it, and tap it.
 const Duration _actionDismissDuration = Duration(seconds: 6);
 
 /// How long a dismissed toast is kept mounted (rendering its fade/shrink
 /// exit) after being marked as leaving, before it is spliced out of
 /// [_CruxToastHostState.entries] for good.
 ///
-/// [CruxMotion.animatedValue]'s shared spring has a nominal 200ms
-/// duration; this pads that by a small margin so the exit has visibly
-/// settled by the time the entry is actually removed, the same "un-tuned
-/// but reasonable, revisit on a device" spirit motion.dart's own shake
-/// constants use for a similar approximation.
+/// Pads [CruxMotion.animatedValue]'s shared spring's nominal 200ms
+/// duration by a small margin, so the exit has visibly settled by the time
+/// the entry is actually removed.
 const Duration _exitAnimationDuration = Duration(milliseconds: 220);
 
 /// The fraction of a toast card's own width a horizontal swipe must cross
-/// before it counts as a dismiss (self-decided, plan's "しきい値...は自分で
-/// 決めて記録"): a percentage-of-width threshold scales with message length
-/// (a short "OK" toast and a long sentence both need "about 40% of my own
-/// width" rather than a fixed pixel count that would feel too easy on a
-/// wide card and too hard on a narrow one).
+/// before it counts as a dismiss: a percentage-of-width threshold scales
+/// with message length, rather than a fixed pixel count that would feel too
+/// easy on a wide card and too hard on a narrow one.
 const double _swipeDismissWidthFraction = 0.4;
 
 /// The release velocity (logical pixels/second along the drag axis) that
 /// counts as a dismiss on its own, even if [_swipeDismissWidthFraction]
-/// wasn't crossed (self-decided): lets a fast flick dismiss a toast that's
-/// released early, matching the common "flick away" gesture apps like Mail
-/// use for swipe-to-dismiss notifications.
+/// wasn't crossed: lets a fast flick dismiss a toast that's released early,
+/// the same "flick away" gesture other apps use for swipe-to-dismiss
+/// notifications.
 const double _swipeDismissVelocity = 800;
 
-/// The vertical gap between stacked toast cards, matching the mock's
-/// `.toast-stack { gap: 10px }` (`unknowns/atoms-batch-3/mock-b-shadow.html`).
+/// The vertical gap between stacked toast cards.
 const double _stackGap = 10;
 
 /// The gap kept clear below the lowest (frontmost) toast card and the
-/// bottom of [CruxToastHost]'s bounds, matching the mock's
-/// `.toast-stack { bottom: 28px }`.
+/// bottom of [CruxToastHost]'s bounds.
 const double _stackBottomInset = 28;
 
-/// The gap kept clear on both sides of the toast stack.
-///
-/// The mock instead caps each toast's own width at `86vw` (a
-/// screen-relative bound). A fixed inset here achieves the same "never
-/// touches the screen edges" outcome without needing a [LayoutBuilder] at
-/// the stack level -- [_cardMaxWidth] (see its own doc) is what actually
-/// keeps [CruxToastCard] safe to render in an unbounded-width context, so
-/// this only needs to add breathing room on a real, bounded screen.
+/// The gap kept clear on both sides of the toast stack. [_cardMaxWidth] is
+/// what actually keeps [CruxToastCard] safe to render in an
+/// unbounded-width context; this only adds breathing room on a bounded
+/// screen.
 const double _stackHorizontalInset = 24;
 
 /// A [CruxToastCard]'s own maximum content width.
 ///
 /// `Row`'s [Flexible]-wrapped message [Text] (below) requires a *bounded*
-/// incoming width constraint -- a `Row` with a non-zero-flex child throws if
-/// its own incoming width is unbounded (`double.infinity`), which is exactly
-/// the ambient constraint an unwrapped [Center]/[Directionality]-only
-/// context (the kind a golden-test harness or a bare preview might use)
-/// hands down. Capping the card's own width here, rather than relying on
-/// whatever ancestor happens to wrap it, is what makes [CruxToastCard]
-/// safe to render standalone with *no* bounding ancestor at all -- the
-/// explicit "must be paintable entirely on its own" requirement this class's
-/// own doc describes. 320 logical pixels comfortably fits a phone-width
-/// screen with [_stackHorizontalInset] margins on each side while still
-/// reading as a compact, phone-sized notification rather than one that
-/// spans a tablet's full width.
+/// incoming width constraint -- it throws under an unbounded
+/// (`double.infinity`) one, which is exactly what a bare
+/// [Center]/[Directionality]-only context (e.g. a golden-test harness) hands
+/// down. Capping the card's own width here, rather than relying on whatever
+/// ancestor wraps it, is what makes [CruxToastCard] safe to render
+/// standalone with no bounding ancestor at all. 320 logical pixels
+/// comfortably fits a phone-width screen with [_stackHorizontalInset]
+/// margins on each side.
 const double _cardMaxWidth = 320;
 
-/// A [CruxToastCard]'s horizontal content padding, matching the mock's
-/// `.toast-card { padding: 12px 18px }` (the `12px` is
-/// [CruxSpacing.s12], used directly below; `18px` has no matching value in
-/// [CruxSpacing]'s scale, so it is kept as its own constant here --
-/// mirrors how `checkbox.dart`'s `_boxSize`/`_boxCornerRadius` keep
-/// off-scale measurements as their own private constants).
+/// A [CruxToastCard]'s horizontal content padding. Not in
+/// [CruxSpacing]'s scale, so it is kept as its own constant here.
 const double _cardHorizontalPadding = 18;
 
 /// A [CruxToastCard]'s vertical content padding when it has a
-/// [CruxToastAction] (2026-08-02: "アクション付きトーストの高さも64pxに"): `9`, not
-/// [CruxSpacing.s12] (`12`), so the card's total rendered height comes out
-/// to exactly `64` -- the same height a plain, two-line toast already uses
-/// -- regardless of whether [CruxToastCard.message] itself wraps to 1 or 2
-/// lines.
+/// [CruxToastAction]: `9`, not [CruxSpacing.s12] (`12`), so the card's
+/// total rendered height comes out to exactly `64` -- the same height a
+/// plain, two-line toast already uses.
 ///
-/// The action button's own [_minTapTarget] (44) genuinely forces the card's
-/// content [Row] to that same 44px cross-axis height (unlike the shorter,
-/// 40px-visible/44px-tap-target split [CruxSegmentedControl] uses for its
-/// own pill -- see this constant's own doc below for why that split doesn't
-/// carry over here), so the padding is what has to give: `9 * 2 + 44 = 62`,
-/// not `64`, is *not* a bug -- see the next paragraph for the extra `+1`
-/// that closes the gap.
+/// [Container] adds its [ShapeDecoration]'s border inset into its
+/// *effective* padding, and this card's border carries a default 1px
+/// [BorderSide.width], so the *rendered* padding is always 1px more per
+/// edge than the value declared here. `9` therefore renders as `10` per
+/// edge, giving `10 + 44 + 10 = 64` against the action button's real 44px
+/// [_minTapTarget] height -- not the naively-expected `9 + 44 + 9 = 62`. Do
+/// not "simplify" this back to [CruxSpacing.s12] without re-deriving the
+/// target height.
 ///
-/// [Container] silently adds its [ShapeDecoration]'s own border inset into
-/// its *effective* padding (`Container._paddingIncludingDecoration`, in
-/// Flutter's own `container.dart`: `padding!.add(decoration!.padding)`,
-/// where `ShapeDecoration.padding` forwards to `shape.dimensions`, and
-/// `OutlinedBorder.dimensions` is `EdgeInsets.all(side.strokeInset)`) --
-/// [CruxToastCard]'s own `RoundedSuperellipseBorder`'s `side` carries a
-/// default 1px [BorderSide.width], so the card's *rendered* padding is
-/// always exactly 1px more per edge than whatever vertical padding value is
-/// used here or in [CruxSpacing.s12] above (confirmed empirically: a
-/// plain, one-line toast declares `12` but measures `13` per edge, `46` --
-/// not `44` -- tall overall; this is pre-existing behavior, unrelated to
-/// this constant, and is left exactly as-is). Declaring `9` here therefore
-/// renders as `10` per edge, giving `10 + 44 + 10 = 64` -- the actual,
-/// on-screen target -- not the naively-expected `9 + 44 + 9 = 62`.
+/// This card does not use [CruxSegmentedControl]'s
+/// smaller-visible/larger-tap-target [OverflowBox] trick: an [OverflowBox]
+/// gates hit-testing by its own reported size before recursing into its
+/// (larger) child, so it cannot make a real tap target reachable outside
+/// that reported size in this card's genuinely unbounded-height context.
+/// The padding absorbs the height difference instead.
 ///
-/// **Why not the same 40px-visible/44px-tap-target split
-/// [CruxSegmentedControl] uses?** That approach -- an [OverflowBox]
-/// reporting a smaller size than its child so the visible pill can be
-/// shorter than the real tap target -- was tried first here and found not
-/// to work for this card: [OverflowBox] (like every [RenderBox] that
-/// doesn't override `hitTest`) still gates hit-testing by *its own*
-/// reported size before ever recursing into its (larger) child -- confirmed
-/// empirically, including that [CruxSegmentedControl]'s own equivalent
-/// edge-tap test only passes because its bare-`Directionality` test wrapper
-/// hands the whole control a tight-to-viewport (hundreds of pixels) ambient
-/// height, not because the trick genuinely survives a properly
-/// shrink-wrapped ~40px pill. [CruxToastCard] renders inside a genuinely
-/// unbounded-height [Column] in production ([CruxToastHost]'s own toast
-/// stack), where that gap would matter, so this card instead keeps the
-/// action button's real, always-hit-testable 44px [ConstrainedBox] exactly
-/// as it already was, and absorbs the height difference in the padding
-/// instead -- no overflow trick, no split between what's visible and what's
-/// tappable.
+/// See unknowns/atoms-batch-3/implementation-notes.md ("チューニング追記",
+/// item 6) for the full story.
 const double _cardVerticalPaddingWithAction = 9;
 
 /// How far, in logical pixels, a [CruxToastCard] travels vertically while
-/// entering (rising up into place) or leaving (sinking back down),
-/// matching the mock's `toast-in`/`toast-out` keyframes' `translateY`.
+/// entering (rising up into place) or leaving (sinking back down).
 const double _cardEnterTravel = 28;
 
 /// Bundles a [CruxToastCard]'s single optional action button: a label and
@@ -193,8 +132,7 @@ class CruxToastAction {
   const CruxToastAction({required this.label, required this.onPressed});
 
   /// The action button's text (for example "元に戻す"). Caller-supplied --
-  /// this package draws no conclusions about what a toast's action should
-  /// say (H1: wording is never decided by this package).
+  /// this package never decides what a toast's action should say.
   final String label;
 
   /// Called when the action button is tapped.
@@ -231,23 +169,21 @@ class CruxToastAction {
 /// a toast look like" preview is needed (for example a golden test) without
 /// dragging in [CruxToastHost]'s stacking/timer machinery.
 ///
-/// [message] and [leading] follow H1 (`unknowns/session-handoff-2026-07-26.
-/// md`): wording and iconography are always caller-supplied, never decided
-/// by this package. [leading] is rendered exactly as given -- unlike
-/// [CruxIconButton]'s `icon`, it is not wrapped in an [IconTheme]/
-/// [DefaultTextStyle] override, since a toast has no enabled/disabled
-/// foreground state for it to resolve against; a caller that wants a
-/// specific tint (for example a green checkmark for a success toast, as in
-/// the design mock) sets it directly on the widget it passes.
+/// [message] and [leading] are always caller-supplied: this package never
+/// decides wording or iconography. [leading] is rendered exactly as given
+/// -- unlike [CruxIconButton]'s `icon`, it is not wrapped in an
+/// [IconTheme]/[DefaultTextStyle] override, since a toast has no
+/// enabled/disabled foreground state for it to resolve against; a caller
+/// that wants a specific tint (for example a green checkmark for a success
+/// toast) sets it directly on the widget it passes.
 ///
 /// Renders as a [CruxColors.surface] card with [CruxRadii.l] superellipse
 /// corners, [CruxShadows.md]'s shadow, and a 1px border in
 /// [CruxShadows.hairline] -- painted unconditionally on every theme.
-/// [CruxShadows.hairline] is fully transparent in the light palette and a
-/// faint [CruxColors.textPrimary] wash in the dark one, so this single,
-/// always-on border reproduces the mock's "no border in light, a hairline
-/// outline in dark" result without a brightness-specific branch (matching
-/// how [CruxShadows.hairline]'s own doc describes this exact technique).
+/// [CruxShadows.hairline] is fully transparent in light and a faint
+/// [CruxColors.textPrimary] wash in dark, so this single, always-on
+/// border gives "no border in light, a hairline outline in dark" with no
+/// brightness-specific branch.
 ///
 /// Exposes a live-region semantics node ([Semantics.liveRegion]) so a screen
 /// reader announces the card's content as soon as it appears -- see
@@ -262,12 +198,12 @@ class CruxToastCard extends StatelessWidget {
     this.onDismiss,
   });
 
-  /// The toast's text. Caller-supplied (H1).
+  /// The toast's text. Caller-supplied.
   final String message;
 
   /// An optional leading widget (typically a small icon), rendered before
-  /// [message]. Caller-supplied and rendered as-is (H1) -- see this class's
-  /// own doc for why it is not re-themed.
+  /// [message]. Caller-supplied and rendered as-is -- see this class's own
+  /// doc for why it is not re-themed.
   final Widget? leading;
 
   /// An optional single action button, rendered after [message]. Leave
@@ -278,9 +214,7 @@ class CruxToastCard extends StatelessWidget {
   /// (which typically reserves a horizontal swipe for its own navigation
   /// gesture, not this card's swipe-to-dismiss drag) an equivalent way to
   /// dismiss the toast -- the same [SemanticsAction.dismiss] wiring
-  /// Flutter's own `Dismissible`/`SnackBar` expose (confirmed against
-  /// `packages/flutter/lib/src/material/snack_bar.dart`'s `Semantics(...,
-  /// onDismiss: ...)` wrapping its `Dismissible`).
+  /// Flutter's own `Dismissible`/`SnackBar` expose.
   ///
   /// Left `null` (the default) for a card rendered on its own with no
   /// [CruxToastHost] to dismiss it into -- [CruxToastHost] always
@@ -304,13 +238,9 @@ class CruxToastCard extends StatelessWidget {
         child: Container(
           padding: EdgeInsets.symmetric(
             horizontal: _cardHorizontalPadding,
-            // See _cardVerticalPaddingWithAction's own doc: an action
-            // button's real 44px minimum tap target already forces the row
-            // this padding wraps to that same 44px height, so keeping the
-            // ordinary CruxSpacing.s12 (12) here -- the same value a
-            // plain, no-action toast still uses -- would push an
-            // action-equipped card past the 64px every other toast height
-            // uses.
+            // See _cardVerticalPaddingWithAction's own doc: CruxSpacing.s12
+            // here would push an action-equipped card past the 64px height
+            // every other toast uses.
             vertical: toastAction != null
                 ? _cardVerticalPaddingWithAction
                 : CruxSpacing.s12,
@@ -323,36 +253,17 @@ class CruxToastCard extends StatelessWidget {
               side: BorderSide(color: theme.shadows.hairline),
             ),
           ),
-          // Establishes this card's own DefaultTextStyle baseline -- the
-          // same "a subtree floating outside Material resets its own
-          // ambient text style" fix dialog.dart's CruxDialogCard.build
-          // makes (see that method's own comment for the full "why", H3:
-          // never inherit an ambient Material theme). [CruxToastHost]
-          // stacks this card as an ordinary Stack sibling outside any
-          // Material widget, so without this, [message]'s Text and
-          // [_CruxToastActionButton]'s label (neither of which sets its
-          // own `decoration` -- see typography.dart) would inherit whatever
-          // `DefaultTextStyle` happens to sit above the host, including
-          // MaterialApp's garish "no enclosing Material" warning style.
-          //
-          // Deliberately narrower than [CruxDialogCard]'s equivalent
-          // baseline: only `decoration` is set here, `color`/`fontSize`/
-          // `height`/`fontWeight` are all left unset (`null`), rather than
-          // also basing this on `theme.typography.body` the way the dialog
-          // card does. [leading] sits inside this same DefaultTextStyle
-          // scope -- there is no narrower place to put it that still covers
-          // [message] and the action label -- and [leading]'s own class doc
-          // promises it is "rendered exactly as given ... not wrapped in an
-          // IconTheme/DefaultTextStyle override": a caller-supplied Text
-          // used as [leading] with no style of its own (this file's own
-          // widgetbook use case does exactly this) must keep whatever
-          // font size/color it would have had with no ambient override at
-          // all, so only the one field actually responsible for this bug
-          // is forced here. `TextStyle.merge`'s per-field semantics (a
-          // descendant Text's own explicit fields always win; only fields
-          // it leaves `null` fall back to this ambient style) mean this is
-          // still enough to fix [message] and the action label, both of
-          // which already set every other field themselves.
+          // Sets this card's own DefaultTextStyle baseline (this card floats
+          // outside any Scaffold/Material, same reasoning as
+          // CruxDialogCard's baseline in dialog.dart). Deliberately
+          // narrower than that one: only `decoration` is forced here, not
+          // color/fontSize/height/fontWeight. [leading] sits inside this
+          // same scope, and its class doc promises it is rendered exactly
+          // as given -- widening this baseline to also set those fields
+          // would override an unstyled caller-supplied [leading] and break
+          // that promise. `TextStyle.merge`'s per-field semantics still let
+          // this fix [message]/the action label, since both already set
+          // every other field themselves.
           child: DefaultTextStyle(
             style: const TextStyle(decoration: TextDecoration.none),
             child: Row(
@@ -390,11 +301,9 @@ class CruxToastCard extends StatelessWidget {
 }
 
 /// A single toast's action button: a hand-rolled, [PressFeedbackController]
-/// -driven text button in [CruxColors.accent], the same "compact,
-/// non-pill pressable" shape [CruxIconButton]/`CruxInputBar`'s submit
-/// button already use rather than embedding a full [CruxButton] -- see
-/// [CruxToastCard]'s (well, this file's) top-of-file architecture note for
-/// the full atom-vs-molecule reasoning.
+/// -driven text button in [CruxColors.accent], the same compact,
+/// non-pill pressable shape [CruxIconButton]/`CruxInputBar`'s submit
+/// button use, rather than embedding a full [CruxButton].
 class _CruxToastActionButton extends StatefulWidget {
   const _CruxToastActionButton({
     required this.label,
@@ -492,11 +401,9 @@ class _ToastEntry {
 
   /// The [CruxThemeData] captured from [showCruxToast]'s caller-side
   /// `context` at show time -- see [CruxToastHost]'s class doc ("Theming")
-  /// for why this entry carries its own theme snapshot instead of the card
-  /// resolving [CruxTheme.of] fresh from wherever [CruxToastHost] itself
-  /// sits. Re-captured (not just set once) on a duplicate re-show (see
-  /// [_CruxToastHostState.show]), so a caller whose local theme changed
-  /// between two shows of the same message is reflected on the next show.
+  /// for why. Re-captured (not just set once) on a duplicate re-show, so a
+  /// caller whose local theme changed between two shows of the same message
+  /// is reflected on the next show.
   CruxThemeData theme;
 
   /// Bumped by exactly 1 every time a duplicate [message] is shown while
@@ -505,18 +412,16 @@ class _ToastEntry {
   int shakeTrigger = 0;
 
   /// Whether this entry is playing its exit animation. Once `true`, this
-  /// entry no longer counts toward [_maxToasts] or duplicate matching (see
-  /// [_CruxToastHostState.show]), and [exitTimer] is already scheduled to
-  /// splice it out of the entry list for good.
+  /// entry no longer counts toward [_maxToasts] or duplicate matching, and
+  /// [exitTimer] is already scheduled to splice it out of the entry list
+  /// for good.
   ///
-  /// Excluding a leaving entry from duplicate matching is deliberate, not an
-  /// oversight: an entry already mid-exit is visually distinct (fading and
-  /// shrinking away), so re-showing the same [message] while it is still
-  /// leaving starts a brand-new entry rather than reaching into the old one
-  /// and reversing its exit mid-flight. The accepted tradeoff is that both
+  /// Excluding a leaving entry from duplicate matching is deliberate: an
+  /// entry already mid-exit is visually distinct, so re-showing the same
+  /// [message] while it is still leaving starts a brand-new entry rather
+  /// than reversing the old one's exit mid-flight. Accepted tradeoff: both
   /// cards can be on screen at once, bearing identical text, for up to
-  /// [_exitAnimationDuration] (about 220ms) until the old one finishes
-  /// leaving.
+  /// [_exitAnimationDuration] (about 220ms).
   bool leaving = false;
 
   /// The pending auto-dismiss timer, scheduled by
@@ -530,17 +435,15 @@ class _ToastEntry {
 }
 
 /// Makes the [_CruxToastHostState] that owns a [CruxToastHost] subtree
-/// reachable from [showCruxToast], without exposing that state (or any
-/// mutable controller type) as public API.
+/// reachable from [showCruxToast], without exposing that state as public
+/// API.
 ///
-/// [updateShouldNotify] always returns `false`: this scope exists purely as
-/// a lookup mechanism for [showCruxToast] (via
+/// [updateShouldNotify] always returns `false`: this scope is only a lookup
+/// mechanism for [showCruxToast] (via
 /// [BuildContext.getInheritedWidgetOfExactType], a non-dependent lookup that
-/// registers no rebuild dependency -- appropriate since [showCruxToast] is
-/// normally called from an event handler, not from a `build` method), never
-/// as something a descendant's `build` should *depend on* and rebuild in
-/// response to; the toast stack's own visible content changes are instead
-/// driven entirely by ordinary `setState` calls inside
+/// registers no rebuild dependency), never something a descendant's `build`
+/// should depend on and rebuild in response to. The toast stack's visible
+/// content changes are driven entirely by ordinary `setState` calls inside
 /// [_CruxToastHostState] itself.
 class _CruxToastScope extends InheritedWidget {
   const _CruxToastScope({required this.state, required super.child});
@@ -565,121 +468,92 @@ class _CruxToastScope extends InheritedWidget {
 /// top of everything [child] contains. [CruxToastHost] renders the toast
 /// stack as an ordinary widget-tree layer -- a [Stack] with [child] as its
 /// base and the toast column painted above it -- rather than by inserting
-/// [OverlayEntry]s into an ambient [Overlay]. This is a deliberate choice,
-/// distinct from how a one-shot, imperatively-pushed-and-later-popped
-/// overlay (for example a dialog) is usually built: a raw [Overlay]'s
+/// [OverlayEntry]s into an ambient [Overlay]. A raw [Overlay]'s
 /// `initialEntries` list is only ever read once, at that [Overlay]'s own
-/// first build (`unknowns/session-handoff-2026-07-26.md`'s Overlay
-/// pitfalls); wrapping [child] in an [OverlayEntry]'s `builder` would freeze
-/// it against whatever [child] this [CruxToastHost] is rebuilt with later
-/// (for example a different screen after navigation), never updating again.
-/// A toast, unlike a dialog, is not an imperative one-off push/pop -- it is
-/// an ordinary, declaratively-rebuilt list of active toasts -- so a plain
-/// [Stack] (where [child] stays a completely normal, always-correctly
-/// -updated widget-tree child) is both simpler and safer here. This also
-/// means [CruxToastHost] needs no ambient [Overlay]/`Navigator` at all
-/// (satisfying "must work under widgetbook's bare `WidgetsApp`, with no
-/// Material `ScaffoldMessenger`/`SnackBar` involved"), while still nesting
-/// safely *inside* one if a caller's app happens to have one (a bare
-/// [Overlay] with no [Navigator] is enough to verify this from a test).
+/// first build, so wrapping [child] in an [OverlayEntry]'s `builder` would
+/// freeze it against whatever [child] this host is rebuilt with later (for
+/// example a different screen after navigation). A toast, unlike a dialog,
+/// is a declaratively-rebuilt list of active toasts rather than an
+/// imperative one-off push/pop, so a plain [Stack] is both simpler and safer
+/// here. This also means [CruxToastHost] needs no ambient
+/// [Overlay]/`Navigator` at all, while still nesting safely *inside* one if
+/// a caller's app happens to have one.
 ///
 /// **Stacking and duplicates.** Toasts stack from the bottom, newest at the
-/// bottom, oldest above it, at most [_maxToasts] at once -- showing a 4th
-/// distinct message immediately starts dismissing the oldest currently
-/// -active one. A card that is mid-dismiss (fading/shrinking out) is still
-/// mounted for [_exitAnimationDuration], but is wrapped in [IgnorePointer]
-/// for that whole window (see [_ToastItemState.build]) so it can no longer
-/// be tapped -- without this, a caller could still reach a leaving card's
-/// [CruxToastAction] button and re-invoke a non-idempotent [CruxToastAction
-/// .onPressed] a second time on a toast already considered gone. Combined
-/// active-and-leaving cards are additionally capped at [_maxRenderedTotal]
-/// (see its own doc): a burst of distinct messages arriving faster than
-/// [_exitAnimationDuration] can otherwise pile up more leaving cards than fit
-/// on screen, so once the cap is hit the oldest leaving card is spliced out
-/// immediately, skipping its exit animation. A toast is considered a
-/// duplicate of an already-showing one
-/// purely by [CruxToastCard.message] equality (not [CruxToastCard.
-/// leading] or [CruxToastCard.action] -- self-decided: two toasts sharing
-/// exact wording are the same notification in every case this package
-/// anticipates, and comparing arbitrary caller-supplied [Widget]s for
-/// meaningful equality would be unreliable). Showing a duplicate never stacks
-/// a second card: the existing one plays [CruxMotion.shake] instead. If
-/// that existing toast is buried (not the frontmost/newest one), it also
-/// moves back to the front and its auto-dismiss timer restarts, giving the
-/// caller a fresh window to read it again; if it is already frontmost, only
-/// the shake plays and its timer is left alone (it was already about to be
-/// read).
+/// bottom, oldest above it, at most [_maxToasts] (three) at once -- showing
+/// a 4th distinct message immediately starts dismissing the oldest
+/// currently-active one. A card that is mid-dismiss (fading/shrinking out)
+/// is still mounted for [_exitAnimationDuration] (about 220ms), but is
+/// wrapped in [IgnorePointer] for that whole window so it can no longer be
+/// tapped -- without this, a caller could still reach a leaving card's
+/// [CruxToastAction] button and re-invoke a non-idempotent
+/// [CruxToastAction.onPressed] a second time on a toast already
+/// considered gone. Combined active-and-leaving cards are additionally
+/// capped at [_maxRenderedTotal]: a burst of distinct messages arriving
+/// faster than [_exitAnimationDuration] can otherwise pile up more leaving
+/// cards than fit on screen, so once the cap is hit the oldest leaving card
+/// is spliced out immediately, skipping its exit animation.
+///
+/// A toast is considered a duplicate of an already-showing one purely by
+/// [CruxToastCard.message] equality, not [CruxToastCard.leading] or
+/// [CruxToastCard.action] -- comparing arbitrary caller-supplied [Widget]s
+/// for meaningful equality would be unreliable. Showing a duplicate never
+/// stacks a second card: the existing one plays [CruxMotion.shake]
+/// instead. If that existing toast is buried (not the frontmost/newest
+/// one), it also moves back to the front and its auto-dismiss timer
+/// restarts, giving the caller a fresh window to read it again; if it is
+/// already frontmost, only the shake plays and its timer is left alone.
 ///
 /// **Auto-dismiss.** A toast with no [CruxToastAction] auto-dismisses
 /// after [_defaultDismissDuration] (about 3 seconds); one with an action
-/// gets the longer [_actionDismissDuration] instead, so there is time to
-/// notice and use the action before it disappears. Exception: while
-/// `MediaQuery.accessibleNavigationOf` reports accessible navigation is on
-/// (TalkBack/VoiceOver-style screen readers), an actioned toast is not
-/// auto-dismissed at all -- it is held open until manually dismissed (the
-/// action, a swipe, or [CruxToastCard]'s [Semantics.onDismiss] action). A
-/// toast with no action keeps its normal [_defaultDismissDuration] regardless
-/// of accessible navigation. See [_CruxToastHostState._scheduleDismiss]'s
-/// own doc for the full reasoning, including how this compares against
-/// Flutter's own `SnackBar` precedent.
+/// gets the longer [_actionDismissDuration] (about 6 seconds) instead, so
+/// there is time to notice and use the action before it disappears.
+/// Exception: while `MediaQuery.maybeAccessibleNavigationOf` reports
+/// accessible navigation is on (TalkBack/VoiceOver-style screen readers),
+/// an actioned toast is not auto-dismissed at all -- it is held open until
+/// manually dismissed (the action, a swipe, or [CruxToastCard]'s
+/// [Semantics.onDismiss] action). A toast with no action keeps its normal
+/// duration regardless of accessible navigation.
 ///
 /// **Swipe to dismiss.** Dragging a toast horizontally past
 /// [_swipeDismissWidthFraction] of its own width, or releasing it past
 /// [_swipeDismissVelocity], dismisses it immediately. While a drag is in
-/// progress, the auto-dismiss timer is paused (not just left running
-/// underneath the gesture) -- a toast held under a resting finger must not
-/// start disappearing out from under it. Releasing without dismissing
-/// restarts the timer from a fresh, full grace period, the same
-/// "give the reader a full window" reset a buried duplicate's re-show
-/// already uses, rather than resuming whatever fraction of the original
-/// period happened to be left.
+/// progress, the auto-dismiss timer is paused -- a toast held under a
+/// resting finger must not start disappearing out from under it. Releasing
+/// without dismissing restarts the timer from a fresh, full grace period,
+/// rather than resuming whatever fraction of the original period happened
+/// to be left.
 ///
 /// **Read-aloud design.** Each [CruxToastCard] sets [Semantics.liveRegion]
-/// (see its own class doc), Crux's from-scratch equivalent of an
-/// `aria-live="polite"` region (the mock's own `role="status"`/
-/// `aria-live="polite"` markup, translated to Flutter's semantics tree): a
-/// screen reader announces a toast's content as soon as it is mounted, with
-/// no dependency on Material's `SnackBar`/`ScaffoldMessenger` (H3: this
-/// package's actual constraint is never taking its *appearance* from an
-/// ambient `ThemeData`, not "avoid every Material-adjacent concept" -- but
-/// [SnackBar] itself is a Material widget, so it is not used here regardless).
-/// A card also wires [CruxToastCard.onDismiss] to [Semantics.onDismiss],
-/// the same way Flutter's own `SnackBar` wraps its `Dismissible` in
-/// `Semantics(..., onDismiss: ...)`: a screen reader typically claims a plain
-/// horizontal swipe for its own navigation gesture, so without this, a
-/// screen-reader user would have no way to reproduce this card's
-/// swipe-to-dismiss drag at all.
+/// (Crux's equivalent of an `aria-live="polite"` region): a screen reader
+/// announces a toast's content as soon as it is mounted, with no dependency
+/// on Material's `SnackBar`/`ScaffoldMessenger`. A card also wires
+/// [CruxToastCard.onDismiss] to [Semantics.onDismiss]: a screen reader
+/// typically claims a plain horizontal swipe for its own navigation
+/// gesture, so without this, a screen-reader user would have no way to
+/// reproduce this card's swipe-to-dismiss drag at all.
 ///
 /// **Theming.** [showCruxToast] resolves [CruxTheme.of] against its
-/// *caller's* `context` -- not [CruxToastHost]'s own -- at the moment it is
-/// called, and that snapshot is what the resulting card renders with for as
-/// long as it is shown (see [_ToastEntry.theme]'s own doc). This matters
-/// because the toast stack itself is built as a [Stack] sibling of [child]
-/// (per this class's own "Display mechanism" section above), not a
-/// descendant of it -- a caller nested inside a screen-local [CruxTheme]
-/// somewhere under [child] would otherwise have its toast card resolve
-/// whatever [CruxTheme] (or the [CruxThemeData.light] fallback) happens
-/// to be in scope above [CruxToastHost] instead, silently losing that
-/// local theme. The accepted trade-off, recorded here for whoever revisits
-/// it later (the same trade-off [CruxDialog] independently makes for the
-/// same "floats outside the calling subtree" reason): a toast does not
-/// follow a *later* theme switch made while it is already on screen -- if a
-/// caller flips from light to dark after a toast is already showing, that
-/// toast keeps rendering with whichever theme was active the moment it was
-/// shown, until it is dismissed and a new one takes its place.
+/// *caller's* `context` -- not [CruxToastHost]'s own -- at the moment it
+/// is called, and that snapshot is what the resulting card renders with for
+/// as long as it is shown. This matters because the toast stack itself is
+/// built as a [Stack] sibling of [child], not a descendant of it -- a
+/// caller nested inside a screen-local [CruxTheme] somewhere under
+/// [child] would otherwise have its toast card resolve whatever
+/// [CruxTheme] (or the [CruxThemeData.light] fallback) happens to be in
+/// scope above [CruxToastHost] instead, silently losing that local theme.
+/// Trade-off: a toast does not follow a *later* theme switch made while it
+/// is already on screen -- if a caller flips from light to dark after a
+/// toast is already showing, that toast keeps rendering with whichever
+/// theme was active the moment it was shown, until it is dismissed and a
+/// new one takes its place.
 ///
-/// **Motion.** Every transform this widget (and the [_ToastItem]s it builds)
-/// applies goes through [CruxMotion.animatedValue]/[CruxMotion.shake],
-/// never a bare `AnimationController` or hand-rolled keyframe restart --
-/// including a toast's live swipe-drag offset, which is fed into
-/// [CruxMotion.animatedValue] on every drag update rather than tracked
-/// with a raw, unsprung [Transform] (`CruxMotion.animatedValue`'s public
-/// API -- the only sanctioned channel a component file may drive a `motor`
-/// spring through -- has no "hold this value with no animation" escape
-/// hatch to track a fast-moving finger exactly, since `motion.dart` is a
-/// read-only token file for this change; the shared [_spring]'s snappy,
-/// short duration keeps the resulting motion tight enough to still read as
-/// attached to the finger).
+/// **Motion.** Every transform this widget (and the [_ToastItem]s it
+/// builds) applies goes through [CruxMotion.animatedValue]/
+/// [CruxMotion.shake], never a bare `AnimationController` or hand-rolled
+/// keyframe restart -- including a toast's live swipe-drag offset, which is
+/// fed into [CruxMotion.animatedValue] on every drag update rather than
+/// tracked with a raw, unsprung [Transform].
 class CruxToastHost extends StatefulWidget {
   /// Creates a Crux toast host.
   const CruxToastHost({super.key, required this.child});
@@ -701,9 +575,9 @@ class _CruxToastHostState extends State<CruxToastHost> {
   /// duplicate-handling design.
   ///
   /// [context] is the caller's own [showCruxToast] `context`, captured
-  /// here (not read later from [CruxToastHost]'s own position in the tree)
-  /// so the resulting card renders with whatever [CruxTheme] was actually
-  /// active at the call site -- see this class's "Theming" doc section.
+  /// here rather than read later from [CruxToastHost]'s own position in
+  /// the tree, so the resulting card renders with whatever [CruxTheme]
+  /// was active at the call site -- see this class's "Theming" doc section.
   void show({
     required BuildContext context,
     required String message,
@@ -748,37 +622,20 @@ class _CruxToastHostState extends State<CruxToastHost> {
 
   /// Schedules (or reschedules) [entry]'s auto-dismiss timer, unless
   /// [entry] has an [CruxToastAction] *and* accessible navigation
-  /// (`MediaQuery.accessibleNavigationOf`, TalkBack/VoiceOver-style screen
-  /// readers) is on, in which case no timer is scheduled at all -- the toast
-  /// is held open until manually dismissed.
+  /// (`MediaQuery.maybeAccessibleNavigationOf`, TalkBack/VoiceOver-style
+  /// screen readers) is on, in which case no timer is scheduled at all --
+  /// the toast is held open until manually dismissed.
   ///
-  /// This mirrors Flutter's own `SnackBar`, confirmed against
-  /// `packages/flutter/lib/src/material/snack_bar.dart` (`SnackBar.persist`,
-  /// defaulting to `action != null`) and `.../material/scaffold.dart`
-  /// (`ScaffoldMessengerState`'s auto-hide timer callback: `if (snackBar.
-  /// persist) { return; }`, i.e. it never schedules a hide once a
-  /// `SnackBar` has an action) plus `packages/flutter/test/material/
-  /// snack_bar_test.dart`'s `'accessible navigation behavior with action'`
-  /// and `'SnackBar handles updates to accessibleNavigation'` cases, which
-  /// together show the *current* stable-channel behavior is: an actioned
-  /// `SnackBar` never auto-hides by default, independent of whether
-  /// accessible navigation is actually on. This package makes the narrower,
-  /// self-decided choice of only holding an actioned toast open while
-  /// accessible navigation is actually on (rather than unconditionally
-  /// whenever an action exists): [_actionDismissDuration]'s existing ~6s
-  /// grace period is already deliberately long for a sighted user with a
-  /// pointer (see its own doc), and holding it open forever for every
-  /// actioned toast, even outside assistive contexts, would leave a caller
-  /// with no way to get the default auto-dismiss behavior back short of
-  /// dropping the action entirely.
+  /// This only holds an actioned toast open while accessible navigation is
+  /// actually on, rather than unconditionally whenever an action exists:
+  /// [_actionDismissDuration]'s ~6s grace period is already generous for a
+  /// sighted pointer user, and holding it open forever outside assistive
+  /// contexts would leave a caller with no way to get the default
+  /// auto-dismiss behavior back short of dropping the action entirely.
   ///
   /// A toast with no action is scheduled the same way regardless of
-  /// accessible navigation, again matching `SnackBar`: `persist` there
-  /// defaults to `false` whenever there is no action, so a plain `SnackBar`
-  /// keeps timing out under accessible navigation too -- there is no action
-  /// to still be reaching for, so holding it open indefinitely would only
-  /// leave a stale, unreachable-by-swipe (see [CruxToastCard.onDismiss])
-  /// notification sitting on screen.
+  /// accessible navigation: with no action to reach for, holding it open
+  /// indefinitely would only leave a stale notification on screen.
   void _scheduleDismiss(_ToastEntry entry) {
     entry.dismissTimer?.cancel();
     entry.dismissTimer = null;
@@ -803,17 +660,15 @@ class _CruxToastHostState extends State<CruxToastHost> {
     }
   }
 
-  /// Enforces [_maxRenderedTotal] (see its own doc): while [_entries] holds
-  /// more entries than that -- active and leaving combined -- immediately
-  /// (no exit animation) splices out the oldest still-[_ToastEntry.leaving]
-  /// entry, repeating until back at the cap.
+  /// Enforces [_maxRenderedTotal]: while [_entries] holds more entries than
+  /// that -- active and leaving combined -- immediately (no exit animation)
+  /// splices out the oldest still-[_ToastEntry.leaving] entry, repeating
+  /// until back at the cap.
   ///
-  /// [_entries] is newest-first (see [_buildStackChildren]'s own comment),
-  /// so, exactly like [_enforceMax]'s `active.last`, the oldest leaving entry
-  /// is the last one found scanning from the end. Only ever removes a
-  /// *leaving* entry, never an active one -- [_maxToasts] already caps
-  /// active entries at 3, comfortably under [_maxRenderedTotal], so an
-  /// active entry is never the thing pushing the total over the cap.
+  /// [_entries] is newest-first, so the oldest leaving entry is the last
+  /// one found scanning from the end. Only ever removes a *leaving* entry,
+  /// never an active one -- [_maxToasts] already caps active entries at 3,
+  /// comfortably under [_maxRenderedTotal].
   void _enforceRenderCap() {
     while (_entries.length > _maxRenderedTotal) {
       _ToastEntry? oldestLeaving;
@@ -890,8 +745,7 @@ class _CruxToastHostState extends State<CruxToastHost> {
 
   /// Builds the visible toast column: oldest first (top), newest last
   /// (bottom) -- [_entries] itself is stored newest-first, so this reverses
-  /// it, matching the mock's "stack from the bottom, newest at the bottom"
-  /// layout.
+  /// it.
   List<Widget> _buildStackChildren() {
     final List<_ToastEntry> visualOrder = _entries.reversed.toList();
     final List<Widget> children = <Widget>[];
@@ -931,17 +785,14 @@ class _ToastItem extends StatefulWidget {
   final VoidCallback onDismiss;
 
   /// Called as soon as a horizontal drag on this card is recognized --
-  /// pauses [_ToastEntry.dismissTimer] for the duration of the drag (see
-  /// this file's "dragging pauses the auto-dismiss timer" behavior, guarding
-  /// against a toast starting to auto-dismiss while a finger is still
-  /// resting on it, mid-swipe-that-never-completes).
+  /// pauses [_ToastEntry.dismissTimer] for the duration of the drag, so a
+  /// toast doesn't start auto-dismissing while a finger is still resting on
+  /// it mid-swipe.
   final VoidCallback onDragStart;
 
   /// Called when a horizontal drag ends *without* triggering [onDismiss] --
-  /// reschedules the auto-dismiss timer from a fresh, full grace period
-  /// (never a leftover remaining duration), matching the same "give the
-  /// reader a full fresh window" reset [CruxToastHost]'s duplicate-show
-  /// handling already uses.
+  /// reschedules the auto-dismiss timer from a fresh, full grace period,
+  /// never a leftover remaining duration.
   final VoidCallback onDragEnd;
 
   @override
@@ -950,16 +801,12 @@ class _ToastItem extends StatefulWidget {
 
 class _ToastItemState extends State<_ToastItem> {
   // Starts at 0 (hidden/collapsed) and flips to 1 one frame after the first
-  // build -- see the addPostFrameCallback below for why a *later* frame's
-  // value change (rather than this widget's very first build already
-  // targeting 1.0) is what makes CruxMotion.animatedValue actually play
-  // an entrance animation instead of snapping straight to rest.
+  // build, so CruxMotion.animatedValue actually plays an entrance
+  // animation instead of mounting already at rest.
   double _entrancePresence = 0;
 
-  // The live, raw (unsprung target *value fed into* the spring, not a
-  // sprung render value itself) horizontal drag offset -- see
-  // CruxToastHost's "Motion" doc section for why this is still routed
-  // through CruxMotion.animatedValue rather than a bare Transform.
+  // The live, raw horizontal drag offset -- the target value fed into the
+  // spring, not a sprung render value itself.
   double _dragDx = 0;
 
   @override
@@ -975,10 +822,9 @@ class _ToastItemState extends State<_ToastItem> {
   /// The entrance/exit spring's current target: 0 (hidden) once
   /// [_ToastEntry.leaving] is set, regardless of how far
   /// [_entrancePresence]'s own entrance flight had gotten -- changing an
-  /// already-mounted [CruxMotion.animatedValue]'s `value` mid-flight
-  /// continues smoothly from wherever it currently is (see motion.dart's
-  /// own doc), so a toast dismissed mid-entrance reverses cleanly rather
-  /// than jumping.
+  /// already-mounted spring's target mid-flight continues smoothly from
+  /// wherever it currently is, so a toast dismissed mid-entrance reverses
+  /// cleanly rather than jumping.
   double get _presence => widget.entry.leaving ? 0 : _entrancePresence;
 
   void _handleAction() {
@@ -1041,8 +887,7 @@ class _ToastItemState extends State<_ToastItem> {
     );
 
     // Captured at showCruxToast's call site, not resolved fresh here --
-    // see CruxToastHost's "Theming" class-doc section and _ToastEntry.
-    // theme's own doc for why.
+    // see CruxToastHost's "Theming" doc section.
     card = CruxTheme(data: widget.entry.theme, child: card);
 
     card = CruxMotion.shake(
@@ -1073,19 +918,16 @@ class _ToastItemState extends State<_ToastItem> {
       child: card,
     );
 
-    // A leaving card is on its way off screen (fading/shrinking via the
-    // _presence spring above) -- it must not keep accepting taps in the
-    // meantime, or a non-idempotent CruxToastAction.onPressed (or the
-    // Semantics dismiss action) could fire a second time on a card the
-    // caller already considers dismissed (codex review finding).
+    // A leaving card must not keep accepting taps, or a non-idempotent
+    // CruxToastAction.onPressed (or the Semantics dismiss action) could
+    // fire a second time on a card the caller already considers dismissed.
     // Positioned above the swipe GestureDetector below, not inside it: an
-    // opaque GestureDetector's own hit test still adds itself even when
-    // every descendant is ignored (HitTestBehavior.opaque's hitTestSelf
-    // always returns true), so the outer swipe recognizer stays wired up as
-    // normal -- its own handlers already no-op while leaving (see
-    // _handleDragStart/_handleDragUpdate/_handleDragEnd above) -- while
-    // IgnorePointer(ignoring: true) still fully blocks the action button (or
-    // any future interactive content inside CruxToastCard) underneath it.
+    // opaque GestureDetector's hit test still adds itself even when every
+    // descendant is ignored (`hitTestSelf` always returns true for
+    // HitTestBehavior.opaque), so the outer swipe recognizer stays wired up
+    // (its own handlers already no-op while leaving) while
+    // IgnorePointer(ignoring: true) fully blocks the action button
+    // underneath it.
     card = IgnorePointer(ignoring: widget.entry.leaving, child: card);
 
     return GestureDetector(
@@ -1108,8 +950,8 @@ class _ToastItemState extends State<_ToastItem> {
 ///
 /// [context] must have a [CruxToastHost] ancestor (an assertion fails in
 /// debug mode otherwise -- wrap your app, or the relevant screen, in one).
-/// [message] and [leading] are caller-supplied (H1); pass [action] for a
-/// single action button, or leave it `null` for a plain toast.
+/// [message] and [leading] are caller-supplied; pass [action] for a single
+/// action button, or leave it `null` for a plain toast.
 ///
 /// [context]'s own [CruxTheme] (or [CruxThemeData.light] if none is in
 /// scope) is captured right here, at call time, and used to render the

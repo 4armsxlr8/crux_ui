@@ -2,44 +2,36 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 
-/// The minimum time [PressFeedbackController.pressed] is guaranteed to stay
-/// `true` once a press starts, even if the underlying gesture's down and up
-/// arrive back-to-back with no frame rendered in between.
+/// The minimum time a press's visual "pressed" state is held, even if the
+/// underlying gesture's down and up arrive back-to-back with no frame
+/// rendered in between.
 ///
-/// Inside a scrollable list, Flutter's `TapGestureRecognizer` (whose
-/// `deadline` is `kPressTimeout`, 100ms) frequently resolves the gesture
-/// arena and delivers `onTapDown` immediately followed by `onTapUp` -- a
-/// naive `_pressed = true` then `_pressed = false` collapses to a no-op
-/// before any frame ever paints the pressed state, so a fast tap (or every
-/// tap in a rapid sequence) shows no press feedback at all. 80ms sits in the
-/// middle of the "roughly 70-90ms" range agreed for this fix: long enough
-/// that the spring driving [CruxMotion.scale] has moved measurably away
-/// from 1.0 by the time a test (or a person) samples it, short enough that
-/// a deliberately slow, already-working press (see each atom's own "press
-/// animation" tests, which pump 80ms *before* releasing) isn't perceptibly
-/// delayed on release.
+/// Inside a scrollable list, Flutter's `TapGestureRecognizer` frequently
+/// resolves the gesture arena and delivers `onTapDown` immediately followed
+/// by `onTapUp` -- a naive `_pressed = true` then `_pressed = false`
+/// collapses to a no-op before any frame ever paints the pressed state, so
+/// a fast tap shows no press feedback at all. 80ms is long enough that the
+/// press spring has moved measurably away from rest by the time it's
+/// sampled, short enough not to perceptibly delay release.
 const Duration kMinimumPressFeedbackDuration = Duration(milliseconds: 80);
 
 /// A tiny state machine that guarantees a pressable Crux UI atom's visual
 /// "pressed" state stays on screen for at least [minimumHoldDuration] once
 /// it starts, even if the underlying gesture releases (or cancels)
-/// immediately after -- the fix for the fast-tap-in-a-scroll-view bug
-/// described in [kMinimumPressFeedbackDuration]'s doc comment.
-///
-/// Used by [CruxButton], [CruxChip], [CruxCard], [CruxIconButton],
-/// and [CruxCheckbox]. Deliberately **not** used by `CruxSwitch`: its
-/// thumb already has enough visual response to a fast tap from its
-/// liquid-travel flight (see implementation-notes.md's "Minimum press
-/// feedback" section for why that atom was left out).
+/// immediately after -- see [kMinimumPressFeedbackDuration]'s doc for the
+/// bug this fixes.
 ///
 /// A [State] wires [down]/[up]/[cancel] to its `GestureDetector`'s
 /// `onTapDown`/`onTapUp`/`onTapCancel`, passing an [onChanged] callback that
 /// mirrors [pressed] into its own pressed field via `setState`, and calls
 /// [dispose] from its own `dispose()` so a guarantee timer scheduled by
-/// [down] can never fire (and call [onChanged], which normally calls
-/// `setState`) after the widget has been torn down. This class never
-/// touches `BuildContext`, `Widget`, or `setState` itself: every atom stays
-/// fully in charge of how (and whether) it triggers a rebuild.
+/// [down] can never fire after the widget has been torn down. This class
+/// never touches `BuildContext`, `Widget`, or `setState` itself.
+///
+/// Deliberately not wired into `CruxSwitch`: its thumb's liquid-travel
+/// flight already makes a fast tap visibly respond, so the switch keeps
+/// its own inline pressed state
+/// (see unknowns/atoms-batch-1/implementation-notes.md).
 class PressFeedbackController {
   /// Creates a press feedback controller. [onChanged] is called
   /// synchronously, from inside [down]/[up]/[cancel] or from a [Timer]

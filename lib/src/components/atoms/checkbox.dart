@@ -6,8 +6,8 @@ import '../../tokens/motion.dart';
 import '../../tokens/theme.dart';
 
 /// The minimum tap target size for any [CruxCheckbox] (matching
-/// [CruxButton]'s and [CruxSwitch]'s K B9 rule): 44 logical pixels, even
-/// though the visible box is smaller than that.
+/// [CruxButton]'s and [CruxSwitch]'s minimum tap target rule): 44
+/// logical pixels, even though the visible box is smaller than that.
 const double _minTapTarget = 44;
 
 /// The visible box's side length at rest, before any pulse.
@@ -28,15 +28,11 @@ const double _checkStrokeWidth = 2.2;
 /// How far the box's side length grows, in logical pixels, at the peak of
 /// the checkmark spring's overshoot -- see [_CruxCheckboxState.build]'s
 /// `overshoot` local for how this is driven off the same spring that scales
-/// the checkmark in, rather than a second independent animation. With
-/// [CruxMotion.animatedValue]'s `playful` spring (checked via
-/// `checkbox_test.dart`'s 1ms-sampled "checkmark overshoot" test, which
-/// peaks at roughly a 15% overshoot), the box grows by a little over a
-/// logical pixel at its peak -- small enough to read as a subtle pulse
-/// rather than a bounce of its own, but no longer the sub-pixel, invisible
-/// wobble the package's earlier, near-critically-damped shared spring
-/// produced (see [CruxMotion.animatedValue]'s `playful` parameter doc for
-/// why that spring wasn't enough on its own).
+/// the checkmark in, rather than a second independent animation. Combined
+/// with [CruxMotion.animatedValue]'s `playful` spring (which peaks at
+/// roughly a 15% overshoot), the box grows by a little over a logical pixel
+/// at its peak -- small enough to read as a subtle pulse rather than a
+/// bounce of its own.
 const double _boxPulseAmplitude = 8;
 
 /// A tappable box that shows a spring-animated checkmark: Crux UI's
@@ -68,20 +64,16 @@ const double _boxPulseAmplitude = 8;
 /// `checked` parameter) rather than the *toggled* trait a switch uses --
 /// screen readers announce the two differently ("checked"/"unchecked" vs.
 /// "on"/"off"), and `checked`/`toggled` are mutually exclusive on the same
-/// [Semantics] node (confirmed against the Flutter SDK's
-/// `semantics.dart`), so this widget must pick exactly one.
+/// [Semantics] node, so this widget must pick exactly one.
 ///
 /// Tapping anywhere in the checkbox's 44 logical pixel hit area toggles it.
 /// The checkmark itself is drawn by this widget (a [CustomPaint], not an
-/// [Icon]), the same "component-specific visual state" role
-/// [CruxSwitch]'s thumb plays: when [checked] turns true, it springs in
-/// from a 0 scale, overshooting to roughly 1.15 before settling back to 1.0
-/// (via [CruxMotion.animatedValue]'s `playful` spring -- a deliberately
-/// bouncier spring than this package's other press/toggle feedback uses,
-/// reserved for this one moment; see [CruxMotion.animatedValue]'s
-/// `playful` parameter doc for why); the box itself grows by a little over
-/// a logical pixel at the same overshoot peak and shrinks back with it,
-/// reading as a small pulse rather than a second, separate animation.
+/// [Icon]): when [checked] turns true, it springs in from a 0 scale,
+/// overshooting to roughly 1.15 before settling back to 1.0 (via
+/// [CruxMotion.animatedValue]'s `playful` spring, a deliberately bouncier
+/// spring reserved for this one moment); the box itself grows by a little
+/// over a logical pixel at the same overshoot peak and shrinks back with
+/// it, reading as a small pulse rather than a second, separate animation.
 ///
 /// Like [CruxButton] and [CruxSwitch], this widget is built from plain
 /// [GestureDetector] and painting widgets rather than Material's
@@ -116,17 +108,11 @@ class _CruxCheckboxState extends State<CruxCheckbox> {
 
   bool get _enabled => widget.onChanged != null;
 
-  // Mirrors CruxSwitch's onTapDown/onTapUp/onTapCancel wiring (see
-  // switch.dart's longer comment on the identical pattern): only
-  // _handleTapDown checks `_enabled`, since it is the only handler that
-  // *starts* a press. _handleTapUp and _handleTapCancel always resolve any
-  // in-flight press unconditionally, so a press that started while enabled
-  // still ends -- and un-presses -- cleanly even if the checkbox becomes
-  // disabled mid-press. Keeping all three wired regardless of `enabled`
-  // (only `onTap` itself goes null below) also avoids the GestureDetector
-  // hazard button.dart's identical comment documents: gating these three
-  // callbacks themselves by `enabled` would tear an in-flight
-  // TapGestureRecognizer out of the gesture arena mid-press.
+  // Only _handleTapDown checks `_enabled`, since it is the only handler
+  // that *starts* a press. _handleTapUp and _handleTapCancel always resolve
+  // any in-flight press unconditionally -- gating them by `enabled` instead
+  // would tear the in-flight TapGestureRecognizer out of the gesture arena
+  // if the checkbox becomes disabled mid-press.
   void _handleTapDown(TapDownDetails details) {
     if (_enabled) {
       _pressFeedback.down();
@@ -201,18 +187,10 @@ class _CruxCheckboxState extends State<CruxCheckbox> {
                       final double boxSize =
                           _boxSize + overshoot * _boxPulseAmplitude;
                       // Springs can dip below their start value before
-                      // settling (the same bounce that produces the
-                      // overshoot above -- more pronounced here than for
-                      // this package's other springs, since this value is
-                      // driven by the deliberately bouncier `playful`
-                      // spring; see this animatedValue call's `playful:
-                      // true` and CruxMotion.animatedValue's doc for why),
-                      // which would otherwise flip Transform.scale's sign
-                      // and mirror-paint the checkmark for a frame while
-                      // unchecking; clamped to a non-negative scale to
-                      // guard against that (checked by
-                      // checkbox_test.dart's "never renders a negative
-                      // checkmark scale while unchecking" regression test).
+                      // settling, which would otherwise flip
+                      // Transform.scale's sign and mirror-paint the
+                      // checkmark for a frame while unchecking; clamped to
+                      // a non-negative scale to guard against that.
                       final double checkScale = checkFraction.clamp(
                         0.0,
                         double.infinity,
@@ -262,26 +240,20 @@ class _CruxCheckboxState extends State<CruxCheckbox> {
 /// Resolves the box's fill color: `null` (no fill, just the outline
 /// [_boxBorderWidth]/[CruxColors.muted] drawn in [_CruxCheckboxState.
 /// build]) while unchecked, [CruxColors.accent] while checked and
-/// enabled, and [CruxColors.muted] while checked and disabled -- the
-/// token whose own dartdoc names it for exactly this ("muted,
-/// least-emphasis content such as ... disabled affordances"), so a
+/// enabled, and [CruxColors.muted] while checked and disabled, so a
 /// disabled-and-checked checkbox still visibly differs from a
 /// disabled-and-unchecked one instead of collapsing both into the same
-/// look (mirrors [CruxSwitch]'s `_resolveTrackColor` handling its
-/// on+disabled case the same way).
+/// look.
 ///
 /// The unchecked outline is [CruxColors.muted] rather than
 /// [CruxColors.accentLine] -- despite [CruxColors.accentLine] being the
 /// token this package otherwise reserves for a state-identifying,
 /// 3:1-contrast outline -- because [CruxColors.accentLine] measures only
-/// ~2.90:1 against [CruxColors.controlFill] in the light palette (below
-/// WCAG 1.4.11's 3:1 non-text contrast floor; see
-/// `plans/atoms-batch-2/implementation-notes.md`'s Deviations section for
-/// the full measurement). [CruxColors.muted] is the nearest token that
-/// clears 3:1 against both [CruxColors.background] and
-/// [CruxColors.controlFill] in both palettes. It stays the outline color
-/// regardless of [enabled] -- the same choice [CruxSwitch]'s off-track
-/// makes for [CruxColors.separator] -- because it is already a quiet,
+/// ~2.90:1 against [CruxColors.controlFill] in the light palette, below
+/// WCAG 1.4.11's 3:1 non-text contrast floor. [CruxColors.muted] is the
+/// nearest token that clears 3:1 against both [CruxColors.background]
+/// and [CruxColors.controlFill] in both palettes. It stays the outline
+/// color regardless of [enabled] because it is already a quiet,
 /// low-emphasis color, so disabling it needs no further desaturation.
 Color? _resolveFillColor({
   required CruxColors colors,

@@ -5,23 +5,20 @@ import '../../tokens/motion.dart';
 import '../../tokens/theme.dart';
 
 /// The minimum tap target size for any [CruxSwitch] (matching
-/// [CruxButton]'s K B9 rule): 44 logical pixels, even though the visible
-/// track is shorter than that.
+/// [CruxButton]'s minimum tap target rule): 44 logical pixels, even though
+/// the visible track is shorter than that.
 const double _minTapTarget = 44;
 
-/// The visible track's width and height, and the thumb's diameter at rest,
-/// per spec.md's "CruxSwitch" section.
+/// The visible track's width and height, and the thumb's diameter at rest.
 const double _trackWidth = 52;
 const double _trackHeight = 32;
 const double _thumbSize = 28;
 
-/// The thumb's width while pressed, per the iOS-style "thumb stretch"
-/// interaction agreed 2026-07-25 (see implementation-notes.md's "Switch
-/// thumb stretch" section): the thumb widens toward the track's center
-/// while held down and springs back to [_thumbSize] on release. The 52-wide
-/// track's inner space (after [_thumbInset] on each side) is 48 logical
-/// pixels, comfortably wider than this, so the stretched thumb never
-/// overflows it.
+/// The thumb's width while held down (an iOS-style "thumb stretch"): it
+/// widens toward the track's center while pressed and springs back to
+/// [_thumbSize] on release. The 52-wide track's inner space (after
+/// [_thumbInset] on each side) is 48 logical pixels, comfortably wider than
+/// this, so the stretched thumb never overflows it.
 const double _thumbStretchedSize = 34;
 
 /// The gap between the thumb and the track's top/bottom/side edges:
@@ -60,20 +57,19 @@ const double _thumbMinHeight = _thumbSize * 0.6;
 ///
 /// Tapping anywhere in the switch's 44 logical pixel hit area toggles it.
 /// Rather than sliding as a rigid circle, the thumb travels with a
-/// "liquid" feel (agreed 2026-07-25, see implementation-notes.md's "Switch
-/// liquid travel" section): its leading edge (the edge nearer the
-/// destination side) springs ahead quickly via [CruxMotion] while its
-/// trailing edge (the edge nearer the side it's leaving) follows on a
-/// slower [CruxMotion] spring, so the thumb stretches thin and reaches
-/// across the track mid-flight before relaxing back into a 28-diameter
-/// circle once both edges arrive. Separately, while held down, the thumb
-/// also stretches wider (iOS-style): it grows from whichever edge it
-/// currently occupies toward the track's center, then springs back to its
-/// resting size on release -- whether or not that release ends up toggling
-/// [value]. Both stretches compose without a visual seam even if they
-/// overlap (e.g. pressing again before a previous toggle's flight has
-/// settled), since both are ultimately expressed as offsets on the same
-/// pair of continuously-tracked edge positions rather than as one committed
+/// "liquid" feel: its leading edge (the edge nearer the destination side)
+/// springs ahead quickly via [CruxMotion] while its trailing edge (the
+/// edge nearer the side it's leaving) follows on a slower [CruxMotion]
+/// spring, so the thumb stretches thin and reaches across the track
+/// mid-flight before relaxing back into a 28-diameter circle once both
+/// edges arrive. Separately, while held down, the thumb also stretches
+/// wider (iOS-style): it grows from whichever edge it currently occupies
+/// toward the track's center, then springs back to its resting size on
+/// release -- whether or not that release ends up toggling [value]. Both
+/// stretches compose without a visual seam even if they overlap (e.g.
+/// pressing again before a previous toggle's flight has settled), since
+/// both are ultimately expressed as offsets on the same pair of
+/// continuously-tracked edge positions rather than as one committed
 /// "resting side" the other has to assume (see [_CruxSwitchState.build]).
 /// A disabled switch never press-stretches:
 /// [_CruxSwitchState._handleTapDown] only starts a press when enabled, so
@@ -83,7 +79,7 @@ const double _thumbMinHeight = _thumbSize * 0.6;
 /// (including animating toward it) whether or not it is currently
 /// interactive; disabling only stops new presses, not reactions to [value]
 /// changing. Dragging the thumb to slide it is not supported in this
-/// release (recorded in implementation-notes.md as a future enhancement).
+/// release.
 ///
 /// Like [CruxButton], this widget is built from plain [GestureDetector]
 /// and painting widgets rather than Material's `Switch`, so it never depends
@@ -115,21 +111,11 @@ class _CruxSwitchState extends State<CruxSwitch> {
     }
   }
 
-  // Mirrors CruxButton's onTapDown/onTapUp/onTapCancel wiring (see
-  // button.dart's longer comment on the identical pattern): only
-  // _handleTapDown checks `_enabled`, since it is the only handler that
-  // *starts* a press. _handleTapUp and _handleTapCancel always resolve any
-  // in-flight press unconditionally, so a press that started while enabled
-  // still ends -- and un-stretches -- cleanly even if the switch becomes
-  // disabled mid-press (from state unrelated to this switch's own
-  // onChanged, the same hazard button.dart and card.dart both guard
-  // against). Unlike CruxCard, CruxSwitch's Semantics/GestureDetector
-  // shape is *always* mounted regardless of `enabled` (only `onTap` itself
-  // goes null below), so there is no tree-swap hazard here that would need
-  // a Card-style "keep the interactive tree mounted while pressed" flag --
-  // the hazard this pattern actually guards against is gating these three
-  // callbacks *themselves* by `enabled`, which would tear the in-flight
-  // TapGestureRecognizer out of the gesture arena mid-press.
+  // Only _handleTapDown checks `_enabled`, since it is the only handler
+  // that *starts* a press. _handleTapUp and _handleTapCancel always resolve
+  // any in-flight press unconditionally -- gating them by `enabled` instead
+  // would tear the in-flight TapGestureRecognizer out of the gesture arena
+  // if the switch becomes disabled mid-press.
   void _handleTapDown(TapDownDetails details) {
     if (_enabled) {
       _setPressed(true);
@@ -161,10 +147,8 @@ class _CruxSwitchState extends State<CruxSwitch> {
     // balloon out mid-flight and collapse back to _thumbSize once both
     // settle (the "liquid travel" effect described in the class doc).
     // Which edge gets the fast spring and which gets the slow one is
-    // recomputed fresh from `isOn` on every build -- no separate
-    // "previous value"/direction bookkeeping is needed, exactly like the
-    // pre-liquid-travel code already read `widget.value` directly with no
-    // extra state.
+    // recomputed fresh from `isOn` on every build, so no separate
+    // "previous value"/direction bookkeeping is needed.
     final double leftTarget = isOn ? _innerWidth - _thumbSize : 0.0;
     final double rightTarget = isOn ? _innerWidth : _thumbSize;
 
@@ -185,12 +169,12 @@ class _CruxSwitchState extends State<CruxSwitch> {
           ),
           child: Center(
             // Three fully independent springs are nested here (rather than
-            // combined into one), because the final width/height/position
-            // computed below (in the innermost builder) needs all three
-            // values at once every frame -- unlike the pre-liquid-travel
-            // code, there is no static subtree that can be hoisted out via
-            // `animatedValue`'s `child:` optimization, since every level of
-            // this nesting depends on the animated value(s) above it.
+            // combined into one): the final width/height/position computed
+            // below (in the innermost builder) needs all three values at
+            // once every frame, so there is no static subtree that can be
+            // hoisted out via `animatedValue`'s `child:` optimization --
+            // every level of this nesting depends on the animated value(s)
+            // above it.
             child: CruxMotion.animatedValue(
               value: leftTarget,
               // Trailing (slow) while moving toward "on" (leftEdge lags
@@ -287,21 +271,18 @@ class _CruxSwitchState extends State<CruxSwitch> {
                                       ),
                                     ),
                                   ),
-                                  // Explicit positioning replaces the
-                                  // previous Align-based edge-pinning trick
-                                  // (which only stayed correct at the exact
-                                  // -1/+1 alignment extremes and cannot
-                                  // express two independently-animated
-                                  // edges at once -- see
-                                  // implementation-notes.md's "Switch
-                                  // liquid travel" section for the full
-                                  // reasoning): the Stack sizes itself to
-                                  // the Container's tight,
-                                  // padding-deflated inner content box
-                                  // (_innerWidth x _trackHeight), and
-                                  // Positioned places the thumb by its
-                                  // actual left/top/width/height every
-                                  // frame.
+                                  // Explicit left/top/width/height
+                                  // positioning is required here: an
+                                  // Align-based edge-pinning approach only
+                                  // stays correct at the exact -1/+1
+                                  // alignment extremes and cannot express
+                                  // two independently-animated edges at
+                                  // once. The Stack sizes itself to the
+                                  // Container's tight, padding-deflated
+                                  // inner content box (_innerWidth x
+                                  // _trackHeight), and Positioned places the
+                                  // thumb by its actual
+                                  // left/top/width/height every frame.
                                   child: Stack(
                                     children: <Widget>[
                                       Positioned(
@@ -350,16 +331,13 @@ class _CruxSwitchState extends State<CruxSwitch> {
   }
 }
 
-/// Resolves the track's fill color per spec.md's "CruxSwitch" section:
-/// [CruxColors.accent] when on, [CruxColors.separator] when off, both
-/// only while enabled. When disabled, the on-track instead uses
-/// [CruxColors.muted] -- the token whose own dartdoc names it for exactly
-/// this ("muted, least-emphasis content such as ... disabled affordances")
-/// -- so a disabled-and-on switch still visibly differs from a
-/// disabled-and-off one instead of collapsing both into the same gray. The
-/// off-track keeps [CruxColors.separator] regardless of [enabled]: it is
-/// already a faint neutral hairline color, so disabling it does not need a
-/// separate muted treatment to read as "quiet".
+/// Resolves the track's fill color: [CruxColors.accent] when on,
+/// [CruxColors.separator] when off, both only while enabled. When
+/// disabled, the on-track instead uses [CruxColors.muted] so a
+/// disabled-and-on switch still visibly differs from a disabled-and-off one
+/// instead of collapsing both into the same gray. The off-track keeps
+/// [CruxColors.separator] regardless of [enabled]: it is already a faint
+/// neutral hairline color, so disabling it needs no further desaturation.
 Color _resolveTrackColor({
   required CruxColors colors,
   required bool value,

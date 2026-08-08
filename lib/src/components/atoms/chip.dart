@@ -18,11 +18,10 @@ const double _minTapTarget = 44;
 const double _visibleHeight = 36;
 
 /// The opacity of the state layer laid over a pressed [CruxChip]'s
-/// background: [CruxColors.textPrimary] at 8%, the same token and value
-/// [CruxButton] uses for its non-filled variants (see button.dart's
-/// `_pressedOverlayOpacity`). Unlike the button, a chip has no filled/onAccent
-/// variant whose contrast this could threaten, so the same 8% applies to
-/// every chip state.
+/// background: [CruxColors.textPrimary] at 8%, the same value
+/// [CruxButton] uses for its non-filled variants. Unlike the button, a
+/// chip has no filled/onAccent variant whose contrast this could threaten,
+/// so the same 8% applies to every chip state.
 const double _pressedOverlayOpacity = 0.08;
 
 /// A pill-shaped, optionally-selectable filter/tag chip.
@@ -111,11 +110,11 @@ class _CruxChipState extends State<CruxChip> {
 
   bool get _enabled => widget.onTap != null;
 
-  // Mirrors CruxButton's handler wiring: only _handleTapDown checks
-  // `_enabled` (the only handler that *starts* a press), while
-  // _handleTapUp/_handleTapCancel always resolve any in-flight press
-  // unconditionally so a disabled-mid-press chip still settles cleanly. See
-  // button.dart's identically-named handlers for the full reasoning.
+  // Only _handleTapDown checks `_enabled`, since it is the only handler
+  // that *starts* a press. _handleTapUp and _handleTapCancel always resolve
+  // any in-flight press unconditionally -- gating them by `enabled` instead
+  // would tear the in-flight TapGestureRecognizer out of the gesture arena
+  // if the chip becomes disabled mid-press.
   void _handleTapDown(TapDownDetails details) {
     if (_enabled) {
       _pressFeedback.down();
@@ -164,17 +163,12 @@ class _CruxChipState extends State<CruxChip> {
       button: true,
       enabled: enabled,
       selected: widget.selected,
-      // No explicit `label` here for the same reason as CruxButton: the
-      // child Text below already supplies its own automatic semantics
-      // label, and this Semantics/RenderParagraph pair doesn't create a
-      // boundary between them, so an explicit label would be announced
-      // twice.
+      // No explicit `label` here: the child Text below already supplies its
+      // own automatic semantics label, and this Semantics/RenderParagraph
+      // pair doesn't create a boundary between them, so an explicit label
+      // would be announced twice.
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
-        // Unconditionally wired for the same reason as CruxButton: gating
-        // these on `enabled` would let GestureDetector tear out an
-        // in-flight recognizer mid-press and call a stale onTapCancel
-        // during build. `_enabled` is checked inside the handlers instead.
         onTapDown: _handleTapDown,
         onTapUp: _handleTapUp,
         onTapCancel: _handleTapCancel,
@@ -187,9 +181,7 @@ class _CruxChipState extends State<CruxChip> {
               minHeight: _minTapTarget,
             ),
             // IntrinsicWidth ties the pill's width to its label's content
-            // instead of stretching to fill a loose parent's max width; see
-            // button.dart's identical use for the full reasoning (K B8/the
-            // "hug" behavior spec.md requires for CruxChip).
+            // instead of stretching to fill a loose parent's max width.
             child: IntrinsicWidth(
               child: Container(
                 height: _visibleHeight,
@@ -222,9 +214,9 @@ class _CruxChipState extends State<CruxChip> {
   }
 }
 
-/// Resolves the chip's rest-state background per spec.md's state table,
-/// then layers the pressed-state overlay (matching [CruxButton]'s KB7
-/// treatment) on top when [pressed] is true.
+/// Resolves the chip's rest-state background, then layers the pressed-state
+/// overlay (matching [CruxButton]'s treatment) on top when [pressed] is
+/// true.
 Color _resolveBackground({
   required CruxColors colors,
   required bool selected,
@@ -245,7 +237,7 @@ Color _resolveBackground({
   return Color.alphaBlend(overlay, base);
 }
 
-/// Resolves the chip's border color per spec.md's state table.
+/// Resolves the chip's border color.
 Color _resolveBorderColor({
   required CruxColors colors,
   required bool selected,
@@ -257,7 +249,7 @@ Color _resolveBorderColor({
   return selected ? colors.accentLine : colors.separator;
 }
 
-/// Resolves the chip's label color per spec.md's state table.
+/// Resolves the chip's label color.
 Color _resolveTextColor({
   required CruxColors colors,
   required bool selected,

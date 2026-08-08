@@ -160,12 +160,11 @@ class _CruxListTileState extends State<CruxListTile> {
     }
   }
 
-  // Mirrors CruxButton's gating pattern (see button.dart): only
-  // _handleTapDown checks `_enabled`, so a disabled tile can never enter the
-  // pressed state, while _handleTapUp/_handleTapCancel always resolve an
-  // in-flight press unconditionally and stay wired even when disabled, so
-  // GestureDetector's Tap recognizer is never torn out of the gesture arena
-  // mid-press.
+  // Only _handleTapDown checks `_enabled`, so a disabled tile can never
+  // enter the pressed state. _handleTapUp and _handleTapCancel always
+  // resolve any in-flight press unconditionally -- gating them by `enabled`
+  // instead would tear the in-flight TapGestureRecognizer out of the
+  // gesture arena if the tile becomes disabled mid-press.
   void _handleTapDown(TapDownDetails details) {
     if (_enabled) {
       _setPressed(true);
@@ -233,10 +232,8 @@ class _CruxListTileState extends State<CruxListTile> {
         (widget.trailing != null ? CruxSpacing.s12 : 0);
 
     // How much room `trailing` would need to render at its natural,
-    // un-squeezed size — the same measurement `Text` itself performs
-    // internally when it's laid out with no upper bound on its width (which
-    // is exactly the constraint a plain, non-flexible Row child gets: see
-    // RenderFlex._constraintsForNonFlexChild). Measuring it directly here
+    // un-squeezed size — the same constraint a plain, non-flexible Row
+    // child gets (no upper bound on width). Measuring it directly here
     // (rather than assuming a fixed budget) is what lets the check below
     // reproduce, pixel for pixel, whether today's non-flexible layout would
     // already fit — so the common case where it does can keep using that
@@ -253,9 +250,8 @@ class _CruxListTileState extends State<CruxListTile> {
     return Semantics(
       container: true,
       button: enabled,
-      // No explicit `label` here, for the same reason as CruxButton (see
-      // button.dart): the descendant title/subtitle/trailing Text widgets
-      // already supply their own automatic semantics labels.
+      // No explicit `label` here: the descendant title/subtitle/trailing
+      // Text widgets already supply their own automatic semantics labels.
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTapDown: _handleTapDown,
@@ -323,21 +319,16 @@ class _CruxListTileState extends State<CruxListTile> {
                     minWidth: 0,
                     maxWidth: fixedNonFlexWidth,
                     // Without this, OverflowBox keeps its default fit,
-                    // OverflowBoxFit.max, which makes it sizedByParent and
-                    // sizes itself to `constraints.biggest` — ignoring how
-                    // tall `row` actually measures. That's merely a
-                    // stretched height when the ambient height is bounded,
-                    // but it throws outright when the ambient height is
-                    // unbounded (`maxHeight == double.infinity`), which is
-                    // exactly what a `Column`, `ListView`, or
-                    // `SingleChildScrollView` hands a plain (non-flexible)
+                    // OverflowBoxFit.max, which sizes itself to
+                    // `constraints.biggest` — ignoring how tall `row`
+                    // actually measures. That merely stretches the height
+                    // when the ambient height is bounded, but throws
+                    // outright when it is unbounded (`maxHeight ==
+                    // double.infinity`), which is exactly what a `Column`,
+                    // `ListView`, or `SingleChildScrollView` hands a plain
                     // child along its main/scroll axis.
-                    // OverflowBoxFit.deferToChild instead sizes this box
-                    // to `row`'s own measured size (clamped to this
-                    // OverflowBox's width/height constraints, here only
-                    // width is constrained), which is always finite and
-                    // matches the "hug the content" behavior every other
-                    // branch of this widget already has.
+                    // OverflowBoxFit.deferToChild instead sizes this box to
+                    // `row`'s own measured size, which is always finite.
                     fit: OverflowBoxFit.deferToChild,
                     child: row,
                   ),

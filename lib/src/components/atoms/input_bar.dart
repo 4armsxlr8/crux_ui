@@ -20,44 +20,34 @@ import '../../tokens/spacing.dart';
 import '../../tokens/theme.dart';
 import '../../tokens/typography.dart';
 
-/// The fixed size of every interactive slot [CruxInputBar] renders inside
-/// its own box: the leading decoration, the clear button, and the submit
-/// button. Matches this package's usual 44 logical pixel minimum tap target
-/// (see `button.dart`/`chip.dart`/`switch.dart`/`text_form_field.dart`'s
-/// identically-shaped, independently-declared constants — per this
-/// package's established convention, this is a fresh, file-local copy, not
-/// a shared token).
+/// The fixed size of every interactive slot [CruxInputBar] renders
+/// inside its own box: the leading decoration, the clear button, and the
+/// submit button.
 ///
-/// [CruxInputBarLeading] is not tappable, but it still occupies this same
-/// 44px slot: doing so keeps its icon vertically and horizontally aligned
-/// with the clear/submit buttons on the opposite edge, in both the pill
-/// (single-line) and expanded (multi-line) shapes.
+/// [CruxInputBarLeading] is not tappable, but it still occupies this
+/// same 44px slot: doing so keeps its icon aligned with the clear/submit
+/// buttons on the opposite edge, in both the pill and expanded shapes.
 const double _slotSize = 44;
 
 /// The diameter of [CruxInputBar]'s submit button's *visible* filled
-/// circle -- smaller than its own [_slotSize] tap target, per IB-D02. The
-/// gap between the two is transparent, invisible padding: the circle reads
-/// as a comfortably sized, uncluttered button while the actual tappable area
+/// circle -- smaller than its own [_slotSize] tap target. The gap between
+/// the two is transparent, invisible padding: the circle reads as a
+/// comfortably sized, uncluttered button while the actual tappable area
 /// stays at the package's usual 44px minimum.
 const double _submitVisibleDiameter = 32;
 
-/// The padding applied inside [CruxInputBar]'s own box, on every edge that
-/// is not already occupied by a 44px slot (see [_slotSize]). Matches
-/// `text_field_core.dart`'s own default content padding value -- again, a
-/// fresh file-local copy rather than an import of that file's private
-/// constant, per this package's per-file-constant convention.
+/// The padding applied inside [CruxInputBar]'s own box, on every edge
+/// that is not already occupied by a 44px slot (see [_slotSize]).
 const double _boxPadding = CruxSpacing.s12;
 
 /// The height reserved, once [CruxInputBar] is fully expanded into its
-/// two-row shape (IB-A05), for the action row below the text -- tall enough
-/// to hold a [_slotSize] tap target plus a small gap above it separating it
+/// two-row shape, for the action row below the text -- tall enough to
+/// hold a [_slotSize] tap target plus a small gap above it separating it
 /// from the text above.
 const double _actionRowHeight = _slotSize + CruxSpacing.s8;
 
 /// The opacity [CruxInputBarLeading]'s icon renders at while
-/// [CruxInputBar.enabled] is `false`. Matches
-/// `text_form_field.dart`'s own `_disabledOpacity` value -- again, a fresh
-/// file-local copy of the same agreed number, not a shared token.
+/// [CruxInputBar.enabled] is `false`.
 const double _disabledOpacity = 0.55;
 
 /// A small, decorative icon shown at the leading edge of a [CruxInputBar]
@@ -83,15 +73,14 @@ class CruxInputBarLeading {
 }
 
 /// The button [CruxInputBar] shows at its trailing edge only while its
-/// text is non-empty (IB-D03), letting the user empty the field in one tap.
-/// Tapping it clears [CruxInputBar.controller]'s text and calls
+/// text is non-empty, letting the user empty the field in one tap. Tapping
+/// it clears [CruxInputBar.controller]'s text and calls
 /// [CruxInputBar.onChanged] with the empty string.
 ///
 /// [icon] and [label] are both required and caller-supplied, for the same
-/// reason [CruxObscureToggle]'s icons and labels are (see that class's
-/// doc): this package has no fixed glyph or language of its own to fall
-/// back to, and an icon-only button with no accessible name would fail
-/// WCAG 4.1.2.
+/// reason [CruxObscureToggle]'s icons and labels are: this package has
+/// no fixed glyph or language of its own to fall back to, and an
+/// icon-only button with no accessible name would fail WCAG 4.1.2.
 @immutable
 class CruxInputBarClear {
   /// Creates a clear button for [CruxInputBar.clear].
@@ -107,9 +96,9 @@ class CruxInputBarClear {
 
 /// The submit button [CruxInputBar] shows at its trailing edge, drawn as
 /// [icon] centered over an [CruxColors.accent]-filled circle. Tapping it
-/// while the field has text calls [CruxInputBar.onSubmit] with the current
-/// text; tapping it while the field is empty does nothing (the button
-/// renders in a visibly disabled tone instead, per IB-D08 -- see
+/// while the field has text calls [CruxInputBar.onSubmit] with the
+/// current text; tapping it while the field is empty does nothing (the
+/// button renders in a visibly disabled tone instead -- see
 /// [CruxInputBar]'s class doc, "Submit button" section, for the exact
 /// colors and how the transition between them animates).
 ///
@@ -129,11 +118,10 @@ class CruxInputBarSubmit {
 }
 
 /// A compact, pill-shaped text input bar for search boxes and chat
-/// composers: Crux UI's second text-input atom, built on the same shared
-/// [CruxTextFieldCore] [CruxTextFormField] uses, but a plain
-/// [StatefulWidget] rather than a `Form`-integrated [FormField] (IB-D05) --
-/// this bar has no label, no helper/error caption row, and no validation
-/// concept at all (IB-D04).
+/// composers, built on the same shared [CruxTextFieldCore]
+/// [CruxTextFormField] uses, but a plain [StatefulWidget] rather than a
+/// `Form`-integrated [FormField] -- this bar has no label, no
+/// helper/error caption row, and no validation concept at all.
 ///
 /// ```dart
 /// CruxInputBar(
@@ -154,8 +142,8 @@ class CruxInputBarSubmit {
 /// [maxLines] to `2` or higher (for example for a chat composer) to let the
 /// bar grow: it starts as the same one-line pill, then the moment the
 /// entered text needs more than one line to display, it morphs smoothly
-/// (IB-A07) into a two-row shape -- text on top (using the box's full
-/// width), a compact action row underneath (leading on the start edge,
+/// into a two-row shape -- text on top (using the box's full width), a
+/// compact action row underneath (leading on the start edge,
 /// clear/submit on the end edge) -- and its corner radius settles at a
 /// fixed [CruxRadii.l] (16px) instead of continuing to track the box's
 /// growing height. The box keeps growing, one line at a time, until it
@@ -170,28 +158,24 @@ class CruxInputBarSubmit {
 /// -> grow ...).
 ///
 /// **The morph itself.** Only ever driven by a single animated `0.0`-`1.0`
-/// double (via [CruxMotion.animatedValue]), never by interpolating between
-/// two [RoundedSuperellipseBorder]s directly -- linearly interpolating a
-/// pill's ~huge corner radius down to 16 gets clamped to the pill shape for
-/// almost the entire animation and only visibly changes shape in the last
-/// instant, since the corner gets scaled back down to fit the rect at paint
-/// time regardless of the requested radius (see
-/// `unknowns/input-bar/impact.md`'s opening section for the full SDK-sourced
-/// explanation). Instead, this bar's own private [ShapeBorder] computes its
-/// *effective* radius fresh at paint time, from the box's actual laid-out
-/// height and the current animated progress, so it is never clamped, and the
-/// corner genuinely passes through every radius between the pill's and 16 on
-/// its way from one shape to the other. The two action-row buttons' vertical
-/// position (dead center in the one-line shape, bottom-aligned once
-/// expanded) and the text area's own reserved side padding (room for the
-/// leading/clear/submit slots in the one-line shape, full width once
-/// expanded) both animate from the exact same progress value, so every part
-/// of the transformation moves in lockstep.
+/// double (via [CruxMotion.animatedValue]), never by interpolating
+/// between two [RoundedSuperellipseBorder]s directly -- linearly
+/// interpolating a pill's ~huge corner radius down to 16 gets clamped to
+/// the pill shape for almost the entire animation, since the corner is
+/// scaled back down to fit the rect at paint time regardless of the
+/// requested radius. Instead, this bar's own private [ShapeBorder]
+/// computes its *effective* radius fresh at paint time, from the box's
+/// actual laid-out height and the current animated progress, so it is
+/// never clamped and the corner passes through every radius between the
+/// pill's and 16 on its way from one shape to the other. The action-row
+/// buttons' vertical position and the text area's own reserved side
+/// padding both animate from the same progress value, so every part of
+/// the transformation moves in lockstep.
 ///
-/// **Newline key behavior (IB-A03).** Only relevant once [maxLines] is `2`
-/// or higher -- a single-line bar always treats the return key as "submit"
-/// (IB-A04), the same as an ordinary search field. For a multi-line bar, the
-/// return key's meaning switches automatically by platform, and this switch
+/// **Newline key behavior.** Only relevant once [maxLines] is `2` or
+/// higher -- a single-line bar always treats the return key as "submit",
+/// the same as an ordinary search field. For a multi-line bar, the return
+/// key's meaning switches automatically by platform, and this switch
 /// cannot be overridden by a caller:
 ///
 /// | Platform | Return key | How to enter a literal newline |
@@ -200,35 +184,30 @@ class CruxInputBarSubmit {
 /// | iOS, Android | Inserts a newline | Return |
 ///
 /// The judgment is [defaultTargetPlatform], not a live check of whether a
-/// physical keyboard is actually attached -- Flutter has no reliable way to
-/// tell the two apart. This is a known, accepted approximation with real
-/// edge cases: opening the web build of an app in a phone's mobile browser
-/// reports a desktop-shaped platform in some circumstances (see
-/// flutter/flutter#80505 and flutter/flutter#58171), Android cannot
-/// distinguish an on-screen keyboard's keystrokes from a physical one (see
-/// flutter/flutter#148375), and a phone or tablet with a physical keyboard
-/// attached is judged as a phone regardless. All three are accepted
-/// trade-offs (agreed as IB-A03 in `unknowns/input-bar/ledger.md`), not bugs
-/// to fix here.
+/// physical keyboard is attached -- Flutter has no reliable way to tell
+/// the two apart. This is a known, accepted approximation with real edge
+/// cases: opening the web build in a phone's mobile browser can report a
+/// desktop-shaped platform (flutter/flutter#80505, #58171), Android
+/// cannot distinguish an on-screen keyboard's keystrokes from a physical
+/// one (flutter/flutter#148375), and a phone or tablet with a physical
+/// keyboard attached is still judged as a phone. These are accepted
+/// trade-offs, not bugs to fix here.
 ///
 /// **Submit button.** Rendered from [submit] as [CruxInputBarSubmit.icon]
 /// centered over a filled circle: [_submitVisibleDiameter] logical pixels
 /// across, inside a [_slotSize] (44px) tap target -- the difference is
-/// transparent padding, not a smaller hit area (IB-D02). While the field's
-/// text is empty, the button is visibly disabled (background
-/// [CruxColors.separator], icon [CruxColors.muted], matching
-/// [CruxButton]'s own disabled treatment) and does nothing when tapped;
-/// the moment the field has any text, it switches to an enabled look
-/// (background [CruxColors.accent], icon [CruxColors.onAccent]) and
-/// starts calling [onSubmit] with the current text. Both colors animate
-/// smoothly between their two states (via [CruxMotion.animatedColor],
-/// IB-D08) rather than snapping, so this reads as the same responsive
-/// "material" as the rest of this bar's motion instead of a disconnected
-/// flicker.
+/// transparent padding, not a smaller hit area. While the field's text is
+/// empty, the button is visibly disabled (background
+/// [CruxColors.mutedFill], icon [CruxColors.muted]) and does nothing
+/// when tapped; the moment the field has any text, it switches to an
+/// enabled look (background [CruxColors.accent], icon
+/// [CruxColors.onAccent]) and starts calling [onSubmit] with the
+/// current text. Both colors animate smoothly between their two states
+/// (via [CruxMotion.animatedColor]) rather than snapping.
 ///
 /// **Clear button.** Rendered from [clear] only while the field's text is
-/// non-empty (IB-D03) -- there is nothing to clear otherwise. Tapping it
-/// empties [controller]'s text and calls [onChanged] with the empty string.
+/// non-empty -- there is nothing to clear otherwise. Tapping it empties
+/// [controller]'s text and calls [onChanged] with the empty string.
 ///
 /// **Disabled ([enabled] = `false`).** The field stops accepting input.
 /// [leading]'s icon dims to 55% opacity (matching
@@ -242,11 +221,11 @@ class CruxInputBarSubmit {
 /// -specific tone to introduce.
 ///
 /// **What this bar never does.** No border-color change of any kind --
-/// there is no validation-error concept here at all (IB-D04), unlike
-/// [CruxTextFormField]. No focus-triggered appearance change (IB-D06,
-/// consistent with every other Crux atom). No `Form` participation
-/// (IB-D05) -- wrap a plain [StatefulWidget] tree around this instead of a
-/// [Form] if a caller needs to coordinate it with other fields.
+/// there is no validation-error concept here at all, unlike
+/// [CruxTextFormField]. No focus-triggered appearance change, consistent
+/// with every other Crux atom. No `Form` participation -- wrap a plain
+/// [StatefulWidget] tree around this instead of a [Form] if a caller needs
+/// to coordinate it with other fields.
 ///
 /// **Semantics.** The field itself exposes the standard `textField: true`
 /// semantics flag, following [enabled]. [clear] and [submit] are each
@@ -359,15 +338,11 @@ class _CruxInputBarState extends State<CruxInputBar> {
       _internalFocusNode = FocusNode();
     }
     // Subscribed regardless of who owns the controller: unlike
-    // CruxTextFormField (a real FormField, whose own didChange/setValue
-    // plumbing already triggers a rebuild for the internally-owned-
-    // controller case), this is a plain StatefulWidget with nothing else
-    // that would notice a text change and rebuild -- so this bar always
-    // needs its own listener, whether the controller came from the caller
-    // or was created just above, to recompute the derived state build()
-    // reads every rebuild (whether the field is empty, and -- once
-    // maxLines >= 2 -- whether the current text now needs more than one
-    // line).
+    // CruxTextFormField, this is a plain StatefulWidget with nothing
+    // else that would notice a text change and rebuild, so this bar
+    // always needs its own listener to recompute derived state (whether
+    // the field is empty, and once maxLines >= 2, whether the text now
+    // needs more than one line).
     _controller.addListener(_handleControllerChanged);
   }
 
@@ -415,12 +390,10 @@ class _CruxInputBarState extends State<CruxInputBar> {
   }
 
   void _handleControllerChanged() {
-    // Only ever needed to make this bar's own build() re-run and recompute
-    // its derived state (see initState's doc above) -- this is never how
-    // widget.onChanged is invoked; that is wired directly from
-    // CruxTextFieldCore.onChanged below, matching an ordinary text
-    // field's "only fires for user edits, not programmatic controller
-    // writes" contract.
+    // Only makes build() re-run to recompute derived state; never how
+    // widget.onChanged is invoked -- that is wired directly from
+    // CruxTextFieldCore.onChanged, so it only fires for user edits, not
+    // programmatic controller writes.
     setState(() {});
   }
 
@@ -436,38 +409,21 @@ class _CruxInputBarState extends State<CruxInputBar> {
   /// Intercepts a bare (non-Shift) hardware Return keystroke on a desktop
   /// platform, while [CruxInputBar.maxLines] is `2` or higher, and turns
   /// it into an [CruxInputBar.onSubmit] call instead of letting it reach
-  /// [CruxTextFieldCore]'s [CupertinoTextField] at all -- see the class
-  /// doc's "Newline key behavior" section for the full table this
-  /// implements.
+  /// [CupertinoTextField] at all -- see the class doc's "Newline key
+  /// behavior" section for the full table this implements.
   ///
-  /// This has to intercept at the [Focus]/key-event level, not merely wire
-  /// [CruxTextFieldCore.onSubmitted]: a multi-line [CupertinoTextField]'s
-  /// own default on-screen keyboard action is "newline", not "done" (
-  /// confirmed against the Flutter SDK -- `cupertino/text_field.dart`
-  /// defaults `keyboardType` to `TextInputType.multiline` whenever
-  /// `maxLines != 1`, and `widgets/editable_text.dart` in turn defaults
-  /// `inputAction` to `TextInputAction.newline` whenever `keyboardType ==
-  /// TextInputType.multiline`), so a desktop platform's hardware Return key
-  /// is handled by the engine's own text-editing channel, never surfacing
-  /// through `onSubmitted` at all. A single-line bar has no such gap --
-  /// `TextInputType.text`'s own default action is `done`, which does reach
-  /// `onSubmitted` -- so this interceptor only ever needs to act once
-  /// [CruxInputBar.maxLines] is 2 or higher; see [CruxTextFieldCore
-  /// .onSubmitted]'s wiring below for the single-line path.
+  /// Must intercept at the [Focus]/key-event level, not merely wire
+  /// [CruxTextFieldCore.onSubmitted]: a multi-line field's default
+  /// on-screen keyboard action is "newline", not "done", so a desktop
+  /// hardware Return key is handled by the engine's own text-editing
+  /// channel and never reaches `onSubmitted` at all. A single-line bar has
+  /// no such gap (its default action is "done"), so this interceptor only
+  /// needs to act once [CruxInputBar.maxLines] is 2 or higher.
   ///
-  /// Reacts to both a [KeyDownEvent] (the keystroke's first frame) and every
-  /// following [KeyRepeatEvent] the OS synthesizes while the key stays held
-  /// -- not [KeyDownEvent] alone. [Shortcuts]' own [SingleActivator] defaults
-  /// to reacting to repeats too (`includeRepeats` defaults to `true`,
-  /// Flutter SDK `widgets/shortcuts.dart`), and
-  /// `DefaultTextEditingShortcuts` binds Return to
-  /// `DoNothingAndStopPropagationTextIntent` specifically so it reaches
-  /// `EditableText`'s IME-backed text insertion instead of being swallowed
-  /// as "handled, nothing happens" -- so a `KeyDownEvent`-only guard here
-  /// would submit exactly once on the first frame, then leak every
-  /// subsequent repeat straight through to that binding, inserting a
-  /// newline into the field for as long as Return stayed held. Treating a
-  /// repeat the same as the initial key-down closes that gap.
+  /// Reacts to [KeyRepeatEvent] as well as [KeyDownEvent]: without it,
+  /// holding Return down would submit once, then leak every subsequent
+  /// repeat through to Flutter's default text-editing shortcut, inserting
+  /// newlines for as long as the key stayed held.
   KeyEventResult _handleKeyEvent(FocusNode node, KeyEvent event) {
     if (widget.maxLines < 2) {
       return KeyEventResult.ignored;
@@ -496,12 +452,10 @@ class _CruxInputBarState extends State<CruxInputBar> {
     return KeyEventResult.handled;
   }
 
-  /// Whether [text] needs more than one line to display at [maxWidth] --
-  /// the width the text area would have *in the one-line shape*, per the
-  /// class doc's "Single line vs. multi-line" section on why this measures
-  /// against a fixed reference width rather than however this bar currently
-  /// happens to be shaped (to avoid oscillating between the two shapes).
-  /// Only ever called while [CruxInputBar.maxLines] is 2 or higher.
+  /// Whether [text] needs more than one line at [maxWidth] -- the width
+  /// the text area would have *in the one-line shape*, a fixed reference
+  /// that avoids oscillating between the two shapes. Only called while
+  /// [CruxInputBar.maxLines] is 2 or higher.
   bool _wouldWrapToMultipleLines({
     required BuildContext context,
     required String text,
@@ -566,31 +520,26 @@ class _CruxInputBarState extends State<CruxInputBar> {
         return CruxMotion.animatedValue(
           value: wraps ? 1.0 : 0.0,
           builder: (BuildContext context, double springValue, Widget? child) {
-            // [CruxMotion]'s spring is `CupertinoMotion.snappy`, whose 0.15
-            // bounce deliberately overshoots *past* its target at both ends
-            // (see motion.dart's `_spring` doc). So this raw value dips
-            // slightly below 0.0 while collapsing and rises slightly above
-            // 1.0 while expanding.
+            // [CruxMotion]'s spring deliberately overshoots past its
+            // target at both ends, so this raw value dips slightly below
+            // 0.0 while collapsing and rises slightly above 1.0 while
+            // expanding.
             //
             // Every geometric quantity below is derived from it by plain
             // multiplication or interpolation, and an out-of-range factor
             // produces an *illegal* value there, not merely an exaggerated
-            // one: the action row's reserved height goes negative and reaches
-            // `SizedBox` as `BoxConstraints(h: -0.2; NOT NORMALIZED)`, which
-            // throws and then cascades into a series of secondary render-tree
-            // assertions. That is what a physical iPhone did on the very
-            // first collapse of this bar -- while the whole test suite stayed
-            // green, because every test written before it only ever expanded,
-            // the direction whose overshoot lands harmlessly above 1.0. The
-            // regression test is "collapsing from the two-row shape back to
-            // the pill never throws" in test/input_bar_test.dart.
+            // one: the action row's reserved height would go negative and
+            // reach `SizedBox` as a non-normalized `BoxConstraints`, which
+            // throws. See the "collapsing from the two-row shape back to
+            // the pill never throws" regression test in
+            // test/input_bar_test.dart.
             //
-            // Clamping here -- at the single point the animated value enters
-            // the layout -- leaves the entire visible spring travel untouched
-            // and discards only the out-of-range tail, which has no meaning
-            // for this morph in any case: there is no shape rounder than the
-            // pill, and none more two-row than the two-row one, to overshoot
-            // into.
+            // Clamping here -- at the single point the animated value
+            // enters the layout -- leaves the visible spring travel
+            // untouched and discards only the out-of-range tail, which has
+            // no meaning for this morph: there is no shape rounder than
+            // the pill, and none more two-row than the two-row one, to
+            // overshoot into.
             final double progress = springValue.clamp(0.0, 1.0);
             return _buildBar(
               context: context,
@@ -622,11 +571,10 @@ class _CruxInputBarState extends State<CruxInputBar> {
     required int trailingSlotCount,
     required double progress,
   }) {
-    // The text area's own side padding: room for the leading/trailing slots
-    // in the one-line (pill) shape, plain box padding once fully expanded
-    // (the action row moves below the text at that point, so the text no
-    // longer needs to dodge the buttons horizontally) -- see the class
-    // doc's "The morph itself" section.
+    // The text area's own side padding: room for the leading/trailing
+    // slots in the pill shape, plain box padding once fully expanded (the
+    // action row moves below the text, so it no longer needs to dodge the
+    // buttons horizontally).
     final EdgeInsetsDirectional pillTextPadding = EdgeInsetsDirectional.only(
       start: hasLeading ? _slotSize : _boxPadding,
       top: _boxPadding,
@@ -664,10 +612,9 @@ class _CruxInputBarState extends State<CruxInputBar> {
       ),
     );
 
-    // The Stack's own size is entirely determined by this Column, its only
+    // The Stack's size is entirely determined by this Column, its only
     // non-positioned child: the text row, plus (once expanded) an empty
-    // spacer reserving room for the action row that is Positioned over it
-    // below. See the class doc's "The morph itself" section.
+    // spacer reserving room for the action row Positioned over it below.
     final Widget sizingColumn = Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -722,13 +669,11 @@ class _CruxInputBarState extends State<CruxInputBar> {
       );
     }
 
-    // A plain DecoratedBox, not a Container: Container's own build() method
-    // internally composes a second DecoratedBox with this exact same
-    // decoration whenever only `decoration` is set (no padding/margin/
-    // alignment), which would leave *two* widgets in the tree matching
-    // "a Container or DecoratedBox painting CruxColors.controlFill" --
-    // ambiguous for any test (or future widgetbook/example code) that finds
-    // this box by its decoration rather than a key.
+    // A plain DecoratedBox, not a Container: Container's build() method
+    // internally composes a second DecoratedBox with this same decoration
+    // when only `decoration` is set, leaving *two* widgets in the tree
+    // matching "paints CruxColors.controlFill" -- ambiguous for any test
+    // that finds this box by its decoration rather than a key.
     final Widget box = ConstrainedBox(
       constraints: const BoxConstraints(minHeight: _slotSize),
       child: DecoratedBox(
@@ -765,12 +710,9 @@ class _CruxInputBarState extends State<CruxInputBar> {
       child: SizedBox(
         width: _slotSize,
         height: _slotSize,
-        // Purely decorative (see CruxInputBarLeading's own class doc): a
-        // caller-supplied icon widget could carry its own semantics (a
-        // semanticLabel, say) without this bar's knowledge, so this must be
-        // excluded explicitly rather than relying on "callers happen not to
-        // attach any" to keep that doc's "carries no screen-reader label of
-        // its own" claim true in practice.
+        // A caller-supplied icon could carry its own semantics (a
+        // semanticLabel, say); ExcludeSemantics keeps this slot decorative
+        // regardless.
         child: ExcludeSemantics(child: Center(child: leading.icon)),
       ),
     );
@@ -807,14 +749,12 @@ class _CruxInputBarState extends State<CruxInputBar> {
     required CruxColors colors,
   }) {
     final bool submitEnabled = enabled && hasText;
-    // Disabled fill is `mutedFill`, not `separator`: this circle sits inside
-    // the bar's own controlFill-filled box, where separator is nearly the
-    // same color (~1.03:1) and the circle vanished entirely -- caught by the
-    // user on a real device, see colors.dart's [CruxColors.mutedFill] doc
-    // for the full reasoning. mutedFill is translucent; animatedColor
-    // interpolates alpha along with RGB (see its doc), so the accent circle
-    // dissolves into the box's own fill as the bar empties rather than
-    // snapping.
+    // Disabled fill is `mutedFill`, not `separator`: separator is nearly
+    // the same color as this box's own controlFill, and the circle would
+    // vanish against it. See [CruxColors.mutedFill]'s doc. mutedFill is
+    // translucent, and animatedColor interpolates alpha along with RGB, so
+    // the accent circle dissolves into the box's fill as the bar empties
+    // rather than snapping.
     final Color background = submitEnabled ? colors.accent : colors.mutedFill;
     final Color foreground = submitEnabled ? colors.onAccent : colors.muted;
 
@@ -891,8 +831,7 @@ class _InputBarBoxShape extends ShapeBorder {
   final double expandProgress;
 
   /// The border stroke, drawn at a fixed color regardless of
-  /// [expandProgress] -- [CruxInputBar] never changes its border color
-  /// (IB-D04).
+  /// [expandProgress] -- [CruxInputBar] never changes its border color.
   final BorderSide side;
 
   double _effectiveRadius(Rect rect) {

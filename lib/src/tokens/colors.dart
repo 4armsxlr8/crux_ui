@@ -7,8 +7,10 @@ import 'dart:ui' show Color;
 /// Use [CruxColors.light] or [CruxColors.dark] to pick a palette, or
 /// construct a custom instance for a bespoke brightness.
 ///
-/// The raw color values live in this class only. If Crux UI's palette
-/// changes in the future, this is the single file that needs to change.
+/// The semantic names are this package's stable API; the values are a
+/// provisional palette (borrowed from an external "Mimir" design project)
+/// that may be swapped later. Raw color values live in this class only --
+/// if the palette changes, this is the single file that needs to change.
 class CruxColors {
   /// Creates a set of semantic color tokens.
   ///
@@ -179,9 +181,5 @@ class CruxColors {
   /// floor; for a selected segment, that 3:1 floor is still carried by the
   /// label's own color change ([textPrimary] vs. [textSecondary]), not by
   /// this plate fill.
-  ///
-  /// Like every value in this file, both `#FFFFFF` and `#3F3C33` are
-  /// provisional (the borrowed "Mimir" palette) and may change on a future
-  /// palette swap -- see this class's own doc.
   final Color controlPlate;
 }

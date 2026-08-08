@@ -6,14 +6,13 @@ import '../../tokens/radii.dart';
 import '../../tokens/shadows.dart';
 import '../../tokens/theme.dart';
 
-/// The minimum tap target size for any [CruxSlider] (matching
-/// [CruxButton]'s and [CruxSwitch]'s K B9 rule): 44 logical pixels, even
-/// though the visible track (6) and thumb (20) are both shorter than that.
+/// The minimum tap target size for any [CruxSlider]: 44 logical pixels,
+/// even though the visible track (6) and thumb (20) are both shorter than
+/// that.
 const double _minTapTarget = 44;
 
-/// The thumb's ("fader cap") width and height at rest, per
-/// `plans/atoms-batch-3.md`'s confirmed Slider spec: a flat, horizontal
-/// "physical fader cap" rather than a round Material-style thumb.
+/// The thumb's ("fader cap") width and height at rest: a flat, horizontal
+/// cap rather than a round Material-style thumb.
 const double _thumbWidth = 30;
 const double _thumbHeight = 20;
 
@@ -34,8 +33,7 @@ const double _trackHeight = 6;
 const double _trackTopInset = (_minTapTarget - _trackHeight) / 2;
 const double _thumbTopInset = (_minTapTarget - _thumbHeight) / 2;
 
-/// The scale the thumb springs to while being dragged, per the confirmed
-/// spec ("キャップ scale 1.1").
+/// The scale the thumb springs to while being dragged.
 const double _thumbDraggingScale = 1.1;
 
 /// The diameter of a single division tick mark, and its vertical offset
@@ -58,12 +56,7 @@ const double _gripCenterLineWidth = 2;
 
 /// The fraction of the full `max - min` range a continuous (no [CruxSlider.
 /// divisions]) slider's semantics increase/decrease actions move by: 10%,
-/// matching Flutter's own Material `Slider`'s iOS adjustment unit (confirmed
-/// against the Flutter 3.44.6 SDK's `material/slider.dart`,
-/// `_RenderSlider._adjustmentUnit`'s `TargetPlatform.iOS`/`.macOS` case) --
-/// reused here rather than invented fresh, since this package's whole motion
-/// vocabulary already leans iOS-flavored (see motion.dart's `CupertinoMotion`
-/// springs).
+/// matching Flutter's own Material `Slider`'s iOS adjustment unit.
 const double _continuousAdjustmentFraction = 0.1;
 
 /// A horizontal, spring-and-drag slider: Crux UI's first component built
@@ -86,22 +79,21 @@ const double _continuousAdjustmentFraction = 0.1;
 /// [onChanged] to `null` to render a disabled slider (Flutter convention,
 /// matching every other Crux atom's callback-nullable-disables pattern).
 ///
-/// The thumb is a "physical fader cap" per the confirmed spec: a flat,
-/// horizontal 30x20 rounded rectangle in [CruxColors.surface] (no
-/// gradient or bevel), with a center [CruxColors.accent] grip line
-/// flanked by two thinner grip lines. Because a plain white/surface cap can
-/// blend into a light background, it is additionally lifted with
-/// [CruxShadows.thumb] at rest -- a shadow tier dedicated to exactly this
-/// "small elevated control that would otherwise blend into what's behind
-/// it" case, one step more concentrated than [CruxShadows.sm] -- and
-/// springs to the further-lifted [CruxShadows.thumbLifted] while being
-/// dragged, per the confirmed spec's "ドラッグ中はさらに浮く". In dark mode
-/// it is additionally outlined with [CruxShadows.hairline], the same way
-/// this package's other small elevated controls are.
+/// The thumb is a flat, horizontal 30x20 rounded rectangle in
+/// [CruxColors.surface] (no gradient or bevel), with a center
+/// [CruxColors.accent] grip line flanked by two thinner grip lines.
+/// Because a plain white/surface cap can blend into a light background, it
+/// is additionally lifted with [CruxShadows.thumb] at rest -- a shadow
+/// tier dedicated to exactly this "small elevated control that would
+/// otherwise blend into what's behind it" case, one step more concentrated
+/// than [CruxShadows.sm] -- and springs to the further-lifted
+/// [CruxShadows.thumbLifted] while being dragged. In dark mode it is
+/// additionally outlined with [CruxShadows.hairline], the same way this
+/// package's other small elevated controls are.
 ///
 /// While dragging, the thumb tracks the pointer directly with no spring lag
-/// (the confirmed "ドラッグ中は指に直結" requirement) and scales up to
-/// [_thumbDraggingScale] via [CruxMotion.scale]; a value bubble showing
+/// and scales up to [_thumbDraggingScale] via [CruxMotion.scale]; a value
+/// bubble showing
 /// the current value (formatted by [valueLabelBuilder], or as a rounded
 /// percentage of [min]..[max] by default -- see [valueLabelBuilder]'s own
 /// doc) appears above it. Once released, the thumb's
@@ -132,9 +124,7 @@ const double _continuousAdjustmentFraction = 0.1;
 /// (`divisions + 1` positions from [min] to [max] inclusive) instead of a
 /// continuous value. Snapping happens continuously while dragging (not only
 /// once the finger lifts) -- the same behavior Flutter's own Material
-/// `Slider` uses for a discrete slider (confirmed against the Flutter
-/// 3.44.6 SDK: `_RenderSlider._handleDragUpdate` calls `_discretize` on
-/// every update, not only on release) -- and each division is marked with a
+/// `Slider` uses for a discrete slider -- and each division is marked with a
 /// small tick dot along the track.
 ///
 /// Exposes Flutter's `slider`/adjustable semantics trait: a screen reader
@@ -213,16 +203,9 @@ class CruxSlider extends StatefulWidget {
   /// Formats [value] for the drag bubble and for the semantics `value`/
   /// `increasedValue`/`decreasedValue` strings. Defaults to [value]'s
   /// position within [min]..[max] as a rounded percentage (for example
-  /// `"42%"`) when not provided -- the same default format Flutter's own
-  /// Material `Slider` uses for its semantics `value` string when no
-  /// `semanticFormatterCallback` is given (confirmed against the Flutter
-  /// 3.44.6 SDK's `material/slider.dart`,
-  /// `_RenderSlider.describeSemanticsConfiguration`'s no-formatter branch:
-  /// `config.value = '${(value * 100).round()}%'`, where that `value` is
-  /// already the 0..1 fraction). A plain `value.round()` default -- what
-  /// this package originally shipped -- reads every value in the default
-  /// 0.0..1.0 range as either "0" or "1", which is why this instead scales
-  /// to a percentage of the actual range.
+  /// `"42%"`) when not provided, matching Flutter's own Material `Slider`'s
+  /// default semantics format. A plain `value.round()` would read every
+  /// value in the default `0.0..1.0` range as either `"0"` or `"1"`.
   final String Function(double value)? valueLabelBuilder;
 
   @override
@@ -233,30 +216,26 @@ class _CruxSliderState extends State<CruxSlider> {
   bool _dragging = false;
 
   /// The live, unrounded-to-spring 0..1 position while [_dragging] is true.
-  /// Only meaningful while dragging -- see [_renderFraction].
+  /// Only meaningful while dragging -- see [_buildVisual].
   double _dragFraction = 0;
 
   @override
   void didUpdateWidget(covariant CruxSlider oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (_dragging && widget.onChanged == null) {
-      // `onChanged` just flipped to `null` (disabled) while a drag or track
-      // tap was in progress. End the interaction right here instead of
-      // waiting for the next `onHorizontalDragUpdate` -- GestureDetector's
-      // HorizontalDragGestureRecognizer has no idea this widget just went
-      // disabled and keeps delivering move/end events for the in-flight
-      // gesture regardless of this rebuild, so without this the thumb would
-      // otherwise keep visually tracking the finger (and the bubble/lifted
-      // shadow would stay shown) for however long it takes the next move
-      // event to arrive.
+      // `onChanged` just went null mid-interaction. End it here rather
+      // than waiting for the next drag-update event: GestureDetector's
+      // recognizer has no idea this widget is now disabled and keeps
+      // delivering move/end events for the in-flight gesture regardless of
+      // this rebuild.
       //
-      // This deliberately sets `_dragging` false directly rather than going
-      // through `_endInteraction` (which calls `onChangeEnd`): going
-      // disabled mid-interaction aborts it, it doesn't conclude it, so no
-      // "final value" should be reported. The move/end/cancel handlers
-      // below all check `_dragging` first, so once it is false here, the
-      // eventual `onHorizontalDragEnd`/`onHorizontalDragCancel` that fires
-      // when the pointer actually lifts finds nothing left to do.
+      // Sets `_dragging` false directly rather than going through
+      // `_endInteraction` (which calls `onChangeEnd`): going disabled
+      // mid-interaction aborts the interaction, it doesn't conclude it, so
+      // no "final value" should be reported. The move/end/cancel handlers
+      // below all check `_dragging` first, so the eventual
+      // `onHorizontalDragEnd`/`onHorizontalDragCancel` that fires when the
+      // pointer lifts finds nothing left to do.
       setState(() => _dragging = false);
     }
   }
@@ -265,15 +244,12 @@ class _CruxSliderState extends State<CruxSlider> {
 
   double get _committedFraction => _fractionFromValue(widget.value);
 
-  /// [CruxSlider.value] clamped to [CruxSlider.min]..[CruxSlider.max]
-  /// -- the same clamp [_fractionFromValue] applies for rendering, kept
-  /// available directly (rather than only as a fraction) so callers that
-  /// need the clamped *value* (not a 0..1 fraction) don't have to
-  /// round-trip through [_valueFromFraction] and reintroduce floating-point
-  /// drift. Used wherever this widget reads "the current value" for
-  /// something other than rendering position: the bubble/semantics text,
-  /// [onChangeStart]'s pre-interaction value, and the increase/decrease
-  /// step base.
+  /// [CruxSlider.value] clamped to [CruxSlider.min]..[CruxSlider.max].
+  /// Kept available directly (not only as a fraction) so callers reading
+  /// "the current value" -- the bubble/semantics text, [onChangeStart]'s
+  /// pre-interaction value, the increase/decrease step base -- don't have
+  /// to round-trip through [_valueFromFraction] and reintroduce
+  /// floating-point drift.
   double get _clampedValue => widget.value.clamp(widget.min, widget.max);
 
   /// The value this widget displays in the bubble and announces in
@@ -325,41 +301,26 @@ class _CruxSliderState extends State<CruxSlider> {
     return _snapFraction(raw);
   }
 
-  // Mirrors CruxSwitch's/CruxCheckbox's onTapDown/onTapUp/onTapCancel
-  // wiring in spirit -- see switch.dart's longer comment on the identical
-  // "only the handler that *starts* an interaction checks `_enabled`"
-  // pattern -- extended here to a fourth event family
-  // (onHorizontalDrag{Start,Update,End,Cancel}) since GestureDetector, as
-  // documented on its own class, freely lets a Tap recognizer and a
-  // HorizontalDrag recognizer coexist on the same widget: both attach to
-  // the same pointer down, and the arena resolves one of them the winner
-  // once the pointer either lifts without crossing the touch slop (Tap
-  // wins) or crosses it (HorizontalDrag wins). Both `_beginInteraction`
-  // entry points below are therefore idempotent -- calling it twice for the
-  // same physical gesture (a slow press-then-drag can fire both onTapDown,
-  // once its ~100ms deadline elapses, and onHorizontalDragStart once the
-  // pointer then crosses the touch slop) only fires onChangeStart once.
-  // `_endInteraction` is deliberately *not* wired to onTapCancel: that
-  // fires mid-gesture whenever the Tap recognizer loses the arena to the
-  // HorizontalDrag recognizer taking over a slow press, which is not the
-  // end of the interaction -- only onTapUp (a resolved, un-dragged tap),
+  // GestureDetector lets a Tap recognizer and a HorizontalDrag recognizer
+  // coexist on the same widget: both attach to the same pointer down, and
+  // the arena resolves one of them the winner once the pointer either
+  // lifts within the touch slop (Tap wins) or crosses it (HorizontalDrag
+  // wins). A slow press-then-drag can therefore fire both onTapDown and
+  // onHorizontalDragStart for the same physical gesture -- this method is
+  // idempotent, so that only fires onChangeStart once. `_endInteraction`
+  // is deliberately *not* wired to onTapCancel: that fires whenever the
+  // Tap recognizer loses the arena to HorizontalDrag, which is not the end
+  // of the interaction -- only onTapUp (a resolved, un-dragged tap),
   // onHorizontalDragEnd, and onHorizontalDragCancel actually terminate one.
   void _beginInteraction(double localX, double width, bool rtl) {
     if (!_enabled) {
       return;
     }
     final bool wasDragging = _dragging;
-    // Captured before the `setState` below moves `_dragFraction` to the
-    // newly tapped/dragged position: `onChangeStart` must report the value
-    // from *before* this interaction began, not the position the user just
-    // pressed. Matches Flutter's own Material `Slider._startInteraction`,
-    // which calls `onChangeStart` with the pre-interaction `value` getter
-    // before ever computing the new position, then reports that new
-    // position separately via `onChanged` (confirmed against the Flutter
-    // 3.44.6 SDK's `material/slider.dart`: "We supply the *current* value
-    // as the start location, so that if we have a tap, it consists of a
-    // call to onChangeStart with the previous value and a call to
-    // onChangeEnd with the new value.").
+    // Captured before the setState below moves `_dragFraction`:
+    // `onChangeStart` must report the value from before this interaction
+    // began, not the position just pressed. Matches Flutter's own Material
+    // `Slider`, which reports the pre-interaction value to `onChangeStart`.
     final double previousValue = _clampedValue;
     final double fraction = _fractionFromLocalX(localX, width, rtl: rtl);
     setState(() {
@@ -377,15 +338,12 @@ class _CruxSliderState extends State<CruxSlider> {
       return;
     }
     if (!_enabled) {
-      // Defense in depth only -- `didUpdateWidget` already ends the
-      // interaction (setting `_dragging` false, with no `onChangeEnd`) the
-      // instant `onChanged` flips to `null` mid-drag, so in practice a move
-      // event can never reach this branch while disabled. Kept here (rather
-      // than removed) so the "no onChangeEnd once disabled" contract holds
-      // even if a move were ever somehow delivered before that rebuild
-      // lands. Deliberately does not call `_endInteraction` -- see
-      // `didUpdateWidget`'s comment for why going disabled mid-interaction
-      // must not fire `onChangeEnd`.
+      // Defense in depth: `didUpdateWidget` already ends the interaction
+      // the instant `onChanged` flips null mid-drag, so this branch
+      // shouldn't be reachable in practice. Kept so "no onChangeEnd once
+      // disabled" still holds if a move event were ever delivered before
+      // that rebuild lands. Deliberately does not call `_endInteraction`
+      // -- see `didUpdateWidget`'s comment.
       setState(() => _dragging = false);
       return;
     }
@@ -438,12 +396,10 @@ class _CruxSliderState extends State<CruxSlider> {
 
   /// Formats [value] for the drag bubble and the semantics `value`/
   /// `increasedValue`/`decreasedValue` strings -- see
-  /// [CruxSlider.valueLabelBuilder]'s doc for the default percentage
-  /// format and its Material `Slider` source. [value] is expected to
-  /// already be clamped to [CruxSlider.min]..[CruxSlider.max] by the
-  /// caller (every call site in [build] goes through [_displayValue] or the
-  /// clamped `increasedValue`/`decreasedValue` locals); [_fractionFromValue]
-  /// clamps again regardless, so this is safe even if it weren't.
+  /// [CruxSlider.valueLabelBuilder]'s doc for the default format. [value]
+  /// is expected to already be clamped to [CruxSlider.min]..[CruxSlider.
+  /// max] by the caller; [_fractionFromValue] clamps again regardless, so
+  /// this is safe even if it weren't.
   String _labelFor(double value) {
     final String Function(double value)? builder = widget.valueLabelBuilder;
     if (builder != null) {
@@ -504,11 +460,10 @@ class _CruxSliderState extends State<CruxSlider> {
           // Builds the fraction-dependent visuals (track fill, division
           // ticks, bubble, thumb) for a given rendered fraction. Called
           // either with the live, unsprung drag fraction while dragging (so
-          // the thumb tracks the finger with zero lag -- the confirmed
-          // "ドラッグ中は指に直結" requirement), or from inside
+          // the thumb tracks the finger with zero lag), or from inside
           // [CruxMotion.animatedValue]'s builder below while at rest, so
           // an external [CruxSlider.value] change animates smoothly
-          // instead of jumping (matching this class's own doc).
+          // instead of jumping.
           Widget buildVisual(double fraction) {
             return _buildVisual(
               fraction: fraction,
@@ -734,16 +689,13 @@ class _CruxSliderState extends State<CruxSlider> {
 }
 
 /// Paints [CruxSlider]'s thumb grip lines: a center [centerColor] line
-/// flanked by two thinner [sideColor] lines, per the confirmed spec ("中央に
-/// accent の縦グリップ線 + 両脇にグリップ線 2 本"). Mirrors checkbox.dart's
-/// `_CheckmarkPainter` as this package's established idiom for small,
-/// hand-drawn decorative marks inside an atom.
+/// flanked by two thinner [sideColor] lines.
 class _GripLinesPainter extends CustomPainter {
   const _GripLinesPainter({required this.sideColor, required this.centerColor});
 
   /// The two flanking grip lines' color: [CruxShadows.ink] washed to 22%
   /// alpha in light mode, or [CruxShadows.hairline] in dark mode (the same
-  /// color as the thumb's own outline there) -- per the confirmed spec.
+  /// color as the thumb's own outline there).
   final Color sideColor;
 
   /// The center grip line's color: [CruxColors.accent] (or

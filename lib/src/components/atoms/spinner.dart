@@ -9,26 +9,18 @@ import '../../tokens/theme.dart';
 /// [CruxSpinnerSize] scales the whole geometry up or down from it.
 const double _viewBoxSize = 24;
 
-/// The full lap duration of [CruxSpinner]'s falling animation. Started at
-/// 1800ms (KB per plans/atoms-batch-2.md's "周期約 1.8 秒"); shortened to
-/// 1200ms in a live tuning pass against the running example, per user
-/// instruction (2026-08-01) -- see implementation-notes.md's "チューニング
-/// 追記 (2026-08-01)" entry, the same tuned-live convention
-/// `CruxMotion._spring`'s duration doc records for its own 500ms → 250ms →
-/// 200ms pass.
+/// The full lap duration of [CruxSpinner]'s falling animation.
 const Duration _period = Duration(milliseconds: 1200);
 
 /// The dot radius in [_viewBoxSize] units.
 const double _dotRadius = 1.6;
 
 /// How far each column sits from the viewBox's horizontal center, in
-/// [_viewBoxSize] units -- one of the "中心から ±5〜8 相当" values the plan
-/// calls for.
+/// [_viewBoxSize] units.
 const double _columnOffset = 7;
 
 /// How far the falling dot travels above and below the viewBox's vertical
-/// center, in [_viewBoxSize] units -- the other "中心から ±5〜8 相当" value
-/// the plan calls for.
+/// center, in [_viewBoxSize] units.
 const double _travelHalfRange = 8;
 
 /// The fraction of one lap spent fading in at the top and fading out at the
@@ -36,7 +28,7 @@ const double _travelHalfRange = 8;
 /// `1 - 2 * _fadeFraction` of its lap.
 const double _fadeFraction = 0.18;
 
-/// The number of falling columns [CruxSpinner] paints (KB "3 列").
+/// The number of falling columns [CruxSpinner] paints.
 const int _columnCount = 3;
 
 /// The visual size a [CruxSpinner] renders at.
@@ -180,9 +172,8 @@ class CruxSpinner extends StatelessWidget {
     required double scale,
     required Color color,
   }) {
-    // Each column is a third of a lap behind the previous one (KB "列位相
-    // 1/3 周期ずらし"), so the three dots read as a staggered rain rather
-    // than falling in lockstep.
+    // Each column is a third of a lap behind the previous one, so the
+    // three dots read as a staggered rain rather than falling in lockstep.
     final double phaseOffset = column / _columnCount;
     final double local = (progress + phaseOffset) % 1.0;
 
@@ -214,7 +205,7 @@ class CruxSpinner extends StatelessWidget {
 
 /// The fade-in/fade-out opacity for a dot [_fadeFraction] of a lap into its
 /// fall and [_fadeFraction] of a lap before its fall ends, full opacity in
-/// between -- KB "上端でフェードイン・下端でフェードアウト".
+/// between.
 double _opacityFor(double local) {
   if (local < _fadeFraction) {
     return local / _fadeFraction;

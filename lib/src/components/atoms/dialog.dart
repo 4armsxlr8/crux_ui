@@ -8,16 +8,10 @@ import '../../tokens/radii.dart';
 import '../../tokens/spacing.dart';
 import '../../tokens/theme.dart';
 
-/// The maximum width a [CruxDialogCard] ever grows to, matching mock case
-/// B's `.dialog-card`'s `width: min(340px, 100%)` -- a fixed pixel value
-/// with no home in [CruxSpacing]'s 4px scale, so (like `button.dart`'s
-/// `_minTapTarget`) it lives here as a private, file-local constant instead
-/// of a shared token.
+/// [CruxDialogCard]'s maximum width. Not in [CruxSpacing]'s 4px scale,
+/// so it lives here as a private constant.
 const double _maxCardWidth = 340;
 
-/// [CruxDialogCard]'s default padding, matching mock case B's
-/// `.dialog-card` padding shorthand (`24px 24px 20px` -- 24 on the top/left
-/// /right edges, 20 on the bottom).
 const EdgeInsets _defaultCardPadding = EdgeInsets.fromLTRB(
   CruxSpacing.s24,
   CruxSpacing.s24,
@@ -25,17 +19,13 @@ const EdgeInsets _defaultCardPadding = EdgeInsets.fromLTRB(
   CruxSpacing.s20,
 );
 
-/// The exit fade's duration: [CruxDialog.show]'s leave transition is a
-/// plain fade (no spring, unlike the entrance -- see this file's "入場: ...
-/// + フェード。退場はフェード" spec), matching mock case B's `dialog-out`
-/// keyframe timing.
+/// The exit fade's duration. Unlike the entrance, the exit is a plain fade
+/// -- no spring.
 const Duration _exitFadeDuration = Duration(milliseconds: 140);
 
-/// The entrance spring's starting position for [CruxMotion.animatedValue]:
-/// [_CruxDialogOverlayState] renders its very first frame at this value
-/// (see its `initState`) so the spring has somewhere to fly *from* toward
-/// [_entranceEnd], instead of mounting already at rest with nothing to
-/// animate. Matches mock case B's `dialog-in` keyframe start (`scale(0.9)`).
+/// The entrance spring's starting scale: [_CruxDialogOverlayState] renders
+/// its very first frame at this value so the spring has somewhere to fly
+/// *from*, instead of mounting already at rest with nothing to animate.
 const double _entranceStart = 0.9;
 
 /// The entrance spring's resting/target value: fully open, unscaled.
@@ -44,17 +34,13 @@ const double _entranceEnd = 1.0;
 /// The "blank card" Crux UI's dialog layer floats: a [child]-agnostic
 /// surface -- filled with the theme's surface color, clipped to a
 /// superellipse corner, and lifted with [CruxThemeData.shadows]' `lg`
-/// shadow -- with no border in either theme (per the confirmed "the scrim
-/// draws the card's edge; dark mode does not add a hairline here" decision,
-/// see `unknowns/atoms-batch-3/ledger.md`) and no scrim or open/close animation
-/// of its own.
+/// shadow -- with no border in either theme (the scrim draws the card's
+/// edge) and no scrim or open/close animation of its own.
 ///
 /// This is deliberately renderable entirely on its own, with no [Overlay] or
 /// [CruxDialog.show] call involved -- passing it straight to
-/// [WidgetTester.pumpWidget], or a future widgetbook golden, renders the
-/// exact same static "floating card" look [CruxDialog.show] wraps with a
-/// scrim and entrance animation, satisfying golden testing's "must be a
-/// themed-only, non-animated widget" constraint.
+/// [WidgetTester.pumpWidget] renders the exact same static "floating card"
+/// look [CruxDialog.show] wraps with a scrim and entrance animation.
 class CruxDialogCard extends StatelessWidget {
   /// Creates a Crux dialog card.
   const CruxDialogCard({
@@ -66,9 +52,8 @@ class CruxDialogCard extends StatelessWidget {
   /// The card's content.
   final Widget child;
 
-  /// The space between the card's edge and [child]. Defaults to mock case
-  /// B's `.dialog-card` padding (24 logical pixels on three sides, 20 on
-  /// the bottom).
+  /// The space between the card's edge and [child]. Defaults to 24 logical
+  /// pixels on three sides, 20 on the bottom.
   final EdgeInsetsGeometry padding;
 
   @override
@@ -78,9 +63,7 @@ class CruxDialogCard extends StatelessWidget {
       constraints: const BoxConstraints(maxWidth: _maxCardWidth),
       child: Container(
         padding: padding,
-        // Clips `child` to this same superellipse shape -- the same reason
-        // `card.dart`'s CruxCard clips its own content (see that file's
-        // longer comment on the identical mechanism): without it, a
+        // Clips `child` to this same superellipse shape; without it, a
         // full-bleed child would paint straight through the rounded
         // corners.
         clipBehavior: Clip.antiAlias,
@@ -91,24 +74,13 @@ class CruxDialogCard extends StatelessWidget {
             borderRadius: BorderRadius.circular(CruxRadii.l),
           ),
         ),
-        // Establishes this card's own DefaultTextStyle baseline -- the same
-        // "a subtree floating outside Material resets its own ambient text
-        // style" fix Material's own `Material` widget makes for ordinary,
-        // in-Scaffold content. Without this, both this package's own Text
-        // widgets inside [child] (none of which set `decoration` -- see
-        // typography.dart) and any bare, unstyled Text a caller places
-        // straight into a blank dialog inherit whatever `DefaultTextStyle`
-        // happens to sit above wherever this card is mounted -- which, for
-        // a card shown via [CruxDialog.show], is the [Overlay]'s own
-        // position in the tree. `MaterialApp` always installs a garish
-        // "no enclosing Material" warning style (yellow double-underline)
-        // at its root, well above the Overlay; an ordinary screen never
-        // sees it because its `Scaffold` builds a `Material` that resets
-        // `DefaultTextStyle` first, but this floating card sits outside
-        // any Scaffold entirely. `TextDecoration.none` is explicit (not
-        // left to default) precisely to stop that ambient decoration from
-        // leaking through, matching H3: this package's look must never
-        // depend on an ambient Material theme.
+        // Sets this card's own DefaultTextStyle baseline. This card floats
+        // outside any Scaffold/Material, so without an explicit baseline it
+        // (and any bare Text a caller places in [child]) would inherit
+        // whatever DefaultTextStyle sits above wherever it's mounted --
+        // including MaterialApp's yellow-double-underline "no enclosing
+        // Material" warning style. `TextDecoration.none` is explicit here
+        // to stop that from leaking through.
         child: DefaultTextStyle(
           style: theme.typography.body.copyWith(
             color: theme.colors.textPrimary,
@@ -141,19 +113,12 @@ class CruxDialogCard extends StatelessWidget {
 ///
 /// **Display mechanism**: this finds the nearest ancestor [Overlay] via
 /// `Overlay.of(context)` and inserts a plain [OverlayEntry] into it directly
-/// -- it never uses Material's `showDialog`, never touches an ambient
-/// `ThemeData`, and never requires a [Navigator]/`MaterialApp` (a bare
-/// [Overlay] is enough, which is also how this package's own tests exercise
-/// it). This keeps the same guarantee every other Crux component makes:
-/// its look never depends on or is affected by an ambient Material theme.
-/// The trade-off, recorded for whoever revisits this later: because there is
-/// no [Route]/[ModalRoute] involved, this dialog does not participate in the
-/// system back button, does not appear in `Navigator` history, and cannot be
-/// popped with `Navigator.pop`. Adding an alternate `Navigator`-route-based
-/// display path later, if that trade-off ever needs revisiting, is a
-/// non-breaking addition -- [CruxDialogCard] and [CruxConfirmDialog]
-/// would both stay exactly as-is either way, since neither one knows how it
-/// is being displayed.
+/// -- it never uses Material's `showDialog` and never requires a
+/// [Navigator]/`MaterialApp` (a bare [Overlay] is enough). Its look never
+/// depends on an ambient Material theme. Trade-off: because there is no
+/// [Route]/[ModalRoute] involved, this dialog does not participate in the
+/// system back button, does not appear in `Navigator` history, and cannot
+/// be popped with `Navigator.pop`.
 ///
 /// **[builder]** receives a `close` callback alongside the usual
 /// [BuildContext]: call it from inside your content (for example a Cancel
@@ -167,18 +132,13 @@ class CruxDialogCard extends StatelessWidget {
 /// [barrierDismissible] is `true` (the default). Pass `false` to require an
 /// explicit in-content action (via `close`) instead.
 ///
-/// **Semantics**: this package's first modal semantics design. The dialog's
-/// content is wrapped in `Semantics(scopesRoute: true, explicitChildNodes:
-/// true)`, marking it as its own accessibility route the same way a native
-/// dialog would be announced, and the whole floating layer (scrim + card) is
-/// wrapped in [BlockSemantics], which drops the semantics of whatever
-/// painted behind it in the same [Overlay] -- so a screen reader can no
-/// longer reach the page underneath while the dialog is open, even though
-/// this package never touches a [Navigator]/route to get that isolation for
-/// free. The scrim itself carries no semantics label or action by default
-/// (per this package's "never decide read-aloud wording for a caller" rule
-/// -- see [barrierSemanticLabel]'s own doc); pass [barrierSemanticLabel] to
-/// give it one.
+/// **Semantics**: the dialog's content is wrapped in
+/// `Semantics(scopesRoute: true, explicitChildNodes: true)`, marking it as
+/// its own accessibility route, and the whole floating layer (scrim + card)
+/// is wrapped in [BlockSemantics], so a screen reader can no longer reach
+/// the page underneath while the dialog is open. The scrim itself carries
+/// no semantics label or action by default -- this package never invents
+/// read-aloud wording; pass [barrierSemanticLabel] to give it one.
 class CruxDialog {
   const CruxDialog._();
 
@@ -193,47 +153,37 @@ class CruxDialog {
   /// [barrierSemanticLabel], if supplied, is announced by assistive
   /// technology for the scrim itself and makes it directly activatable from
   /// there (as a `SemanticsAction.tap`) whenever [barrierDismissible] is
-  /// also `true`. Left `null` (the default) since this package never decides
-  /// read-aloud wording on a caller's behalf (H1) -- with no label, the
-  /// scrim still dismisses on a real touch, it is only left out of the
-  /// semantics tree.
-  ///
-  /// Assistive technology recommendation: pass either [barrierSemanticLabel]
-  /// or give [builder]'s content an explicit, clearly-labelled close action.
-  /// With neither, a screen reader user who has landed inside this dialog's
-  /// semantics route has no announced way to dismiss it -- the scrim still
-  /// dismisses on a real touch, but that gesture is undiscoverable without
-  /// some spoken affordance pointing to it.
+  /// also `true`. Left `null` by default -- this package never decides
+  /// read-aloud wording on a caller's behalf; with no label, the scrim
+  /// still dismisses on a real touch, it is only left out of the semantics
+  /// tree. Pass either this or give [builder]'s content an explicit,
+  /// clearly-labelled close action: with neither, a screen reader user
+  /// inside this dialog's semantics route has no announced way to dismiss
+  /// it.
   ///
   /// [routeSemanticLabel], if supplied, names this dialog's semantics route
   /// (`Semantics.namesRoute` + `Semantics.label`) so assistive technology
   /// announces it by that name on entry, the same way a native dialog
-  /// announces its title. Left `null` (the default), again per H1: this
-  /// package never invents wording, so an unnamed route is simply left
-  /// unnamed rather than guessing at one. Regardless of
-  /// [routeSemanticLabel], the dialog's semantics route always carries
-  /// [SemanticsRole.dialog] so assistive technology can identify it as a
-  /// dialog even when it has no name.
+  /// announces its title. Left `null` by default for the same reason as
+  /// [barrierSemanticLabel]. Regardless of [routeSemanticLabel], the
+  /// dialog's semantics route always carries [SemanticsRole.dialog] so
+  /// assistive technology can identify it as a dialog even when it has no
+  /// name.
   ///
   /// Returns a [Future] that completes once the dialog has fully closed
   /// (after its exit fade finishes and its [OverlayEntry] is removed).
   ///
-  /// **Theme capture**: [CruxTheme.of] is read from [context] once, at the
-  /// moment [show] is called, and that value is what the dialog renders
-  /// with for its entire lifetime -- not whatever [CruxTheme] happens to
-  /// sit above the [Overlay] the entry is inserted into. This matters
-  /// because an [OverlayEntry]'s content is built as a child of the
-  /// [Overlay] widget's own position in the tree, which is very often *not*
-  /// a descendant of [context] (an [Overlay] is usually much higher up,
-  /// e.g. supplied once near the app root); without capturing, the dialog
-  /// would silently pick up whatever [CruxTheme] (or none, falling back
-  /// to light) happens to be an ancestor of the [Overlay] instead of the
-  /// caller's own local one -- the same "same-shaped bug" `showDialog` in
-  /// Material solves with `InheritedTheme.captureAll`. The trade-off: a
-  /// [CruxTheme] change made *after* this dialog has already opened is
-  /// not picked up by an already-open dialog, even if [context] stays
-  /// mounted under a new one -- close and reopen to pick up a changed
-  /// theme.
+  /// **Theme capture**: [CruxTheme.of] is read from [context] once, at
+  /// the moment [show] is called, and that value is what the dialog renders
+  /// with for its entire lifetime. This matters because an [OverlayEntry]'s
+  /// content is built as a child of the [Overlay] widget's own position in
+  /// the tree, which is often *not* a descendant of [context] (an
+  /// [Overlay] is usually supplied once near the app root); without
+  /// capturing, the dialog would silently pick up whatever [CruxTheme]
+  /// happens to be an ancestor of the [Overlay] instead of the caller's own
+  /// local one. Trade-off: a [CruxTheme] change made *after* this dialog
+  /// has already opened is not picked up -- close and reopen to pick up a
+  /// changed theme.
   static Future<void> show(
     BuildContext context, {
     required Widget Function(BuildContext context, VoidCallback close) builder,
@@ -247,20 +197,12 @@ class CruxDialog {
     late final OverlayEntry entry;
 
     void handleRequestRemove() {
-      // remove() then dispose(), back to back: OverlayEntry's own contract
-      // ("The remove method must be called before this method if the
-      // OverlayEntry is inserted into an Overlay") only requires remove()
-      // to have already run, not that its widget has finished unmounting --
-      // dispose() itself defers releasing its internal listener notifier
-      // until that unmount completes if it hasn't yet (see its own "If
-      // we're still mounted when disposed..." handling), so calling both
-      // immediately here is safe. This matches the SDK's own internal
-      // `_entry..remove()..dispose();` pattern for a widget that owns its
-      // own OverlayEntry (`_WrappingOverlayState.dispose()`). Previously
-      // this only called remove(), leaving every closed dialog's entry
-      // never disposed -- a lifecycle contract violation that also delayed
-      // releasing its resources until garbage collection instead of
-      // immediately.
+      // remove() then dispose(), back to back: OverlayEntry requires
+      // remove() to have already run before dispose(), not that its widget
+      // has finished unmounting -- dispose() itself defers releasing its
+      // internal listener until that unmount completes, so calling both
+      // immediately here is safe (same pattern Flutter's own
+      // `_WrappingOverlayState.dispose()` uses).
       entry
         ..remove()
         ..dispose();
@@ -269,15 +211,12 @@ class CruxDialog {
       }
     }
 
-    // Covers the path _handleRequestRemove doesn't: the Overlay this entry
-    // lives in gets torn down by an ancestor rebuild (e.g. the whole route,
-    // or in tests a fresh pumpWidget) before the dialog was ever closed via
-    // the scrim or the builder's close callback. The framework has already
-    // removed the entry by the time this runs, so this only completes the
-    // still-pending Future -- it must never call entry.remove() (or
-    // entry.dispose(), which requires remove() to have already run) itself:
-    // by this point the Overlay this entry lived in is itself gone, and
-    // calling either could reach into that now-defunct OverlayState.
+    // Covers the path handleRequestRemove doesn't: the Overlay this entry
+    // lives in is torn down by an ancestor rebuild before the dialog was
+    // ever closed. The framework has already removed the entry by the time
+    // this runs, so this only completes the pending Future -- it must never
+    // call entry.remove()/dispose() itself, since the Overlay it lived in
+    // is already gone.
     void handleDisposedWithoutClosing() {
       if (!completer.isCompleted) {
         completer.complete();
@@ -286,10 +225,8 @@ class CruxDialog {
 
     entry = OverlayEntry(
       builder: (BuildContext overlayContext) {
-        // Re-provides the theme captured above to the OverlayEntry's own
-        // subtree, which otherwise only sees whatever CruxTheme sits
-        // above the Overlay itself -- see this method's own "Theme
-        // capture" doc.
+        // Re-provides the captured theme to the OverlayEntry's own subtree
+        // -- see the "Theme capture" doc above.
         return CruxTheme(
           data: capturedTheme,
           child: _CruxDialogOverlay(
@@ -338,9 +275,8 @@ class _CruxDialogOverlay extends StatefulWidget {
 }
 
 class _CruxDialogOverlayState extends State<_CruxDialogOverlay> {
-  // false on the very first build (rendering at _entranceStart), flipped to
-  // true one frame later so CruxMotion.animatedValue sees its `value`
-  // change from _entranceStart to _entranceEnd and actually starts the
+  // false on the first build (renders at _entranceStart); flips to true one
+  // frame later so animatedValue's `value` changes and actually starts the
   // spring, instead of mounting already-settled with nothing to animate.
   bool _entered = false;
 
@@ -365,11 +301,10 @@ class _CruxDialogOverlayState extends State<_CruxDialogOverlay> {
   }
 
   void _close() {
-    // Guards against a close callback that a caller kept a reference to
-    // (e.g. captured inside `builder` and stashed for later) outliving this
-    // State -- if the whole tree (Overlay included) was torn down without
-    // ever going through this dialog's own close path, calling setState
-    // below would throw "setState() called after dispose()".
+    // Guards a close callback the caller may have stashed and called after
+    // this State was disposed (tree torn down without going through this
+    // dialog's own close path) -- otherwise setState below throws
+    // "setState() called after dispose()".
     if (!mounted || _closing) {
       return;
     }
@@ -389,18 +324,12 @@ class _CruxDialogOverlayState extends State<_CruxDialogOverlay> {
     final Widget card = CruxDialogCard(child: content);
 
     if (_closing) {
-      // Blocks the whole floating layer -- scrim and card alike -- from
-      // hit-testing for the entire exit fade: `build` above still calls
-      // `widget.builder` on every rebuild while closing, so a still-mounted
-      // in-content action (for example CruxConfirmDialog's confirm
-      // button) keeps its `onPressed` wired up and would otherwise stay
-      // tappable for the full 140ms fade. Without this, a second real tap
-      // landing in that window reaches the button again and re-runs its
-      // callback -- observed as, e.g., a confirm dialog's onConfirm firing
-      // twice for two fast taps on the same button. `_close` itself already
-      // guards against a second *close* (see its own `_closing` check), but
-      // that guard cannot stop the button's own callback from running a
-      // second time; only refusing the tap at the hit-test level does.
+      // Blocks the whole floating layer from hit-testing during the exit
+      // fade: `build` keeps calling `widget.builder` while closing, so an
+      // in-content action (e.g. CruxConfirmDialog's confirm button) stays
+      // tappable and could re-run its callback on a second tap during the
+      // fade. `_close`'s own `_closing` guard stops a second *close*, but
+      // not the button's callback -- only refusing the tap here does.
       return IgnorePointer(
         ignoring: true,
         child: TweenAnimationBuilder<double>(
@@ -419,11 +348,8 @@ class _CruxDialogOverlayState extends State<_CruxDialogOverlay> {
       value: _entered ? _entranceEnd : _entranceStart,
       playful: true,
       builder: (BuildContext context, double value, Widget? child) {
-        // Derived from the same spring value that drives the scale, rather
-        // than a second, independent animation: this keeps the fade and the
-        // bounce perfectly in lockstep (no risk of the two ever drifting out
-        // of sync), and reaches full opacity by the time the spring first
-        // crosses its resting value, before any of its overshoot plays out.
+        // Derived from the same spring value that drives the scale (not a
+        // second animation), so the fade and bounce stay in lockstep.
         final double opacity =
             ((value - _entranceStart) / (_entranceEnd - _entranceStart)).clamp(
               0.0,
@@ -471,9 +397,8 @@ class _CruxDialogOverlayState extends State<_CruxDialogOverlay> {
       child: Semantics(
         scopesRoute: true,
         explicitChildNodes: true,
-        // Always applied (regardless of routeLabel): identifies this route
-        // as a dialog to assistive technology even when it has no name --
-        // see [CruxDialog.show]'s own "routeSemanticLabel" doc.
+        // Always applied: identifies this route as a dialog to assistive
+        // technology even when it has no name.
         role: SemanticsRole.dialog,
         namesRoute: routeLabel != null,
         label: routeLabel,

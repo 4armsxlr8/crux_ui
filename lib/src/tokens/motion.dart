@@ -28,24 +28,11 @@ class CruxMotion {
   /// value an atom needs to spring toward a target ([animatedValue], for
   /// example [CruxSwitch]'s thumb position).
   ///
-  /// `CupertinoMotion`'s own default constructor is a critically-damped
-  /// spring with zero bounce ("standard iOS spring motion behavior"), which
-  /// would not satisfy the "releases with a slight bounce" behavior recorded
-  /// in KB6/plan.md. `CupertinoMotion.snappy()` is motor's preset for "a
-  /// small amount of bounce", so it is used here instead — see
-  /// implementation-notes.md's Deviations section for the full reasoning.
-  ///
-  /// `CupertinoMotion.snappy()`'s own default duration is 500ms (confirmed
-  /// against motor 1.1.0's source, `CupertinoMotion.snappy`'s `duration`
-  /// parameter default), which reads as sluggish for a press/toggle
-  /// response: user feedback on the initial tuning was that button/chip/card
-  /// press feedback and the switch thumb both felt slow to respond.
-  /// `duration` is shortened to 200ms here (500ms → 250ms → 200ms, tuned
-  /// live against the running example — see implementation-notes.md's
-  /// "Motion tuning (2026-07-25)" entry) — while `bounce` is left at
-  /// `snappy()`'s default 0.15 (via its `extraBounce: 0` default, left
-  /// unspecified below) so the KB6 "releases with a slight bounce" behavior
-  /// is unchanged: only the spring's speed changed, not its bounciness.
+  /// `CupertinoMotion.snappy()` at its default 0.15 bounce gives the
+  /// "releases with a slight bounce" feel this package wants; its own
+  /// default 500ms duration reads as sluggish for a press/toggle response,
+  /// so `duration` is shortened to 200ms here while `bounce` is left at the
+  /// default -- only the spring's speed changes, not its bounciness.
   static const motor.Motion _spring = motor.CupertinoMotion.snappy(
     duration: Duration(milliseconds: 200),
   );
@@ -54,57 +41,25 @@ class CruxMotion {
   /// animated values to visibly move at different paces within the same
   /// gesture rather than in lockstep.
   ///
-  /// Introduced for [CruxSwitch]'s "liquid travel" thumb (agreed
-  /// 2026-07-25, see implementation-notes.md's "Switch liquid travel"
-  /// section): the thumb's leading edge (the edge nearer the destination
-  /// side) is driven by [_spring] as normal, while its trailing edge (the
-  /// edge nearer the side it's leaving) is driven by [_slowSpring], so the
+  /// Drives [CruxSwitch]'s "liquid travel" thumb: the leading edge (nearer
+  /// the destination) is driven by [_spring] as normal, while the trailing
+  /// edge (nearer the side it's leaving) is driven by [_slowSpring], so the
   /// leading edge arrives first and the trailing edge catches up afterward
   /// -- ballooning the gap between them (the thumb's rendered width) during
   /// the flight and collapsing it back to resting once both edges settle.
   ///
-  /// Same `CupertinoMotion.snappy` family and the same 0.15 bounce as
-  /// [_spring] (`extraBounce` is left at its default 0 here too), so the two
-  /// edges read as the same spring "material" moving at two different
+  /// Same `CupertinoMotion.snappy` family and bounce as [_spring], so the
+  /// two edges read as the same spring "material" moving at two different
   /// speeds rather than two different feels -- only `duration` differs.
-  /// 350ms is 1.75x of [_spring]'s 200ms, comfortably inside the
-  /// "roughly 1.5x-2x" range agreed for this feature: a round number picked
-  /// within that range rather than tuned live against the running example
-  /// the way [_spring]'s 200ms was (see implementation-notes.md's "Motion
-  /// tuning" entry for that live-tuning process); revisit if the liquid
-  /// travel effect ever gets its own live tuning pass.
   static const motor.Motion _slowSpring = motor.CupertinoMotion.snappy(
     duration: Duration(milliseconds: 350),
   );
 
-  /// A bouncier sibling of [_spring], for the single moment this package
-  /// deliberately wants to read as playful rather than restrained: the
-  /// checkmark [CruxCheckbox] springs in with (see plans/atoms-batch-2.md
-  /// -- "checkbox is a bounce/overshoot moment" -- and checkbox.dart's own
-  /// class doc for the "scale 0 -> ~1.15 -> 1.0" spec this spring
-  /// implements).
-  ///
-  /// `CupertinoMotion.snappy`'s `bounce` is `0.15 + extraBounce` (confirmed
-  /// against motor 1.1.0's source, `motion.dart`'s
-  /// `CupertinoMotion.snappy` constructor), and SwiftUI's own `bounce`
-  /// parameter -- which `CupertinoMotion` mirrors -- is defined as `1 -
-  /// dampingRatio`. A step response's overshoot fraction for a
-  /// second-order underdamped system is `exp(-zeta * pi / sqrt(1 -
-  /// zeta^2))` for damping ratio `zeta`. For [_spring]'s `bounce = 0.15`
-  /// (`zeta = 0.85`), that formula evaluates to ~0.63% overshoot --
-  /// imperceptible on screen, and too small to move [CruxCheckbox]'s box
-  /// pulse (which is derived from this same overshoot) past a sub-pixel
-  /// no-op; a review pass measured both directly (1ms-sampled peaks) and
-  /// found [_spring] alone did not satisfy the checkbox's agreed spec (see
-  /// `plans/atoms-batch-2/implementation-notes.md`'s review-follow-up entry
-  /// for the measurement this constant's `extraBounce` was chosen to fix).
-  /// `extraBounce: 0.33` raises the total bounce to `0.48` (`zeta = 0.52`),
-  /// which the same formula puts at ~14.8% overshoot -- comfortably inside
-  /// the "~1.15" the spec calls for, and confirmed against
-  /// `checkbox_test.dart`'s own 1ms-sampled "checkmark overshoot" test.
-  /// `duration` is left at [_spring]'s 200ms so the checkmark's overall
-  /// pace still matches every other press/toggle response in this package;
-  /// only the bounciness changes.
+  /// A bouncier sibling of [_spring] for the checkbox checkmark's pop-in.
+  /// `extraBounce: 0.33` (total bounce 0.48) yields ~15% overshoot, matching
+  /// the spec'd "scale 0 -> ~1.15 -> 1.0"; [_spring]'s own 0.15 bounce
+  /// overshoots <1%, which reads as no bounce at all. Same 200ms duration as
+  /// [_spring] so the pace matches every other press response.
   static const motor.Motion _playfulSpring = motor.CupertinoMotion.snappy(
     duration: Duration(milliseconds: 200),
     extraBounce: 0.33,
@@ -143,28 +98,14 @@ class CruxMotion {
   /// value to visibly lag behind a first one within the same gesture (for
   /// example [CruxSwitch]'s thumb, whose leading and trailing edges use
   /// this on the same widget across different builds depending on travel
-  /// direction). This is safe to change from one build to the next even
-  /// while a value is mid-flight: [SingleMotionBuilder] applies a changed
-  /// `motion` before a changed `value` on the same rebuild, and changing the
-  /// underlying `motor` controller's motion while a simulation is in flight
-  /// restarts it from the current position and velocity toward the same
-  /// current target, never jumping (confirmed against `motor` 1.1.0's
-  /// source, `base_motion_builder.dart`'s `didUpdateWidget` and
-  /// `motion_controller.dart`'s `_redirectSimulation`).
+  /// direction). Safe to change from one build to the next even mid-flight:
+  /// changing the underlying motion redirects the simulation from its
+  /// current position and velocity toward the same target, never jumping.
   ///
   /// Pass `playful: true` to drive this value with [_playfulSpring] instead
-  /// -- a much bouncier sibling of [_spring], reserved for the one moment
-  /// this package wants a pronounced overshoot rather than a barely-there
-  /// one (see [_playfulSpring]'s own doc for the math and
-  /// [CruxCheckbox]'s checkmark, its only caller so far). Mutually
-  /// exclusive with `slow` in practice -- no current atom needs both a
-  /// longer duration and extra bounce at once -- but if both are passed,
-  /// `playful` wins.
-  ///
-  /// Like [scale], this is the single choke point atoms route a spring
-  /// through so the underlying animation engine can change later without
-  /// breaking Crux UI's public API: [builder] and [child] are both plain
-  /// Flutter types, never a `motor` type.
+  /// -- reserved for [CruxCheckbox]'s checkmark, the one moment this
+  /// package wants a pronounced overshoot. Mutually exclusive with `slow` in
+  /// practice; if both are passed, `playful` wins.
   static Widget animatedValue({
     required double value,
     required Widget Function(BuildContext context, double value, Widget? child)
@@ -182,45 +123,19 @@ class CruxMotion {
   }
 
   /// Builds a widget that springs a [Color] toward [value] whenever it
-  /// changes, using the same shared spring [scale] and [animatedValue] use.
+  /// changes, using the same shared spring [scale] and [animatedValue] use,
+  /// so a color change settles with the same timing and bounce as everything
+  /// else this class animates rather than snapping instantly.
   ///
-  /// Introduced for `CruxInputBar`'s send button, whose fill color needs to
-  /// change between its enabled and disabled tones: without this, an
-  /// enabled/disabled toggle would snap the button's color instantly, which
-  /// reads as a flicker next to the button's own spring-driven press feedback
-  /// ([scale]). Routing the color through the same [_spring] makes the color
-  /// change settle with the same timing and bounce as everything else this
-  /// class animates, so it reads as the same "material" responding to state,
-  /// not a separate, disconnected transition.
-  ///
-  /// Interpolates in RGB space via `motor`'s
-  /// [motor.ColorRgbMotionConverter] -- confirmed against motor 1.1.0's
-  /// source (`motion_converter.dart:126-145`): it normalizes a [Color] to its
-  /// four straight (non-premultiplied) `r`/`g`/`b`/`a` components in a single
-  /// four-element list and denormalizes by clamping each component back to
-  /// `[0, 1]` and reconstructing via `Color.from`. All four channels,
-  /// including alpha, are carried through the same spring simulation and
-  /// interpolated together, so a color's alpha animates smoothly alongside
-  /// its RGB rather than being dropped or held fixed -- relevant because this
-  /// package's own dark palette uses translucent colors (`muted` and
-  /// `separator` are `Color.fromRGBO(..., 0.45)`, per
-  /// `lib/src/tokens/colors.dart`), so animating toward or away from one of
-  /// those tokens fades its opacity in step with its hue rather than
-  /// snapping the alpha channel.
-  ///
-  /// Because the interpolation is per-channel in RGB space rather than
-  /// perceptual, animating between two hues that differ a lot (for example a
-  /// saturated accent color to a desaturated gray) can pass through a
-  /// slightly muddier intermediate color than a perceptual color space would
-  /// produce; this is `motor`'s only built-in color converter, and is an
-  /// acceptable trade-off for the short, small-swatch transitions this
-  /// package uses this for (a button fill toggling between two closely
-  /// related design tokens), not a longer decorative gradient animation.
-  ///
-  /// Like [scale] and [animatedValue], this is the single choke point atoms
-  /// route a color spring through so the underlying animation engine can
-  /// change later without breaking Crux UI's public API: [builder] and
-  /// [child] are both plain Flutter types, never a `motor` type.
+  /// Interpolates per-channel in RGB space (via `motor`'s
+  /// [motor.ColorRgbMotionConverter]), carrying alpha through the same
+  /// spring as the RGB channels -- relevant because this package's dark
+  /// palette uses translucent tokens (`muted`, `separator`), so animating to
+  /// or from one of those fades its opacity in step with its hue instead of
+  /// snapping it. Because the interpolation is per-channel rather than
+  /// perceptual, animating between two very different hues can pass through
+  /// a slightly muddier intermediate color; acceptable for this package's
+  /// short, small-swatch transitions.
   static Widget animatedColor({
     required Color value,
     required Widget Function(BuildContext context, Color value, Widget? child)
@@ -239,17 +154,12 @@ class CruxMotion {
   /// The total duration of the horizontal shake [shake] plays each time
   /// [shake]'s `trigger` changes -- see [shake]'s doc for what drives it.
   ///
-  /// Un-tuned: a sensible starting point (long enough for [_shakeCycles]
-  /// oscillations to read as a wobble rather than a single flick, short
-  /// enough not to outstay the validation error it accompanies), not yet
-  /// checked against a running app on a device the way [_spring]'s 200ms
-  /// was (see this class's "Motion tuning" doc on [_spring]). Revisit on a
-  /// device before release.
+  /// Untuned placeholder, as is [shakeAmplitude] -- revisit both on a device
+  /// before release (unknowns/textfield-atom/ledger.md).
   static const Duration shakeDuration = Duration(milliseconds: 400);
 
   /// The peak horizontal displacement [shake] moves the shaken widget by, in
   /// logical pixels, at the strongest point of its decaying oscillation.
-  /// Un-tuned -- see [shakeDuration]'s doc for what that means here.
   static const double shakeAmplitude = 8;
 
   /// The number of full left-right oscillations [shake] completes over
@@ -258,11 +168,9 @@ class CruxMotion {
   /// Deliberately an integer: the oscillation term below
   /// (`sin(_shakeCycles * 2 * pi * progress)`) is then mathematically zero
   /// at both `progress == 0` and `progress == 1`, matching a shake that
-  /// both starts and ends at rest. [shake] additionally hard-clamps its
-  /// output to exactly `0.0` once `progress >= 1.0` rather than trusting
-  /// that mathematical zero to survive floating-point rounding -- see
-  /// [_shakeMotion]'s doc for why `progress` itself is guaranteed to reach
-  /// exactly `1.0`.
+  /// both starts and ends at rest. [shake] still hard-clamps its output to
+  /// exactly `0.0` once `progress >= 1.0` rather than trusting that
+  /// mathematical zero to survive floating-point rounding.
   static const int _shakeCycles = 3;
 
   /// Shapes how quickly [shake]'s oscillation decays: applied as
@@ -273,29 +181,12 @@ class CruxMotion {
   static const double _shakeDecayRate = 4.5;
 
   /// The motor motion driving [shake]'s internal 0->1 progress value: a
-  /// fixed-duration linear curve (`Motion.curved`, motor's duration-based
-  /// alternative to a spring -- see the library doc's "unified motion
-  /// system" framing), not a spring.
-  ///
-  /// A shake is not a value settling toward a persisted target the way
-  /// [_spring]/[_slowSpring] are used elsewhere in this class: it is a
-  /// one-shot effect that must (a) be able to play again from a standing
-  /// start on every trigger, even back-to-back with an unchanged target
-  /// value (see [shake]'s doc), and (b) return to *exactly* zero
-  /// displacement once it finishes, not merely settle near zero. A spring's
+  /// fixed-duration linear curve (`Motion.curved`), not a spring. A spring's
   /// settle is asymptotic -- it approaches its target but is not guaranteed
-  /// to reach it bit-exactly (this is why this package's own existing
-  /// spring-driven values are only ever asserted `closeTo` their resting
-  /// value once settled, e.g. button_test.dart's press-animation test
-  /// asserting `closeTo(1.0, 0.001)` after `pumpAndSettle()`, never a bare
-  /// `1.0`) -- so a spring cannot back requirement (b). `Motion.curved`'s
-  /// underlying `CurveSimulation`, in contrast, returns its `end` value
-  /// bit-exactly once elapsed time passes [shakeDuration] (confirmed
-  /// against motor 1.1.0's source, `simulations/curve_simulation.dart`'s
-  /// `x`/`isDone`: `x(time)` short-circuits to `end` once `time` exceeds
-  /// the duration, rather than asymptotically approaching it), which is
-  /// what lets [shake] hard-clamp its own output to exactly `0.0` once
-  /// progress reaches `1.0`.
+  /// to reach it bit-exactly -- while `Motion.curved` returns its `end`
+  /// value bit-exactly once [shakeDuration] elapses, which is what lets
+  /// [shake] hard-clamp its own output to exactly `0.0` once progress
+  /// reaches `1.0`.
   static const motor.Motion _shakeMotion = motor.Motion.curved(shakeDuration);
 
   /// Builds [child] wrapped in a horizontal shake -- a decaying left-right
@@ -306,21 +197,10 @@ class CruxMotion {
   /// Unlike [scale] and [animatedValue], which spring a value toward a
   /// persisted target and stay there, a shake is a one-shot effect that
   /// must be able to play again even when nothing about the *represented
-  /// state* changed -- see `CruxTextFormField`'s "a repeated failed
-  /// submit with an identical error message shakes again" requirement, the
-  /// reason this takes a `trigger` count rather than, say, a `bool
-  /// hasError`: the caller increments [trigger] by exactly 1 every time a
-  /// new shake should play (an unchanged [trigger] across a rebuild plays
-  /// no new shake, the same "reacts to changes, not levels" contract every
-  /// other value passed to this class follows).
-  ///
-  /// Internally drives a 0->1 progress double via [_shakeMotion] (see its
-  /// doc for why a duration-based curve is used instead of a spring here)
-  /// and maps it through a fixed decaying sine
-  /// (`shakeAmplitude * exp(-_shakeDecayRate * p) * sin(_shakeCycles * 2 *
-  /// pi * p)`), then returns a hard `0.0` once progress reaches `1.0`
-  /// instead of trusting that formula's own floating-point residual at the
-  /// boundary to equal zero exactly.
+  /// state* changed (for example, a repeated failed submit with an
+  /// identical error message shakes again): the caller increments [trigger]
+  /// by exactly 1 every time a new shake should play. An unchanged [trigger]
+  /// across a rebuild plays no new shake.
   ///
   /// Pass `reduceMotion: true` -- from [MediaQuery.disableAnimationsOf],
   /// Flutter's binding for the OS "reduce motion" accessibility setting --
@@ -340,11 +220,8 @@ class CruxMotion {
       value: trigger.toDouble(),
       builder: (BuildContext context, double animatedValue, Widget? child) {
         // How far into *this* shake leg the animation has traveled: trigger
-        // increases by exactly 1 per shake (see the class doc above), so
-        // `trigger - 1` is the value this leg started from whenever the
-        // previous shake fully settled first (the common case) -- see
-        // [shake]'s class doc for the rare-and-harmless exception (a
-        // retrigger before the previous shake finishes).
+        // increases by exactly 1 per shake, so `trigger - 1` is the value
+        // this leg started from.
         final double progress = (animatedValue - (trigger - 1)).clamp(0.0, 1.0);
         final double dx = progress >= 1.0 ? 0.0 : _shakeOffset(progress);
         return Transform.translate(offset: Offset(dx, 0), child: child);
@@ -363,125 +240,47 @@ class CruxMotion {
 
   /// Builds a widget that plays a `0.0 -> 1.0` progress value once, every
   /// time [trigger] changes from whatever value it had on the previous
-  /// build, and hands that raw progress to [builder] -- introduced for
-  /// `CruxSegmentedControl`'s "kira" sheen, the diagonal light sweep that
-  /// plays once after a selection change.
+  /// build, and hands that raw progress to [builder] -- for a one-shot
+  /// paint effect (e.g. a diagonal sheen sweep) that doesn't reduce to a
+  /// single formula the way [shake]'s horizontal offset does.
   ///
-  /// This generalizes [shake]: where [shake] bakes a single fixed
-  /// decaying-sine formula into its own builder, this exposes the bare
-  /// progress so a caller can drive an arbitrary one-shot paint effect off
-  /// it (the sheen's position, skew, and edge-shadow opacity are all
-  /// functions of the same progress, but don't reduce to one formula the
-  /// way [shake]'s horizontal offset does). Both share the same contract
-  /// (see [shake]'s doc for the full reasoning): an unchanged [trigger]
-  /// across a rebuild plays nothing -- `progress` reads a steady `0.0` for
-  /// as long as [trigger] has never changed, including on the widget's very
-  /// first build (this needed its own fix during implementation: naively
-  /// reusing [shake]'s own `animatedValue - (trigger - 1)` formula reads
-  /// `1.0` -- "already finished" -- on a fresh mount instead of `0.0`,
-  /// because the underlying `motor` controller's `initialValue` would be
-  /// [trigger] itself, not `trigger - 1`, if fed [trigger] directly; [shake]
-  /// never notices because its decaying-sine formula happens to be zero at
-  /// *both* ends of a leg, but a caller reading raw progress, like this
-  /// method's, would see the wrong end. Fixed by tracking a
-  /// `_baselineTrigger` against `_PlayOnceState`'s own internally-normalized
-  /// play count (see this doc's "Contract" paragraph above for why that
-  /// count exists at all) rather than [trigger] directly: `_baselineTrigger`
-  /// starts at that count's own initial value (`0`, matching the
-  /// controller's real starting point) and only advances to the count's
-  /// previous value once a real [trigger] change is observed; see
-  /// `test/tokens/motion_oneshot_test.dart`'s "plays nothing while trigger
-  /// stays unchanged" case, which failed before this fix).
-  /// A [trigger] incremented by exactly 1 plays once from a standing start,
-  /// even when nothing about the *represented* state changed.
-  ///
-  /// **Contract**: exactly like [shake]'s own documented contract,
-  /// [trigger] must be incremented by exactly 1 per new shot -- never
-  /// skipped ahead by more, never decremented -- for [duration] to time
-  /// that shot correctly end-to-end. A caller-side jump of more than 1
-  /// would otherwise make the underlying spring/curve cover a *larger*
-  /// span of value in the same wall-clock [duration], finishing early: this
-  /// was a real, measured bug (`CruxSegmentedControl`'s kira sheen
-  /// briefly reaching its end in roughly a third of its 300ms [duration]
-  /// after a caller-side trigger jump -- see
-  /// `unknowns/atoms-batch-3/ledger.md`'s review follow-up). As insurance
-  /// against a caller drifting from that contract anyway, this method also
-  /// normalizes internally: `_PlayOnceState`'s own play count advances by
-  /// exactly 1 on *every* detected [trigger] change, whatever that
-  /// change's own magnitude or sign, and that normalized count -- not
-  /// [trigger] itself -- is what actually drives the underlying motor
-  /// value, so [duration] stays correct end-to-end regardless of how far
-  /// [trigger] itself moved (see `test/tokens/motion_oneshot_test.dart`'s
-  /// "a trigger jump of more than 1" case). This normalization is *not* a
-  /// substitute for a caller correctly gating a segment's own trigger to
-  /// only the real events meant for it, though -- see
-  /// `CruxSegmentedControl`'s own `_scheduleSheen` doc for a case where
-  /// the actual fix had to be "never send this widget a change it isn't
-  /// meant to react to" rather than anything playOnce itself could paper
-  /// over.
+  /// **Contract**: [trigger] must be incremented by exactly 1 per new shot
+  /// -- never skipped ahead by more, never decremented -- for [duration] to
+  /// time that shot correctly end-to-end; a caller-side jump of more than 1
+  /// would otherwise make the underlying curve cover a larger span of value
+  /// in the same wall-clock [duration], finishing early. As insurance, this
+  /// method also normalizes internally: its play count advances by exactly
+  /// 1 per detected [trigger] change regardless of that change's own
+  /// magnitude, and the normalized count -- not [trigger] itself -- drives
+  /// the underlying motor value. This normalization is not a substitute for
+  /// a caller correctly gating its own trigger to only the events meant for
+  /// it, though. `progress` reads a steady `0.0` for as long as [trigger]
+  /// has never changed, including on the widget's very first build.
   ///
   /// A retrigger before the previous shot settles redirects the underlying
-  /// simulation
-  /// without a value jump (the same `motor` redirect-simulation guarantee
-  /// [animatedValue]'s doc cites), but -- exactly like [shake]'s own
-  /// documented "rare-and-harmless exception" -- the *rescaled* `progress`
-  /// this method reports can briefly read low (clamped toward `0.0`) rather
-  /// than perfectly continuing from its pre-retrigger fraction, because the
-  /// rescale assumes the interrupted leg would have settled at its own
-  /// target first; this is bounded (progress never leaves `[0.0, 1.0]`, no
-  /// exception, and it still reaches `1.0` once the new leg's [duration]
-  /// elapses), just not pixel-perfectly seamless across that one instant --
-  /// acceptable for the same reason [shake] accepts it: a rapid retrigger of
-  /// the *same* one-shot is a rare interaction, and a decorative effect
-  /// briefly compressing rather than glitching is a minor cosmetic
-  /// trade-off, not a functional break.
+  /// simulation without a value jump, but the *rescaled* `progress` this
+  /// method reports can briefly read low (clamped toward `0.0`) rather than
+  /// perfectly continuing from its pre-retrigger fraction. This is bounded
+  /// (progress never leaves `[0.0, 1.0]`) and still reaches `1.0` once the
+  /// new leg's [duration] elapses -- a rapid retrigger of the same one-shot
+  /// is a rare interaction, and briefly compressing is an acceptable
+  /// cosmetic trade-off.
   ///
-  /// Drives progress with a `Motion.curved(duration)` -- the same
-  /// fixed-duration curve family [shake] uses via [_shakeMotion], not a
-  /// spring -- so [progress] reaches *exactly* `1.0` once [duration]
-  /// elapses rather than merely settling near it (see [shake]'s doc for why
-  /// a spring's asymptotic settle cannot back this guarantee). Unlike
-  /// [_shakeMotion], which is a single `static const` instance because
-  /// [shakeDuration] is fixed, [duration] here is caller-supplied: although
-  /// `CurvedMotion` does define a structural `==`/`hashCode` (confirmed
-  /// against motor 1.1.0's source, `motion.dart`'s `CurvedMotion`, so a
-  /// freshly-built `Motion.curved(duration)` would in fact already compare
-  /// equal to a previous instance with the same `duration`/`curve`), this
-  /// method still caches one instance per element for the lifetime of a
-  /// given [duration] rather than relying on that: `Motion`'s own base type
-  /// documents no such contract, and a future non-`CurvedMotion` case (or a
-  /// `motor` upgrade) silently losing that override would otherwise
-  /// resurface `BaseMotionBuilderState.didUpdateWidget`'s unconditional
-  /// `controller.motion = motion` whenever `widget.motion != oldWidget
-  /// .motion` (confirmed against `base_motion_builder.dart`) redirecting --
-  /// restarting the in-flight simulation's elapsed clock -- on every
-  /// unrelated rebuild while a shot is mid-flight, not just on a genuine
-  /// retrigger (see `test/tokens/motion_oneshot_test.dart`'s "unrelated
-  /// rebuild mid-flight" regression test for the scenario this guards).
+  /// Drives progress with `Motion.curved(duration)`, not a spring, so
+  /// [progress] reaches *exactly* `1.0` once [duration] elapses rather than
+  /// merely settling near it. Unlike [_shakeMotion] (a `static const`
+  /// because [shakeDuration] is fixed), [duration] here is caller-supplied,
+  /// so one `Motion.curved` instance is cached per element for the lifetime
+  /// of a given [duration] rather than rebuilt every rebuild -- a shot
+  /// in flight is never redirected by an unrelated rebuild.
   ///
   /// Pass `reduceMotion: true` -- from [MediaQuery.disableAnimationsOf] --
   /// to suppress the effect entirely: no motor widget is built at all, and
   /// [builder] is called exactly once with `progress` pinned at `1.0` (the
-  /// one-shot's settled end state). This mirrors [shake]'s `reduceMotion`
-  /// contract of "as if it already happened, no in-between motion ever
-  /// painted" -- there, returning [child] unwrapped is equivalent to
-  /// [shake]'s own formula's value at both its start *and* end, since a
-  /// shake decays back to the zero offset it started from; a one-shot that
-  /// moves between two different visual extremes, like the sheen, has to
-  /// pick one of those two endpoints instead, and this method picks the
-  /// *end* one, since "reduced" reads more naturally as "already resolved"
-  /// than "not yet begun".
+  /// one-shot's settled end state).
   ///
   /// [duration] must be positive (`duration > Duration.zero`), matching
-  /// [repeat]'s own `period` contract: it is passed straight through to
-  /// [motor.Motion.curved] as the wall-clock length of the one-shot, and a
-  /// zero duration risks a `0/0` (`NaN`) progress fraction rather than a
-  /// clean `0.0 -> 1.0` ramp, while a negative duration would never advance
-  /// `progress` from `0.0` to `1.0` at all. Enforced with an `assert`
-  /// (debug-only, per this package's existing convention, matching
-  /// [repeat]'s) so a caller passing an invalid duration finds out
-  /// immediately rather than shipping a one-shot that silently never
-  /// reaches its end state.
+  /// [repeat]'s own `period` contract: enforced with a debug-only `assert`.
   static Widget playOnce({
     required int trigger,
     required Duration duration,
@@ -527,46 +326,24 @@ class CruxMotion {
   ///
   /// Internally wraps `motor`'s [motor.SequenceMotionBuilder] over a
   /// two-phase [motor.MotionSequence.steps] (`[0.0, 1.0]`) driven by
-  /// [motor.LinearMotion] and set to [motor.LoopMode.seamless]. This
-  /// specific combination was chosen after reading `motor` 1.1.0's source
-  /// (`controllers/motion_controller.dart`,
-  /// `SequenceMotionController._handleSequencePhaseCompletion` and
-  /// `_jumpToSequencePhase`): once the `1.0` phase's `LinearMotion`
-  /// simulation finishes, `LoopMode.seamless` jumps back to the `0.0` phase
-  /// with no animation (a same-frame value reset, not a reverse animation
-  /// like `LoopMode.loop` would play) and then, via a post-frame callback,
-  /// immediately starts animating toward `1.0` again -- so the rendered
-  /// value is an uninterrupted linear sawtooth (`0.0 -> 1.0`, snap to
-  /// `0.0`, `0.0 -> 1.0`, ...) rather than a value that visibly reverses or
-  /// pauses at the seam. `LoopMode.loop` was deliberately not used here: for
-  /// a two-phase sequence it would play the *same* `LinearMotion` simulation
-  /// backwards from `1.0` to `0.0` before going forward again, which reads
-  /// as a back-and-forth wobble, not a one-directional repeating ramp.
-  ///
-  /// The `P` (phase) type parameter `motor.SequenceMotionBuilder` needs is
-  /// filled with `int` (the two step-sequence phase indices, `0` and `1`)
-  /// and never appears in this method's own signature, so -- like every
-  /// other method on this class -- callers only ever see plain Flutter
-  /// types ([BuildContext], [double], [Widget]), never a `motor` type.
+  /// [motor.LinearMotion] and set to [motor.LoopMode.seamless]: once the
+  /// `1.0` phase finishes, `LoopMode.seamless` jumps back to `0.0` with no
+  /// animation and immediately starts animating toward `1.0` again, so the
+  /// rendered value is an uninterrupted linear sawtooth rather than a value
+  /// that visibly reverses or pauses at the seam. `LoopMode.loop` is
+  /// deliberately not used: for a two-phase sequence it would play the
+  /// simulation backwards before going forward again, reading as a
+  /// back-and-forth wobble rather than a one-directional repeating ramp.
   ///
   /// [child] is an optional subtree that does not itself depend on the
   /// animated progress and is rebuilt only when it changes, the same
   /// `child` optimization [animatedValue] and [scale] offer.
   ///
-  /// [period] must be positive (`period > Duration.zero`): it is passed
-  /// straight through to [motor.LinearMotion] as the wall-clock duration of
-  /// one lap, and a zero or negative duration would not produce the `0.0 ->
-  /// 1.0` ramp this method promises -- a zero-duration `LinearMotion`
-  /// simulation reports itself done on the very first tick (confirmed
-  /// against motor 1.1.0's source, `simulations/linear_motion.dart`'s
-  /// `isDone`, which is `elapsed >= duration` and therefore trivially true
-  /// once `duration` is zero), so [builder] would only ever be called with
-  /// the loop's endpoints and never see the ramp in between -- the caller
-  /// sees a ticker spinning behind a value that looks stuck rather than an
-  /// animation. This is enforced with an `assert` (debug-only, per this
-  /// package's existing convention) rather than silently clamping, so a
-  /// caller passing an invalid period finds out immediately rather than
-  /// shipping a silently-broken spinner.
+  /// [period] must be positive (`period > Duration.zero`): a zero or
+  /// negative duration would not produce the `0.0 -> 1.0` ramp this method
+  /// promises, so [builder] would only ever be called with the loop's
+  /// endpoints and never see the ramp in between. Enforced with a
+  /// debug-only `assert` rather than silently clamping.
   static Widget repeat({
     required Duration period,
     required Widget Function(
@@ -597,11 +374,8 @@ class CruxMotion {
   }
 }
 
-/// The private [StatefulWidget] backing [CruxMotion.playOnce] -- see that
-/// method's doc for why this exists as a stateful widget (to cache a
-/// [motor.Motion] instance across rebuilds) rather than being built inline
-/// as a plain function the way [CruxMotion.scale]/[CruxMotion
-/// .animatedValue] are.
+/// Backs [CruxMotion.playOnce] as a stateful widget so it can cache a
+/// [motor.Motion] instance across rebuilds (see that method's doc).
 class _PlayOnce extends StatefulWidget {
   const _PlayOnce({
     required this.trigger,
@@ -623,26 +397,15 @@ class _PlayOnce extends StatefulWidget {
 class _PlayOnceState extends State<_PlayOnce> {
   late motor.Motion _motion = motor.Motion.curved(widget.duration);
 
-  // An internally-normalized play count -- insurance against a caller
-  // violating playOnce's "increment [trigger] by exactly 1 per shot"
-  // contract (see playOnce's own doc for the full reasoning and the real
-  // bug this insures against). Incremented by exactly 1 every time
-  // [widget.trigger] changes, regardless of how far -- or in which
-  // direction -- [widget.trigger] itself actually moved. This is what
-  // drives the `motor` value in `build` below, instead of [widget.trigger]
-  // directly, so that value always advances by a single normalized step
-  // per detected change and [duration] stays correct end-to-end even when
-  // a caller's own trigger jumps by more than 1. Starts at `0`.
+  // Play count, normalized to advance by exactly 1 per detected
+  // widget.trigger change regardless of that change's own magnitude (see
+  // playOnce's contract doc). Drives the motor value in `build`, not
+  // widget.trigger directly.
   int _normalizedTrigger = 0;
 
-  // The `_normalizedTrigger` value `animatedValue` currently reads relative
-  // to: `0.0` once subtracted from `animatedValue` should mean "at rest,
-  // this shot hasn't started". Starts at `_normalizedTrigger`'s own initial
-  // value (`0`), matching the `motor` controller's own `initialValue`
-  // (also `0` -- see [CruxMotion.playOnce]'s doc), and advances to
-  // `_normalizedTrigger`'s *previous* value only once a real
-  // [widget.trigger] change is observed, mirroring [shake]'s
-  // `trigger - 1` convention from that point on.
+  // The _normalizedTrigger value `animatedValue` is currently relative to
+  // (subtracting it should read 0.0 as "not started"). Both start at 0 and
+  // _baselineTrigger only advances once a real trigger change is observed.
   int _baselineTrigger = 0;
 
   @override

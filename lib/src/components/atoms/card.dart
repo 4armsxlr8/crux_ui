@@ -94,26 +94,22 @@ class _CruxCardState extends State<CruxCard> {
 
   // Keeps the interactive (Semantics + GestureDetector) shape mounted for as
   // long as a press might still be in flight, even if `onTap` flips to null
-  // mid-press (for example an app disabling a card after validation, from
-  // state unrelated to the card's own onTap). `_pressed` can only become
-  // true while `_interactive` was true at the moment the finger went down
-  // (see _handleTapDown below), so this only ever keeps the interactive
-  // shape mounted a little *longer* than `_interactive` alone would, never
-  // shorter. Swapping the whole widget subtree while a gesture is still
-  // down would tear out the active TapGestureRecognizer mid-gesture and
-  // crash (see button.dart's longer comment on the identical hazard);
-  // waiting until `_pressed` resolves back to false (on tap-up/cancel)
-  // avoids that without giving up the "pure container, zero interactive
-  // scaffolding" shape spec.md requires for a card that was never
-  // interactive to begin with.
+  // mid-press. `_pressed` can only become true while `_interactive` was true
+  // at the moment the finger went down (see _handleTapDown below), so this
+  // only ever keeps the interactive shape mounted a little *longer* than
+  // `_interactive` alone would, never shorter. Swapping the whole widget
+  // subtree while a gesture is still down would tear out the active
+  // TapGestureRecognizer mid-gesture and crash; waiting until `_pressed`
+  // resolves back to false (on tap-up/cancel) avoids that without giving up
+  // the "pure container, zero interactive scaffolding" shape a
+  // never-interactive card needs.
   bool get _showInteractiveTree => _interactive || _pressed;
 
-  // Mirrors CruxButton's handler wiring: only _handleTapDown checks
-  // `_interactive` (the only handler that *starts* a press), while
-  // _handleTapUp/_handleTapCancel always resolve any in-flight press
-  // unconditionally so a press that started while interactive still ends
-  // cleanly even if `onTap` is cleared mid-press. See button.dart's longer
-  // comment on the same pattern for the full reasoning.
+  // Only _handleTapDown checks `_interactive`, since it is the only handler
+  // that *starts* a press. _handleTapUp and _handleTapCancel always resolve
+  // any in-flight press unconditionally -- gating them by `_interactive`
+  // instead would tear the in-flight TapGestureRecognizer out of the
+  // gesture arena if `onTap` is cleared mid-press.
   void _handleTapDown(TapDownDetails details) {
     if (_interactive) {
       _pressFeedback.down();
@@ -146,13 +142,10 @@ class _CruxCardState extends State<CruxCard> {
     final Widget surface = Container(
       // `alignment` (rather than leaving it unset) is what makes this
       // Container fill a bounded-but-loose incoming width instead of
-      // shrink-wrapping [child] — the same Align-driven fill mechanism
-      // CruxButton's doc comment identifies as the *bug* there (a hug
-      // widget stretching when it shouldn't) is exactly the *feature*
-      // here, since CruxCard is documented to be block-level and not
-      // hug. AlignmentDirectional.centerStart keeps content anchored to
-      // the reading-direction start edge (not centered) within that full
-      // width, matching normal block/list-item flow.
+      // shrink-wrapping [child], since CruxCard is block-level and not a
+      // hug widget. AlignmentDirectional.centerStart keeps content anchored
+      // to the reading-direction start edge (not centered) within that
+      // full width, matching normal block/list-item flow.
       alignment: AlignmentDirectional.centerStart,
       padding: widget.padding,
       // Clips `child` to this same rounded (superellipse) shape. Without
@@ -160,9 +153,9 @@ class _CruxCardState extends State<CruxCard> {
       // full-bleed child (e.g. a pressed CruxListTile's state-layer
       // overlay) paints straight through the rounded corners as a visible
       // square poking out past the border. Container derives the clip path
-      // from `decoration.getClipPath()` internally -- which for a
-      // ShapeDecoration defers to `shape.getOuterPath()`, i.e. this same
-      // RoundedSuperellipseBorder -- and paints the border on top of the
+      // from `decoration.getClipPath()`, which for a ShapeDecoration
+      // defers to `shape.getOuterPath()` (this same
+      // RoundedSuperellipseBorder), and paints the border on top of the
       // clip afterward, so the border itself is never clipped away.
       clipBehavior: Clip.antiAlias,
       decoration: ShapeDecoration(

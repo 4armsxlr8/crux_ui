@@ -8,13 +8,13 @@ import '../../tokens/theme.dart';
 import 'spinner.dart';
 
 /// The minimum tap target size for any [CruxButton], regardless of its
-/// visual [CruxButtonSize] (KB9): 44 logical pixels, matching the common
+/// visual [CruxButtonSize]: 44 logical pixels, matching the common
 /// iOS/Material accessibility guidance for a comfortably tappable target.
 const double _minTapTarget = 44;
 
 /// The opacity of the state layer laid over a pressed [CruxButton]'s
-/// background (KB7): [CruxColors.textPrimary] at 8%, which reads as
-/// darkening in light mode and lightening in dark mode without a second,
+/// background: [CruxColors.textPrimary] at 8%, which reads as darkening
+/// in light mode and lightening in dark mode without a second,
 /// brightness-specific token.
 const double _pressedOverlayOpacity = 0.08;
 
@@ -22,14 +22,12 @@ const double _pressedOverlayOpacity = 0.08;
 /// specifically, lower than [_pressedOverlayOpacity].
 ///
 /// [CruxColors.onAccent] (the filled variant's label color) and the
-/// overlay color ([CruxColors.textPrimary]) happen to be the exact same
-/// value in both palettes (see colors.dart), so any overlay alpha moves the
-/// pressed background directly toward the label color and can only shrink
-/// their contrast, never grow it. WCAG contrast math (verified in
-/// contrast_test.dart) shows the shared 8% overlay drops filled's
-/// onAccent-vs-background contrast from its unpressed 4.887:1 down to
-/// 4.353:1 — under the 4.5:1 AA floor for normal-size text. 5% keeps the
-/// pressed contrast at 4.549:1 (light) / 5.163:1 (dark), both still >= 4.5.
+/// overlay color ([CruxColors.textPrimary]) are the exact same value in
+/// both palettes, so any overlay alpha moves the pressed background
+/// directly toward the label color and can only shrink their contrast,
+/// never grow it. The shared 8% overlay would drop filled's
+/// onAccent-vs-background contrast to 4.353:1 -- under the 4.5:1 AA floor
+/// for normal-size text; 5% keeps it at 4.549:1 (light) / 5.163:1 (dark).
 const double _pressedOverlayOpacityFilled = 0.05;
 
 /// The background/emphasis treatment a [CruxButton] renders with.
@@ -158,34 +156,28 @@ class _CruxButtonState extends State<CruxButton> {
 
   // Guarantees the pressed scale/state-layer stays visible for a minimum
   // duration even when a tap's down and up arrive back-to-back (e.g. inside
-  // a scroll view) -- see press_feedback.dart's class doc for the bug this
-  // fixes.
+  // a scroll view).
   late final PressFeedbackController _pressFeedback = PressFeedbackController(
     onChanged: (bool value) => setState(() => _pressed = value),
   );
 
-  // Whether an [VoidCallback] was supplied at all -- the Flutter convention
-  // this widget uses for its *visual* enabled/disabled treatment (background,
-  // border, label/spinner color). Deliberately independent of [_interactive]:
-  // a loading button keeps looking exactly like its enabled self (see
-  // [CruxButton.loading]'s doc), it just stops responding to taps.
+  // Whether a callback was supplied at all -- governs the button's *visual*
+  // enabled/disabled treatment only. Deliberately independent of
+  // [_interactive]: a loading button keeps looking exactly like its enabled
+  // self, it just stops responding to taps.
   bool get _hasOnPressed => widget.onPressed != null;
 
-  // Whether the button actually responds to taps right now: it needs both a
-  // callback to call and to not be showing its loading state. This is the
-  // gate used for anything interaction-related (semantics `enabled`,
-  // `onTap`, and starting the press-scale feedback below) -- as opposed to
-  // [_hasOnPressed], which only ever governs the button's *look*.
+  // Whether the button actually responds to taps right now: gates semantics
+  // `enabled`, `onTap`, and starting press-scale feedback. Unlike
+  // [_hasOnPressed], this also requires not being in the loading state.
   bool get _interactive => _hasOnPressed && !widget.loading;
 
-  // Only _handleTapDown checks `_interactive`: it is the only handler that
-  // *starts* a press, so gating it there is enough to keep a disabled or
-  // loading button from ever entering the pressed state. _handleTapUp and
-  // _handleTapCancel always resolve any in-flight press unconditionally,
-  // so a press started while interactive still ends cleanly even if the
-  // button stops being interactive before release (see the onTapDown/Up/
-  // Cancel wiring comment in build() for why these three callbacks are never
-  // gated by `_interactive` themselves).
+  // Only this handler checks `_interactive`: it is the only one that
+  // *starts* a press, so gating it here is enough to keep a disabled or
+  // loading button from ever entering the pressed state. Up/cancel below
+  // always resolve any in-flight press unconditionally so a press started
+  // while interactive still ends cleanly even if that changes before
+  // release (see the GestureDetector wiring comment in build()).
   void _handleTapDown(TapDownDetails details) {
     if (_interactive) {
       _pressFeedback.down();
@@ -222,11 +214,10 @@ class _CruxButtonState extends State<CruxButton> {
         hasOnPressed && widget.variant == CruxButtonVariant.tonal
         ? BorderSide(color: colors.accentLine)
         : BorderSide.none;
-    // Also doubles as the loading spinner's color (KB "accent 塗りのバリアント
-    // ではスピナー色は onAccent。他のバリアントが存在する場合はそのバリアントの
-    // ラベル前景色に合わせ"): this is exactly the label's own foreground color
-    // for whichever variant/enabled state is showing, so reusing it keeps the
-    // spinner visually consistent with the label it temporarily replaces.
+    // Also doubles as the loading spinner's color: this is exactly the
+    // label's own foreground color for whichever variant/enabled state is
+    // showing, so reusing it keeps the spinner visually consistent with the
+    // label it temporarily replaces.
     final Color textColor = _resolveTextColor(
       colors: colors,
       variant: widget.variant,
@@ -243,26 +234,22 @@ class _CruxButtonState extends State<CruxButton> {
       button: true,
       enabled: interactive,
       // No explicit `label` here: the child `Text` below already supplies
-      // its own automatic semantics label (the same value as widget.label),
-      // and neither this Semantics nor RenderParagraph creates a semantics
-      // boundary between them, so an explicit label here would merge with
-      // the Text's and be announced twice ("<label>, <label>"). This
-      // mirrors how Flutter's own RawMaterialButton relies on its
-      // descendant Text/Icon for the announced label instead of setting one
-      // itself.
+      // its own automatic semantics label, and neither this Semantics nor
+      // RenderParagraph creates a semantics boundary between them, so an
+      // explicit label here would merge with the Text's and be announced
+      // twice ("<label>, <label>").
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         // These three callbacks stay wired unconditionally (not gated by
-        // `enabled`) so the Tap gesture recognizer is never torn out of
-        // GestureDetector's gesture arena mid-press: if `enabled` flips to
-        // false while a finger is down (e.g. disabling the button from
+        // `interactive`) so the Tap gesture recognizer is never torn out of
+        // GestureDetector's gesture arena mid-press: if `interactive` flips
+        // to false while a finger is down (e.g. disabling the button from
         // inside its own onPressed), gating these to null here would make
         // GestureDetector dispose the in-flight recognizer, which
         // synchronously resolves it as rejected and calls the *stale*
-        // onTapCancel closure — triggering setState() during build. Instead,
-        // `_enabled` is checked inside the handlers themselves, so any
-        // in-flight press always resolves cleanly regardless of the
-        // current enabled state.
+        // onTapCancel closure -- triggering setState() during build.
+        // Instead, `_interactive` is checked inside the handlers themselves,
+        // so any in-flight press always resolves cleanly.
         onTapDown: _handleTapDown,
         onTapUp: _handleTapUp,
         onTapCancel: _handleTapCancel,
@@ -275,24 +262,15 @@ class _CruxButtonState extends State<CruxButton> {
               minHeight: _minTapTarget,
             ),
             // IntrinsicWidth (not a bare Center/Align) ties the pill's width
-            // to its label's content: an Align-family widget (Center, or the
-            // Align that Container inserts internally for `alignment`) sizes
-            // itself to *fill* its incoming constraints' maxWidth whenever
-            // that maxWidth is finite -- which it almost always is (any Row,
-            // Column, Wrap, or Scaffold body gives a bounded, if loose,
-            // width) -- and only shrink-wraps when maxWidth is infinite.
-            // That greedy-fill behavior was this widget's actual bug: every
-            // CruxButton stretched to its parent's full available width
-            // instead of hugging its label. IntrinsicWidth instead measures
-            // the child's own preferred width first and hands the child a
-            // *tight* constraint at that width (clamped against whatever
-            // constraints flow in, so the 44px minimum tap target and
-            // narrow-parent overflow safety below both still apply), so the
-            // inner Container's `alignment: Alignment.center` -- kept for
-            // vertical centering within the pill's fixed height, and for
-            // horizontal centering on the rare label narrower than the 44px
-            // minimum tap target -- never sees a wider-than-content maxWidth
-            // to expand into.
+            // to its label's content: an Align-family widget fills its
+            // incoming constraints' maxWidth whenever that is finite (which
+            // it almost always is), only shrink-wrapping when maxWidth is
+            // infinite -- that greedy-fill behavior would stretch every
+            // CruxButton to its parent's full available width instead of
+            // hugging its label. IntrinsicWidth measures the child's own
+            // preferred width first and hands it a tight constraint at that
+            // width instead (clamped against whatever constraints flow in,
+            // so the 44px minimum tap target still applies).
             child: IntrinsicWidth(
               child: Container(
                 height: metrics.height,
@@ -310,23 +288,19 @@ class _CruxButtonState extends State<CruxButton> {
                 // The label Text is always laid out (as the Stack's only
                 // non-Positioned child, it alone determines the Stack's --
                 // and therefore the whole button's -- size), just hidden via
-                // Opacity while loading. The spinner is layered on top via
-                // Positioned.fill, which Stack sizing ignores entirely, so
-                // toggling `loading` can never change the button's
-                // dimensions (KB "ボタン自体の寸法は loading の on/off で 1px も
-                // 変わらない").
+                // Opacity while loading, so toggling `loading` never changes
+                // the button's dimensions. The spinner is layered on top via
+                // Positioned.fill, which Stack sizing ignores entirely.
                 //
                 // Positioned.fill hands its child tight constraints matching
-                // the label's own box, which can be *narrower* than the
-                // spinner's natural 16x16 (e.g. a one-character label like
-                // "S"). Center only loosens the minimum, not the maximum, so
-                // a bare Center would still squeeze the spinner down to fit
-                // -- shrinking its 16x16 dot grid and off-centering it. The
-                // OverflowBox drops the incoming constraints entirely so the
-                // spinner always lays out at its own natural size and stays
-                // centered, painting outside the label's box into the pill's
-                // >=44px tap-target padding when the label is that narrow --
-                // never clipped, since OverflowBox never clips its child.
+                // the label's own box, which can be narrower than the
+                // spinner's natural 16x16 (e.g. a one-character label). A
+                // bare Center would still squeeze the spinner down to fit,
+                // since it only loosens the minimum constraint, not the
+                // maximum. OverflowBox drops the incoming constraints
+                // entirely so the spinner always lays out at its natural
+                // size and stays centered, painting into the pill's tap
+                // target padding without being clipped.
                 child: Stack(
                   alignment: Alignment.center,
                   children: <Widget>[
@@ -334,10 +308,9 @@ class _CruxButtonState extends State<CruxButton> {
                       opacity: widget.loading ? 0 : 1,
                       // alwaysIncludeSemantics keeps the label Text in the
                       // semantics tree even at opacity 0: without it,
-                      // RenderOpacity drops a fully-transparent child (and
-                      // the automatic label this Semantics relies on, see
-                      // the comment below) entirely while loading, leaving
-                      // the button with no accessible name (WCAG 4.1.2).
+                      // RenderOpacity drops a fully-transparent child
+                      // entirely while loading, leaving the button with no
+                      // accessible name (WCAG 4.1.2).
                       alwaysIncludeSemantics: true,
                       child: Text(
                         widget.label,
@@ -371,8 +344,8 @@ class _CruxButtonState extends State<CruxButton> {
   }
 }
 
-/// Resolves the pill's background per the table in plan.md section 2,
-/// layering the pressed-state overlay (KB7) on top when [pressed] is true.
+/// Resolves the pill's background for [variant]/[enabled], layering the
+/// pressed-state overlay on top when [pressed] is true.
 Color? _resolveBackground({
   required CruxColors colors,
   required CruxButtonVariant variant,
@@ -404,7 +377,7 @@ Color? _resolveBackground({
   return Color.alphaBlend(overlay, base);
 }
 
-/// Resolves the label color per the table in plan.md section 2.
+/// Resolves the label color for [variant]/[enabled].
 Color _resolveTextColor({
   required CruxColors colors,
   required CruxButtonVariant variant,

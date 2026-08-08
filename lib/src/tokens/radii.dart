@@ -15,9 +15,8 @@ import 'spacing.dart';
 /// Flutter's `RoundedSuperellipseBorder`, not `RoundedRectangleBorder`. A
 /// value from this scale is still just "how far the corner is rounded, in
 /// logical pixels" — it does not change meaning across the two shapes — but
-/// the actual curve it produces is a superellipse arc rather than a circular
-/// one. See `unknowns/design-tokens-first/ledger.md`'s 2026-07-26 entry for
-/// the decision record.
+/// the actual curve it produces is a superellipse arc rather than a
+/// circular one.
 class CruxRadii {
   const CruxRadii._();
 

@@ -6,16 +6,10 @@ import 'typography.dart';
 
 /// Value-equality for two [BoxShadow] lists (order-sensitive).
 ///
-/// [CruxShadows] itself intentionally has no `==` override, matching
-/// [CruxColors] (also field-only, no `==`): [CruxThemeData] is the one
-/// place equality is hand-written, by enumerating every token field, so
-/// that adding a field there without also adding it to
-/// [CruxThemeData.==] is caught by the "differing only in ..." regression
-/// tests rather than silently ignored. [CruxShadows.sm]/`.md`/`.lg` are
-/// `List<BoxShadow>`, which — unlike [Color] or [BoxShadow] itself, both of
-/// which already have value `==` — compares by identity by default, so
-/// this helper does the element-wise comparison [CruxThemeData.==] needs
-/// for those three fields.
+/// [List] compares by identity by default, unlike [Color] or [BoxShadow]
+/// themselves (both already have value `==`), so this helper does the
+/// element-wise comparison [CruxThemeData.==] needs for
+/// [CruxShadows]' shadow-list fields.
 bool _boxShadowListEquals(List<BoxShadow> a, List<BoxShadow> b) {
   if (identical(a, b)) {
     return true;
@@ -88,16 +82,14 @@ class CruxThemeData {
   /// The shadow and scrim palette for this theme.
   ///
   /// Defaults to [CruxShadows.light] on the [CruxThemeData.new]
-  /// constructor regardless of [colors] or [brightness] -- that default
-  /// exists purely so call sites that constructed [CruxThemeData] before
-  /// this field existed keep compiling unchanged (see the constructor's own
-  /// doc), not because [CruxShadows.light] is somehow the "right" shadow
-  /// palette for a dark theme. Nothing keeps [colors] and [shadows] in sync
-  /// automatically: hand-assembling a theme with a dark [CruxColors] (for
-  /// example [CruxColors.dark]) while leaving [shadows] at its default
-  /// silently pairs dark colors with light-tuned shadow opacities, which
-  /// were tuned to read correctly against a light background and can look
-  /// wrong -- too faint or too harsh -- against a dark one. Prefer
+  /// constructor regardless of [colors] or [brightness] -- purely so call
+  /// sites that constructed [CruxThemeData] before this field existed
+  /// keep compiling unchanged, not because [CruxShadows.light] is the
+  /// "right" shadow palette for a dark theme. Nothing keeps [colors] and
+  /// [shadows] in sync automatically: hand-assembling a theme with a dark
+  /// [CruxColors] while leaving [shadows] at its default silently pairs
+  /// dark colors with light-tuned shadow opacities, which can look wrong --
+  /// too faint or too harsh -- against a dark background. Prefer
   /// [CruxThemeData.dark], which already pairs [CruxColors.dark] with
   /// [CruxShadows.dark]; if constructing a custom dark-brightness instance
   /// by hand instead, pass `shadows: CruxShadows.dark` explicitly rather
@@ -140,9 +132,7 @@ class CruxThemeData {
   // Nested rather than one flat Object.hash call: brightness + fontFamily +
   // 14 color fields + 9 shadow-derived values is 25 arguments, past
   // Object.hash's 20-argument ceiling. The color fields are grouped into
-  // their own Object.hash so the outer call stays within the limit; this
-  // is purely a hashCode implementation detail and does not change what
-  // counts as equal (still driven entirely by operator==).
+  // their own Object.hash so the outer call stays within the limit.
   @override
   int get hashCode => Object.hash(
     brightness,
