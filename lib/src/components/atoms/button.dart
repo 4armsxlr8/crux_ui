@@ -225,7 +225,7 @@ class _CruxButtonState extends State<CruxButton> {
     );
     final TextStyle labelStyle =
         (widget.size == CruxButtonSize.small
-                ? theme.typography.label.copyWith(fontSize: 13)
+                ? theme.typography.labelSmall
                 : theme.typography.label)
             .copyWith(color: textColor);
 

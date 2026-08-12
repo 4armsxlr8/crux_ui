@@ -104,6 +104,7 @@ class CruxThemeData {
     return other is CruxThemeData &&
         other.brightness == brightness &&
         other.typography.fontFamily == typography.fontFamily &&
+        other.typography.platform == typography.platform &&
         other.colors.background == colors.background &&
         other.colors.surface == colors.surface &&
         other.colors.accent == colors.accent &&
@@ -137,6 +138,7 @@ class CruxThemeData {
   int get hashCode => Object.hash(
     brightness,
     typography.fontFamily,
+    typography.platform,
     Object.hash(
       colors.background,
       colors.surface,

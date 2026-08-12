@@ -488,8 +488,7 @@ class _CruxSegmentButtonState<T> extends State<_CruxSegmentButton<T>> {
                           softWrap: false,
                           overflow: TextOverflow.ellipsis,
                           textAlign: TextAlign.center,
-                          style: theme.typography.label.copyWith(
-                            fontSize: 13,
+                          style: theme.typography.labelSmall.copyWith(
                             color: textColor,
                           ),
                         ),

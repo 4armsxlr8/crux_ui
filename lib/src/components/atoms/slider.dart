@@ -678,8 +678,7 @@ class _CruxSliderState extends State<CruxSlider> {
         padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
         child: Text(
           text,
-          style: theme.typography.caption.copyWith(
-            fontWeight: FontWeight.w600,
+          style: theme.typography.captionStrong.copyWith(
             color: colors.background,
           ),
         ),

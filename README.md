@@ -7,7 +7,10 @@ Crux UI likes people who like Crux UI.
 **Under development.** The design token layer is implemented: colors,
 spacing, typography, radii, and shadows (elevation shadows, a modal scrim,
 and a dark-mode hairline), plus a `CruxTheme` / `CruxThemeData` pair
-that makes them available to a widget subtree. Seventeen widget atoms are
+that makes them available to a widget subtree. Typography resolves to the
+host platform's own type scale — Apple's Human Interface Guidelines on iOS
+and macOS, Material 3 elsewhere — so text-bearing components change size
+across platforms by design. Seventeen widget atoms are
 also implemented: `CruxButton` (including a `loading` state), `CruxChip`,
 `CruxCard`, `CruxListTile`, `CruxSwitch`, `CruxDivider`,
 `CruxTextFormField`, `CruxInputBar`, `CruxSpinner`, `CruxIconButton`,
@@ -53,7 +56,7 @@ void main() {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Hello, Crux', style: theme.typography.headline),
+                Text('Hello, Crux', style: theme.typography.subheading),
                 const SizedBox(height: CruxSpacing.s16),
                 CruxButton(label: 'はじめる', onPressed: () {}),
               ],

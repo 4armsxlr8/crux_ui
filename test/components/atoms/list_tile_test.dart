@@ -390,10 +390,18 @@ void main() {
 
         final Text title = tester.widget<Text>(find.text('タイトル'));
         expect(title.style?.color, CruxColors.light.textPrimary);
-        expect(title.style?.fontWeight, FontWeight.w600);
 
         final Text subtitle = tester.widget<Text>(find.text('サブタイトル'));
         expect(subtitle.style?.color, CruxColors.light.textSecondary);
+
+        // The exact weight differs per platform (the `title` token is
+        // semibold on Apple platforms, medium on Material ones), so this
+        // pins the relationship rather than a value: the title always reads
+        // heavier than the subtitle beneath it.
+        expect(
+          title.style!.fontWeight!.value,
+          greaterThan(subtitle.style!.fontWeight!.value),
+        );
 
         final Text trailing = tester.widget<Text>(find.text('右'));
         expect(trailing.style?.color, CruxColors.light.textSecondary);

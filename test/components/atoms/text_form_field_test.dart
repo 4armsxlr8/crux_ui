@@ -512,8 +512,8 @@ void main() {
     // weight. See implementation-notes.md's dated entry for why this is a
     // component-level `copyWith(fontWeight:)` rather than a new typography
     // token or a change to `caption` itself.
-    testWidgets('renders the error caption at FontWeight.w600, bolder than the '
-        'resting caption style', (WidgetTester tester) async {
+    testWidgets('renders the error caption bolder than the resting caption '
+        'style', (WidgetTester tester) async {
       final GlobalKey<FormState> formKey = GlobalKey<FormState>();
       await tester.pumpWidget(
         _wrap(
@@ -531,8 +531,15 @@ void main() {
       formKey.currentState!.validate();
       await tester.pump();
 
+      // The exact weight differs per platform (`captionStrong` is semibold
+      // on Apple platforms, medium on Material ones), so this pins the
+      // relationship rather than a value: the error always reads heavier
+      // than the w400 helper text it replaces.
       final Text caption = tester.widget<Text>(find.text('必須項目です'));
-      expect(caption.style?.fontWeight, FontWeight.w600);
+      expect(
+        caption.style!.fontWeight!.value,
+        greaterThan(FontWeight.w400.value),
+      );
     });
 
     testWidgets(

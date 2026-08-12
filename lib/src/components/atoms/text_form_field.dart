@@ -124,12 +124,12 @@ class CruxObscureToggle {
 /// **Helper text and errors.** [helperText] renders in a caption row below
 /// the box; a validation error (surfaced through the field's `validator`,
 /// or [FormFieldState.errorText]) replaces it in [CruxColors.error] — the
-/// same color the box's border switches to, per "The box" above — and at
-/// `FontWeight.w600` rather than the caption style's normal `w400`, so the
-/// message reads as louder than plain helper text. The size stays at the
-/// caption style's own 12px; only the weight changes. That row's height is
-/// also always reserved, so showing or clearing an error never shifts
-/// anything else in the layout.
+/// same color the box's border switches to, per "The box" above — and in
+/// [CruxTypography.captionStrong] rather than [CruxTypography.caption],
+/// so the message reads as louder than plain helper text. Those two tokens
+/// share a size and differ only in weight, so the row's height never
+/// changes; it is also always reserved, so showing or clearing an error
+/// never shifts anything else in the layout.
 ///
 /// **Error shake.** Whenever a validation error appears (`errorText` goes
 /// from `null` to non-`null`) the *box* — and only the box, not the label
@@ -597,27 +597,26 @@ class _CruxTextFormFieldState extends FormFieldState<String> {
               label,
               maxLines: 1,
               overflow: TextOverflow.clip,
-              style: theme.typography.label.copyWith(
+              style: theme.typography.labelSmall.copyWith(
                 color: colors.textSecondary,
               ),
             ),
           );
 
-    // Error caption uses FontWeight.w600 as a component-level override,
-    // not a change to `caption` itself: that token stays a fixed 12px/w400
-    // pair usable elsewhere. Size deliberately stays at caption's 12px
-    // rather than `label`'s 14px -- growing it would break the "showing an
-    // error never moves anything below it" guarantee this file's tests
-    // pin. Promote to a real token instead of copy-pasting this
-    // `copyWith` if a second component needs the same look.
+    // captionStrong shares caption's size and differs only in weight, which
+    // is what keeps the "showing an error never moves anything below it"
+    // guarantee this file's tests pin.
     final Widget caption = Text(
       captionText,
       maxLines: 1,
       overflow: TextOverflow.ellipsis,
-      style: theme.typography.caption.copyWith(
-        color: errorText != null ? colors.error : colors.textSecondary,
-        fontWeight: errorText != null ? FontWeight.w600 : null,
-      ),
+      style:
+          (errorText != null
+                  ? theme.typography.captionStrong
+                  : theme.typography.caption)
+              .copyWith(
+                color: errorText != null ? colors.error : colors.textSecondary,
+              ),
     );
 
     // Only the box itself shakes -- see the class doc's "Error shake"

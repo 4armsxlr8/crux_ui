@@ -139,7 +139,7 @@ class _ComposeHeader extends StatelessWidget {
           Expanded(
             child: Text(
               mimosaRecordModalTitle,
-              style: type.headline.copyWith(color: colors.textPrimary),
+              style: type.subheading.copyWith(color: colors.textPrimary),
             ),
           ),
           CruxIconButton(

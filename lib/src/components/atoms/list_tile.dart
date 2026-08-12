@@ -194,10 +194,7 @@ class _CruxListTileState extends State<CruxListTile> {
           maxLines: 1,
           softWrap: false,
           overflow: TextOverflow.ellipsis,
-          style: theme.typography.body.copyWith(
-            fontWeight: FontWeight.w600,
-            color: colors.textPrimary,
-          ),
+          style: theme.typography.title.copyWith(color: colors.textPrimary),
         ),
         if (widget.subtitle != null)
           Text(

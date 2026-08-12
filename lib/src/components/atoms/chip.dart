@@ -153,8 +153,7 @@ class _CruxChipState extends State<CruxChip> {
       selected: widget.selected,
       enabled: enabled,
     );
-    final TextStyle labelStyle = theme.typography.label.copyWith(
-      fontSize: 13,
+    final TextStyle labelStyle = theme.typography.labelSmall.copyWith(
       color: textColor,
     );
 

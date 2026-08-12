@@ -6,7 +6,7 @@ description: >-
   CruxComposer, CruxSpinner, CruxIconButton, CruxCheckbox,
   CruxDialog (with CruxConfirmDialog), CruxToast,
   CruxSegmentedControl, CruxSlider, CruxNavBar, CruxTopFade.
-version: 0.9.0
+version: 0.10.0
 
 topics:
   - ui
@@ -26,3 +26,7 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
+  # Test-only: test/tokens/native_scale_parity_test.dart checks that the Apple
+  # tier of CruxTypography still matches this package's HIG constants. Never
+  # a runtime dependency — the values are transcribed, not read at run time.
+  cupertino_typography: ^0.2.0

@@ -210,7 +210,7 @@ class _SummaryCard extends StatelessWidget {
           const SizedBox(height: CruxSpacing.s2),
           Text(
             _formatYen(_ledgerMonthTotal),
-            style: type.display.copyWith(color: colors.textPrimary),
+            style: type.heading.copyWith(color: colors.textPrimary),
           ),
           const SizedBox(height: CruxSpacing.s4),
           Text(

@@ -141,7 +141,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 Text(
                   mimosaAppName,
                   textAlign: TextAlign.center,
-                  style: type.display.copyWith(color: colors.textPrimary),
+                  style: type.heading.copyWith(color: colors.textPrimary),
                 ),
                 const SizedBox(height: CruxSpacing.s4),
                 Text(

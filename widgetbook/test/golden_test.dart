@@ -12,6 +12,8 @@
 
 import 'dart:ui' as ui;
 
+import 'package:flutter/foundation.dart'
+    show TargetPlatform, debugDefaultTargetPlatformOverride;
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:crux_ui/crux_ui.dart';
@@ -71,19 +73,33 @@ void main() {
   // `pumpAndSettle`, so their goldens stay byte-for-byte unchanged.
   const Set<String> neverSettles = <String>{'spinner', 'button'};
 
+  // CruxTypography resolves to Apple's HIG scale on iOS/macOS and to
+  // Material 3 elsewhere, so every matrix is captured once per scale — text
+  // size, weight, letter spacing, and line height all differ between them.
+  final Map<String, TargetPlatform> platforms = <String, TargetPlatform>{
+    'ios': TargetPlatform.iOS,
+    'android': TargetPlatform.android,
+  };
+
   for (final MapEntry<String, Widget> component in matrices.entries) {
     for (final MapEntry<String, CruxThemeData> theme in themes.entries) {
-      testWidgets('${component.key} states matrix (${theme.key})', (
-        WidgetTester tester,
-      ) async {
-        await _expectMatrixGolden(
-          tester,
-          matrix: component.value,
-          theme: theme.value,
-          goldenFile: 'goldens/${component.key}_${theme.key}.png',
-          settle: !neverSettles.contains(component.key),
+      for (final MapEntry<String, TargetPlatform> platform
+          in platforms.entries) {
+        testWidgets(
+          '${component.key} states matrix (${theme.key}, ${platform.key})',
+          (WidgetTester tester) async {
+            await _expectMatrixGolden(
+              tester,
+              matrix: component.value,
+              theme: theme.value,
+              platform: platform.value,
+              goldenFile:
+                  'goldens/${component.key}_${theme.key}_${platform.key}.png',
+              settle: !neverSettles.contains(component.key),
+            );
+          },
         );
-      });
+      }
     }
   }
 }
@@ -103,8 +119,37 @@ Future<void> _expectMatrixGolden(
   WidgetTester tester, {
   required Widget matrix,
   required CruxThemeData theme,
+  required TargetPlatform platform,
   required String goldenFile,
   bool settle = true,
+}) async {
+  // Overriding the ambient platform (rather than pinning
+  // CruxTypography.platform on the theme) also covers the Cupertino
+  // widgets inside some matrices, which read defaultTargetPlatform
+  // themselves. It is cleared in this function's own `finally` rather than
+  // via addTearDown: the test binding asserts every foundation debug
+  // variable is already unset by the time the test body returns, which is
+  // before tear-downs run.
+  debugDefaultTargetPlatformOverride = platform;
+  try {
+    await _pumpAndCapture(
+      tester,
+      matrix: matrix,
+      theme: theme,
+      goldenFile: goldenFile,
+      settle: settle,
+    );
+  } finally {
+    debugDefaultTargetPlatformOverride = null;
+  }
+}
+
+Future<void> _pumpAndCapture(
+  WidgetTester tester, {
+  required Widget matrix,
+  required CruxThemeData theme,
+  required String goldenFile,
+  required bool settle,
 }) async {
   tester.view.physicalConstraints = const ui.ViewConstraints(
     maxWidth: 900,

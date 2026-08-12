@@ -1,5 +1,73 @@
 # Changelog
 
+## 0.10.0
+
+**Breaking: `CruxTypography` now resolves to the host platform's own type
+scale.** The previous six fixed steps (a borrowed scale whose values were
+always marked provisional) are gone. In their place are nine semantic tokens
+that resolve to Apple's Human Interface Guidelines scale on iOS and macOS,
+and to Material 3 elsewhere. A token therefore has **different metrics on
+different platforms** — `body` is 17 logical pixels on iOS and 16 on Android
+— so text-bearing components now change size across platforms by design.
+Line height follows each platform too: the Apple styles leave it unset so the
+font's own metrics apply, while the Material styles carry the Material 3 line
+heights (1.27–1.50). Letter spacing, previously absent everywhere, now comes
+from whichever scale is active.
+
+Migration:
+
+| Old | New |
+|---|---|
+| `display` (28/w700) | `heading` |
+| `headline` (22/w700) | `subheading` |
+| `title` (17/w600) | `title` — same name; resolves to 16/w500 on Material |
+| `body` (16/w400) | `body` — same name; resolves to 17/w400 on Apple |
+| `label` (14/w600) | `labelSmall`, `label`, or `navLabel`, by usage |
+| `caption` (12/w400) | `caption`, or `captionStrong` where the old code applied its own `FontWeight.w600` |
+
+`title` and `body` keep their names while changing value — code using them
+keeps compiling and silently renders at a different size, so check every call
+site rather than only the ones the compiler flags.
+
+The nine tokens and what they resolve to:
+
+| Token | iOS / macOS | Elsewhere |
+|---|---|---|
+| `heading` | Title 1 Emphasized (28/w700) | `headlineMedium` (28/w400) |
+| `subheading` | Title 2 Emphasized (22/w700) | `titleLarge` (22/w400) |
+| `title` | Headline (17/w600) | `titleMedium` (16/w500) |
+| `body` | Body (17/w400) | `bodyLarge` (16/w400) |
+| `caption` | Caption 1 (12/w400) | `bodySmall` (12/w400) |
+| `captionStrong` | Caption 1 Emphasized (12/w600) | `labelMedium` (12/w500) |
+| `labelSmall` | Footnote Emphasized (13/w600) | `labelLarge` (14/w500) |
+| `label` | Subheadline Emphasized (15/w600) | `labelLarge` (14/w500) |
+| `navLabel` | Caption 2 Emphasized (11/w600) | `labelSmall` (11/w500) |
+
+`labelSmall` and `label` resolve to the same Material style: a native Android
+button uses `labelLarge` at every size, so the 13/15 split the Apple tier
+makes has no Material counterpart.
+
+- Added `CruxTypography.platform`, which pins which platform's scale to
+  resolve to. Leave it unset (the default) in production so it follows
+  `defaultTargetPlatform`; pin it in tests and golden files. It participates
+  in `CruxThemeData`'s `==` and `hashCode`, so swapping a theme's pinned
+  platform rebuilds the subtree.
+- `CruxTypography.fontFamily` still overrides the family, and now replaces
+  it on both tiers at once. Left unset, the Apple tier uses
+  `CupertinoSystemText`/`CupertinoSystemDisplay` (San Francisco on Apple
+  platforms) and the Material tier leaves the family to the platform default.
+- Components changed accordingly and no longer patch sizes or weights onto a
+  token: `CruxButton`'s small size, `CruxChip`, and
+  `CruxSegmentedControl` now use `labelSmall` (previously `label` with a
+  hardcoded 13px); `CruxNavBar` uses `navLabel` (previously `label` with a
+  hardcoded 11px); `CruxListTile`'s title uses `title` (previously `body`
+  with `FontWeight.w600`); `CruxSlider`'s value readout and
+  `CruxTextFormField`'s error caption use `captionStrong` (previously
+  `caption` with `FontWeight.w600`); `CruxTextFormField`'s own label uses
+  `labelSmall`.
+- Golden baselines are now captured per platform as well as per brightness
+  (`goldens/<component>_<light|dark>_<ios|android>.png`, 72 files).
+
 ## 0.9.0
 
 - Added `CruxNavBar<T>` (with `CruxNavItem<T>`), a floating pill-shaped

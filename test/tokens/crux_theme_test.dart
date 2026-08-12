@@ -115,6 +115,25 @@ void main() {
   });
 
   group('CruxThemeData equality', () {
+    test('two instances differing only in typography.platform are not equal '
+        'and have different hashCodes (a theme pinned to one platform resolves '
+        'to a different type scale, so a subtree given the other one must '
+        'rebuild)', () {
+      const CruxThemeData apple = CruxThemeData(
+        colors: CruxColors.light,
+        typography: CruxTypography(platform: TargetPlatform.iOS),
+        brightness: Brightness.light,
+      );
+      const CruxThemeData material = CruxThemeData(
+        colors: CruxColors.light,
+        typography: CruxTypography(platform: TargetPlatform.android),
+        brightness: Brightness.light,
+      );
+
+      expect(apple, isNot(equals(material)));
+      expect(apple.hashCode, isNot(equals(material.hashCode)));
+    });
+
     test('two instances differing only in colors.controlFill are not equal '
         'and have different hashCodes (regression: theme.dart hand-writes '
         '== and hashCode by enumerating every CruxColors field, so a new '

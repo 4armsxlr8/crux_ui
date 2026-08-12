@@ -232,7 +232,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             children: [
               Text(
                 '設定',
-                style: type.headline.copyWith(color: colors.textPrimary),
+                style: type.subheading.copyWith(color: colors.textPrimary),
               ),
               const SizedBox(height: CruxSpacing.s24),
               _SectionHeader(title: 'タスクの並び順', colors: colors, type: type),

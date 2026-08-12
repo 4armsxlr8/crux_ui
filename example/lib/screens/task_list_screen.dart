@@ -208,7 +208,7 @@ class _TaskListScreenState extends State<TaskListScreen> {
                 children: [
                   Text(
                     'ホーム',
-                    style: type.headline.copyWith(color: colors.textPrimary),
+                    style: type.subheading.copyWith(color: colors.textPrimary),
                   ),
                   const SizedBox(height: CruxSpacing.s16),
                   _GreetingCard(colors: colors, type: type),

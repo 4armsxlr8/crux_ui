@@ -69,8 +69,6 @@ const double _tabHorizontalPadding = 12;
 /// why `88` rather than another value.
 const double _tabWidth = 88;
 
-const double _labelFontSize = 11;
-
 /// The floating pill's own minimum left/right margin from its host.
 /// [_CruxNavBarState.build] computes the pill's width as `math.min` of
 /// its fixed tab-count width and `hostWidth - _barMarginX * 2`, so a host
@@ -275,8 +273,8 @@ class CruxNavItem<T> {
 ///
 /// **Label weight**: on top of that selected/unselected color distinction,
 /// the selected tab's own label is also bold (`FontWeight.bold`); an
-/// unselected label keeps [CruxTypography.label]'s base weight
-/// (`FontWeight.w600`).
+/// unselected label keeps [CruxTypography.navLabel]'s own weight, which
+/// is lighter than bold on every platform.
 ///
 /// **Backdrop fade**: whenever [backdropFade] is `true` (the default),
 /// this widget also draws a full-width, edge-to-edge band directly behind
@@ -860,16 +858,14 @@ class _CruxNavTabButtonState<T> extends State<_CruxNavTabButton<T>> {
                                       softWrap: false,
                                       overflow: TextOverflow.ellipsis,
                                       textAlign: TextAlign.center,
-                                      style: theme.typography.label.copyWith(
-                                        fontSize: _labelFontSize,
+                                      style: theme.typography.navLabel.copyWith(
                                         color: contentColor,
                                         // Bold only while selected -- see
                                         // [CruxNavBar]'s own "Label
-                                        // weight" doc. `null` leaves the
-                                        // base style's own weight (w600)
-                                        // untouched for an unselected
-                                        // tab rather than redundantly
-                                        // re-specifying it.
+                                        // weight" doc. `null` leaves
+                                        // navLabel's own weight untouched
+                                        // for an unselected tab rather than
+                                        // redundantly re-specifying it.
                                         fontWeight: widget.selected
                                             ? FontWeight.bold
                                             : null,

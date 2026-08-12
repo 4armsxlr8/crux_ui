@@ -85,26 +85,35 @@ Color _colorForToken(String name, CruxColors colors) {
 /// The names of every [CruxTypography] style, in the same order
 /// [_TypeScaleList] lists them.
 const List<String> _typeStyleNames = <String>[
-  'display',
-  'headline',
+  'heading',
+  'subheading',
   'title',
   'body',
+  'labelSmall',
   'label',
+  'navLabel',
   'caption',
+  'captionStrong',
 ];
 
 TextStyle _typeStyleForToken(String name, CruxTypography type) {
   switch (name) {
-    case 'display':
-      return type.display;
-    case 'headline':
-      return type.headline;
+    case 'heading':
+      return type.heading;
+    case 'subheading':
+      return type.subheading;
     case 'title':
       return type.title;
+    case 'labelSmall':
+      return type.labelSmall;
     case 'label':
       return type.label;
+    case 'navLabel':
+      return type.navLabel;
     case 'caption':
       return type.caption;
+    case 'captionStrong':
+      return type.captionStrong;
     case 'body':
     default:
       return type.body;
@@ -347,7 +356,7 @@ class _SectionHeading extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       label,
-      style: type.headline.copyWith(color: colors.textPrimary),
+      style: type.subheading.copyWith(color: colors.textPrimary),
     );
   }
 }
@@ -463,16 +472,19 @@ class _TypeScaleList extends StatelessWidget {
   Widget build(BuildContext context) {
     final List<(String, TextStyle, String)> entries =
         <(String, TextStyle, String)>[
-          ('display', type.display, 'はじめまして、ミモザです'),
-          ('headline', type.headline, 'マイページ'),
+          ('heading', type.heading, 'はじめまして、ミモザです'),
+          ('subheading', type.subheading, 'マイページ'),
           ('title', type.title, '今週のハイライト'),
           (
             'body',
             type.body,
             '通知の設定はあとからいつでも変更できます。まずは気になるトピックだけをオンにして、様子を見ながら調整していきましょう。',
           ),
+          ('labelSmall', type.labelSmall, 'すべて見る'),
           ('label', type.label, 'はじめる'),
+          ('navLabel', type.navLabel, 'ホーム'),
           ('caption', type.caption, '3分前に更新'),
+          ('captionStrong', type.captionStrong, '必須項目です'),
         ];
 
     return Column(

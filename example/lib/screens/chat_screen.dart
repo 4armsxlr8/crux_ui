@@ -166,7 +166,7 @@ class _ChatScreenState extends State<ChatScreen> with WidgetsBindingObserver {
                 alignment: Alignment.centerLeft,
                 child: Text(
                   mimosaAppName,
-                  style: type.headline.copyWith(color: colors.textPrimary),
+                  style: type.subheading.copyWith(color: colors.textPrimary),
                 ),
               ),
             ),
