@@ -22,11 +22,11 @@ const String mimosaLoginFootnote = 'ミモザが毎日の暮らしをそっと�
 /// The demo value the login screen's email field starts pre-filled with, so
 /// launching the app and tapping ログイン alone reaches [MainShell] with no
 /// typing required.
-const String mimosaDemoEmail = 'crux@example.com';
+const String mimosaDemoEmail = 'mimosa@example.com';
 
 /// The demo value the login screen's password field starts pre-filled with.
 /// Meets [LoginScreen]'s own minimum-length check.
-const String mimosaDemoPassword = 'crux1234';
+const String mimosaDemoPassword = 'mimosa1234';
 
 /// ミモザ's greeting on the home tab.
 const String mimosaHomeGreeting = 'おかえり!来週火曜、歯医者さんの予約があるよ。忘れないでね';

@@ -1,30 +1,31 @@
 # Crux UI
 
-Crux UI likes people who like Crux UI.
+Design tokens, a theme layer, and eighteen springy components — the crux
+of a warm, friendly Flutter app.
 
 ## Status
 
 **Under development.** The design token layer is implemented: colors,
 spacing, typography, radii, and shadows (elevation shadows, a modal scrim,
-and a dark-mode hairline), plus a `CruxTheme` / `CruxThemeData` pair
-that makes them available to a widget subtree. Typography resolves to the
-host platform's own type scale — Apple's Human Interface Guidelines on iOS
-and macOS, Material 3 elsewhere — so text-bearing components change size
-across platforms by design. Seventeen widget atoms are
-also implemented: `CruxButton` (including a `loading` state), `CruxChip`,
-`CruxCard`, `CruxListTile`, `CruxSwitch`, `CruxDivider`,
-`CruxTextFormField`, `CruxInputBar`, `CruxSpinner`, `CruxIconButton`,
-`CruxCheckbox`, `CruxDialog`, `CruxToast`, `CruxSegmentedControl`,
-`CruxSlider`, `CruxNavBar` (a floating bottom navigation bar, with its
-`CruxNavItem` destination type, and its own backdrop-fade band that melts
-scrolling content behind it into the page near the screen's bottom edge),
-and `CruxTopFade` (a progressive fade/blur band for the top edge of
-scrolling content), plus two molecules
-built from them, `CruxComposer` and `CruxConfirmDialog` (the ready-made
-confirmation layer over `CruxDialog`) — eighteen components in total,
-counting the two dialog layers as one. Other widgets (bottom sheets and so
-on) have not been built yet — for now, the rest of a screen is composed
-from plain Flutter widgets plus Crux's tokens, as shown in `example/`.
+and a dark-mode hairline), plus a `CruxTheme` / `CruxThemeData` pair that
+makes them available to a widget subtree. Typography resolves to the host
+platform's own type scale — Apple's Human Interface Guidelines on iOS and
+macOS, Material 3 elsewhere — so text-bearing components change size across
+platforms by design. Seventeen widget atoms are also implemented:
+`CruxButton` (including a `loading` state), `CruxChip`, `CruxCard`,
+`CruxListTile`, `CruxSwitch`, `CruxDivider`, `CruxTextFormField`,
+`CruxInputBar`, `CruxSpinner`, `CruxIconButton`, `CruxCheckbox`,
+`CruxDialog`, `CruxToast`, `CruxSegmentedControl`, `CruxSlider`,
+`CruxNavBar` (a floating bottom navigation bar, with its `CruxNavItem`
+destination type, and its own backdrop-fade band that melts scrolling
+content behind it into the page near the screen's bottom edge), and
+`CruxTopFade` (a progressive fade/blur band for the top edge of scrolling
+content), plus two molecules built from them, `CruxComposer` and
+`CruxConfirmDialog` (the ready-made confirmation layer over `CruxDialog`) —
+eighteen components in total, counting the two dialog layers as one. Other
+widgets (bottom sheets and so on) have not been built yet — for now, the
+rest of a screen is composed from plain Flutter widgets plus Crux's tokens,
+as shown in `example/`.
 
 Crux never rewrites Material's `ThemeData`; providing a `CruxTheme` does
 not change the look of `Material`, `Scaffold`, or other Material widgets.
@@ -112,7 +113,7 @@ helper/error caption row below the box is always reserved, so nothing shifts
 as a validation error appears or clears. Pass `enabled: false` to disable
 it, rather than the package's usual null-callback convention — a text field
 is commonly used with only a `controller` and no `onChanged` at all. Pass
-`obscureToggle` (an `CruxObscureToggle`) to add a password show/hide
+`obscureToggle` (a `CruxObscureToggle`) to add a password show/hide
 button at the box's trailing edge; this package never draws its own
 eye/eye-slash glyph, so `CruxObscureToggle` bundles the icons and the
 screen-reader labels for both states, both supplied by the caller. Leaving

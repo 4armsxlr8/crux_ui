@@ -208,7 +208,7 @@ class _FoundationsPlayground extends StatelessWidget {
     );
     final String sampleText = context.knobs.string(
       label: 'Type sample text',
-      initialValue: 'はじめまして、ミモザです',
+      initialValue: 'はじめまして、Cruxです',
     );
     final String spacingName = context.knobs.object.dropdown<String>(
       label: 'Spacing token',
@@ -472,7 +472,7 @@ class _TypeScaleList extends StatelessWidget {
   Widget build(BuildContext context) {
     final List<(String, TextStyle, String)> entries =
         <(String, TextStyle, String)>[
-          ('heading', type.heading, 'はじめまして、ミモザです'),
+          ('heading', type.heading, 'はじめまして、Cruxです'),
           ('subheading', type.subheading, 'マイページ'),
           ('title', type.title, '今週のハイライト'),
           (
