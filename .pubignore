@@ -5,3 +5,7 @@ plans/
 output/
 *.iml
 CLAUDE.md
+
+# Dev catalog app and build artifacts — never part of the published package.
+widgetbook/
+build/
