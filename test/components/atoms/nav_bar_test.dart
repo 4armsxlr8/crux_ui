@@ -893,9 +893,7 @@ void main() {
         );
         await tester.pumpAndSettle();
 
-        final Rect navBarRect = tester.getRect(
-          find.byType(CruxNavBar<String>),
-        );
+        final Rect navBarRect = tester.getRect(find.byType(CruxNavBar<String>));
         // A point near the very top of CruxNavBar's own reported bounds:
         // inside the backdrop-fade band (160px tall by default), but well
         // above the floating pill itself (under 90px tall even with a

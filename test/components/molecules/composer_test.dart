@@ -115,10 +115,7 @@ void main() {
     testWidgets('throws an assertion error when maxLength is negative', (
       WidgetTester tester,
     ) async {
-      expect(
-        () => CruxComposer(maxLength: -1),
-        throwsA(isA<AssertionError>()),
-      );
+      expect(() => CruxComposer(maxLength: -1), throwsA(isA<AssertionError>()));
     });
 
     testWidgets('maxLength: 0 lays out without throwing, and the counter reads '

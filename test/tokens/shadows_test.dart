@@ -215,10 +215,7 @@ void main() {
       expect(CruxShadows.dark.sm, isNot(equals(CruxShadows.light.sm)));
       expect(CruxShadows.dark.md, isNot(equals(CruxShadows.light.md)));
       expect(CruxShadows.dark.lg, isNot(equals(CruxShadows.light.lg)));
-      expect(
-        CruxShadows.dark.scrim,
-        isNot(equals(CruxShadows.light.scrim)),
-      );
+      expect(CruxShadows.dark.scrim, isNot(equals(CruxShadows.light.scrim)));
       expect(
         CruxShadows.dark.hairline,
         isNot(equals(CruxShadows.light.hairline)),
@@ -289,10 +286,7 @@ void main() {
     }
 
     test('dark.thumb differs from light.thumb', () {
-      expect(
-        CruxShadows.dark.thumb,
-        isNot(equals(CruxShadows.light.thumb)),
-      );
+      expect(CruxShadows.dark.thumb, isNot(equals(CruxShadows.light.thumb)));
     });
 
     test('dark.thumbLifted differs from light.thumbLifted', () {

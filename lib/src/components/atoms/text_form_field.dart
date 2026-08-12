@@ -576,9 +576,7 @@ class _CruxTextFormFieldState extends FormFieldState<String> {
         decoration: ShapeDecoration(
           color: colors.controlFill,
           shape: RoundedSuperellipseBorder(
-            borderRadius: const BorderRadius.all(
-              Radius.circular(CruxRadii.m),
-            ),
+            borderRadius: const BorderRadius.all(Radius.circular(CruxRadii.m)),
             side: BorderSide(
               color: errorText != null ? colors.error : colors.separator,
             ),

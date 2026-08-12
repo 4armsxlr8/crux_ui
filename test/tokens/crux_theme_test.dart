@@ -5,27 +5,26 @@ import 'package:crux_ui/crux_ui.dart';
 
 void main() {
   group('CruxTheme.of', () {
-    testWidgets(
-      'returns the CruxThemeData provided by the nearest CruxTheme',
-      (WidgetTester tester) async {
-        final CruxThemeData provided = CruxThemeData.dark();
-        late CruxThemeData resolved;
+    testWidgets('returns the CruxThemeData provided by the nearest CruxTheme', (
+      WidgetTester tester,
+    ) async {
+      final CruxThemeData provided = CruxThemeData.dark();
+      late CruxThemeData resolved;
 
-        await tester.pumpWidget(
-          CruxTheme(
-            data: provided,
-            child: Builder(
-              builder: (BuildContext context) {
-                resolved = CruxTheme.of(context);
-                return const SizedBox.shrink();
-              },
-            ),
+      await tester.pumpWidget(
+        CruxTheme(
+          data: provided,
+          child: Builder(
+            builder: (BuildContext context) {
+              resolved = CruxTheme.of(context);
+              return const SizedBox.shrink();
+            },
           ),
-        );
+        ),
+      );
 
-        expect(resolved, same(provided));
-      },
-    );
+      expect(resolved, same(provided));
+    });
 
     testWidgets(
       'falls back to CruxThemeData.light() when no CruxTheme is an ancestor',

@@ -273,10 +273,7 @@ void main() {
           _wrapForExactHeight(
             CruxToastCard(
               message: '短いメッセージ',
-              action: CruxToastAction(
-                label: '元に戻す',
-                onPressed: () => calls++,
-              ),
+              action: CruxToastAction(label: '元に戻す', onPressed: () => calls++),
             ),
           ),
         );
@@ -833,10 +830,7 @@ void main() {
       showCruxToast(
         context,
         message: '削除しました',
-        action: CruxToastAction(
-          label: '元に戻す',
-          onPressed: () => actionCalls++,
-        ),
+        action: CruxToastAction(label: '元に戻す', onPressed: () => actionCalls++),
       );
       await tester.pump();
 

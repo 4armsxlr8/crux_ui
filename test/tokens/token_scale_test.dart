@@ -138,9 +138,7 @@ void main() {
     });
 
     test('macOS resolves to the same tier as iOS', () {
-      const CruxTypography mac = CruxTypography(
-        platform: TargetPlatform.macOS,
-      );
+      const CruxTypography mac = CruxTypography(platform: TargetPlatform.macOS);
       expect(mac.body.fontSize, typography.body.fontSize);
       expect(mac.body.fontFamily, typography.body.fontFamily);
     });

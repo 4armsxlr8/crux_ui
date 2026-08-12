@@ -358,41 +358,36 @@ void main() {
   });
 
   group('thumb shadow', () {
-    testWidgets(
-      'the thumb cap uses CruxShadows.thumb at rest and switches to '
-      'CruxShadows.thumbLifted while dragging, per the confirmed spec\'s '
-      '"つまみ専用の一段濃い輪郭寄り影 ... ドラッグ中はさらに浮く"',
-      (WidgetTester tester) async {
-        await tester.pumpWidget(
-          _wrapSized(
-            CruxSlider(value: 50, max: 100, onChanged: (double _) {}),
-          ),
-        );
+    testWidgets('the thumb cap uses CruxShadows.thumb at rest and switches to '
+        'CruxShadows.thumbLifted while dragging, per the confirmed spec\'s '
+        '"つまみ専用の一段濃い輪郭寄り影 ... ドラッグ中はさらに浮く"', (WidgetTester tester) async {
+      await tester.pumpWidget(
+        _wrapSized(CruxSlider(value: 50, max: 100, onChanged: (double _) {})),
+      );
 
-        expect(_thumbCapShadows(tester), CruxShadows.light.thumb);
+      expect(_thumbCapShadows(tester), CruxShadows.light.thumb);
 
-        // Mirrors the "value bubble" group's drag pattern above: a plain
-        // startGesture+pump with no movement resolves as an ambiguous tap
-        // (CruxSlider's GestureDetector has both tap and horizontal-drag
-        // recognizers racing in the same gesture arena -- see this file's
-        // top-of-class wiring comment), not yet a drag, so `_dragging` only
-        // flips to true once the pointer actually moves past touch slop and
-        // the drag recognizer wins.
-        final TestGesture gesture = await tester.startGesture(
-          tester.getCenter(find.byType(CruxSlider)),
-        );
-        await tester.pump();
-        await gesture.moveBy(const Offset(20, 0));
-        await tester.pump();
+      // Mirrors the "value bubble" group's drag pattern above: a plain
+      // startGesture+pump with no movement resolves as an ambiguous tap
+      // (CruxSlider's GestureDetector has both tap and horizontal-drag
+      // recognizers racing in the same gesture arena -- see this file's
+      // top-of-class wiring comment), not yet a drag, so `_dragging` only
+      // flips to true once the pointer actually moves past touch slop and
+      // the drag recognizer wins.
+      final TestGesture gesture = await tester.startGesture(
+        tester.getCenter(find.byType(CruxSlider)),
+      );
+      await tester.pump();
+      await gesture.moveBy(const Offset(20, 0));
+      await tester.pump();
 
-        expect(_thumbCapShadows(tester), CruxShadows.light.thumbLifted);
+      expect(_thumbCapShadows(tester), CruxShadows.light.thumbLifted);
 
-        await gesture.up();
-        await tester.pump();
+      await gesture.up();
+      await tester.pump();
 
-        expect(_thumbCapShadows(tester), CruxShadows.light.thumb);
-      },
-    );
+      expect(_thumbCapShadows(tester), CruxShadows.light.thumb);
+    });
 
     testWidgets(
       'in dark mode, the thumb cap uses CruxShadows.dark.thumb at rest '
@@ -557,12 +552,8 @@ void main() {
       );
 
       final double thumbX = tester.getCenter(find.byType(CustomPaint)).dx;
-      final double sliderLeftX = tester
-          .getTopLeft(find.byType(CruxSlider))
-          .dx;
-      final double sliderWidth = tester
-          .getSize(find.byType(CruxSlider))
-          .width;
+      final double sliderLeftX = tester.getTopLeft(find.byType(CruxSlider)).dx;
+      final double sliderWidth = tester.getSize(find.byType(CruxSlider)).width;
 
       expect(thumbX, lessThan(sliderLeftX + sliderWidth / 2));
     });
@@ -625,11 +616,7 @@ void main() {
             StatefulBuilder(
               builder: (BuildContext context, StateSetter setter) {
                 setState = setter;
-                return CruxSlider(
-                  value: value,
-                  max: 100,
-                  onChanged: onChanged,
-                );
+                return CruxSlider(value: value, max: 100, onChanged: onChanged);
               },
             ),
           ),
@@ -808,9 +795,7 @@ void main() {
           ), // default min 0.0, max 1.0
         );
 
-        final SemanticsNode node = tester.getSemantics(
-          find.byType(CruxSlider),
-        );
+        final SemanticsNode node = tester.getSemantics(find.byType(CruxSlider));
         expect(node.value, '42%');
 
         handle.dispose();
@@ -822,14 +807,10 @@ void main() {
       (WidgetTester tester) async {
         final SemanticsHandle handle = tester.ensureSemantics();
         await tester.pumpWidget(
-          _wrapSized(
-            CruxSlider(value: 25, max: 200, onChanged: (double _) {}),
-          ),
+          _wrapSized(CruxSlider(value: 25, max: 200, onChanged: (double _) {})),
         );
 
-        final SemanticsNode node = tester.getSemantics(
-          find.byType(CruxSlider),
-        );
+        final SemanticsNode node = tester.getSemantics(find.byType(CruxSlider));
         expect(node.value, '13%'); // 25 / 200 = 12.5% -> rounds to 13%
 
         handle.dispose();
@@ -852,9 +833,7 @@ void main() {
           ),
         );
 
-        final SemanticsNode node = tester.getSemantics(
-          find.byType(CruxSlider),
-        );
+        final SemanticsNode node = tester.getSemantics(find.byType(CruxSlider));
         expect(node.value, '50pt');
 
         handle.dispose();
@@ -900,9 +879,7 @@ void main() {
           ),
         );
 
-        final SemanticsNode node = tester.getSemantics(
-          find.byType(CruxSlider),
-        );
+        final SemanticsNode node = tester.getSemantics(find.byType(CruxSlider));
         expect(node.value, '100%');
 
         handle.dispose();
@@ -914,9 +891,7 @@ void main() {
     ) async {
       final SemanticsHandle handle = tester.ensureSemantics();
       await tester.pumpWidget(
-        _wrapSized(
-          CruxSlider(value: -50, max: 100, onChanged: (double _) {}),
-        ),
+        _wrapSized(CruxSlider(value: -50, max: 100, onChanged: (double _) {})),
       );
 
       final SemanticsNode node = tester.getSemantics(find.byType(CruxSlider));

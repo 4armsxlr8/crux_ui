@@ -40,8 +40,7 @@ Widget _buildPlayground(BuildContext context) {
     label: 'Radius',
     options: const <double>[CruxRadii.m, CruxRadii.l],
     initialOption: CruxRadii.l,
-    labelBuilder: (double value) =>
-        value == CruxRadii.m ? 'm (14)' : 'l (16)',
+    labelBuilder: (double value) => value == CruxRadii.m ? 'm (14)' : 'l (16)',
   );
   final bool interactive = context.knobs.boolean(
     label: 'Interactive (onTap)',
@@ -81,10 +80,7 @@ class CardStatesMatrix extends StatelessWidget {
   const CardStatesMatrix({super.key});
 
   static const List<bool> _tappableOptions = <bool>[false, true];
-  static const List<double> _radiusOptions = <double>[
-    CruxRadii.m,
-    CruxRadii.l,
-  ];
+  static const List<double> _radiusOptions = <double>[CruxRadii.m, CruxRadii.l];
 
   @override
   Widget build(BuildContext context) {

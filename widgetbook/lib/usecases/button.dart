@@ -87,8 +87,7 @@ class ButtonStatesMatrix extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            for (final CruxButtonVariant variant
-                in CruxButtonVariant.values)
+            for (final CruxButtonVariant variant in CruxButtonVariant.values)
               Padding(
                 padding: const EdgeInsets.only(bottom: CruxSpacing.s24),
                 child: _VariantSection(variant: variant),

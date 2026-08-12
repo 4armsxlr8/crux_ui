@@ -68,10 +68,7 @@ void main() {
     );
     // Long enough to pass the password field's own check, so only the
     // email message is under test here.
-    await tester.enterText(
-      find.byType(CruxTextFormField).at(1),
-      'password123',
-    );
+    await tester.enterText(find.byType(CruxTextFormField).at(1), 'password123');
     await tester.tap(find.widgetWithText(CruxButton, 'ログイン'));
     await tester.pump();
 

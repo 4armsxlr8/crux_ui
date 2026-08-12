@@ -48,9 +48,7 @@ void main() {
       WidgetTester tester,
     ) async {
       await tester.pumpWidget(
-        _wrap(
-          const Center(child: CruxSpinner(size: CruxSpinnerSize.small)),
-        ),
+        _wrap(const Center(child: CruxSpinner(size: CruxSpinnerSize.small))),
       );
 
       expect(tester.getSize(find.byType(CruxSpinner)), const Size(16, 16));
@@ -68,9 +66,7 @@ void main() {
       WidgetTester tester,
     ) async {
       await tester.pumpWidget(
-        _wrap(
-          const Center(child: CruxSpinner(size: CruxSpinnerSize.large)),
-        ),
+        _wrap(const Center(child: CruxSpinner(size: CruxSpinnerSize.large))),
       );
 
       expect(tester.getSize(find.byType(CruxSpinner)), const Size(36, 36));
@@ -122,10 +118,7 @@ void main() {
     ) async {
       await tester.pumpWidget(
         _wrap(
-          CruxTheme(
-            data: CruxThemeData.dark(),
-            child: const CruxSpinner(),
-          ),
+          CruxTheme(data: CruxThemeData.dark(), child: const CruxSpinner()),
         ),
       );
 

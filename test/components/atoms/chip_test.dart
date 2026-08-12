@@ -352,17 +352,16 @@ void main() {
   });
 
   group('onTap is a plain optional parameter (not required)', () {
-    testWidgets(
-      'CruxChip can be constructed with no onTap argument at all and '
-      'renders disabled, matching CruxCard/CruxListTile\'s convention '
-      'for the same nullable-callback-disables pattern',
-      (WidgetTester tester) async {
-        await tester.pumpWidget(_wrap(const CruxChip(label: 'すべて')));
+    testWidgets('CruxChip can be constructed with no onTap argument at all and '
+        'renders disabled, matching CruxCard/CruxListTile\'s convention '
+        'for the same nullable-callback-disables pattern', (
+      WidgetTester tester,
+    ) async {
+      await tester.pumpWidget(_wrap(const CruxChip(label: 'すべて')));
 
-        final Text text = tester.widget<Text>(find.text('すべて'));
-        expect(text.style?.color, CruxColors.light.muted);
-      },
-    );
+      final Text text = tester.widget<Text>(find.text('すべて'));
+      expect(text.style?.color, CruxColors.light.muted);
+    });
   });
 
   group('semantics', () {
@@ -387,9 +386,7 @@ void main() {
       WidgetTester tester,
     ) async {
       final SemanticsHandle handle = tester.ensureSemantics();
-      await tester.pumpWidget(
-        _wrap(const CruxChip(label: 'すべて', onTap: null)),
-      );
+      await tester.pumpWidget(_wrap(const CruxChip(label: 'すべて', onTap: null)));
 
       final SemanticsNode node = tester.getSemantics(find.byType(CruxChip));
       expect(node.flagsCollection.isButton, isTrue);

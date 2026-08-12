@@ -214,9 +214,7 @@ void main() {
           _wrap(CruxButton(label: 'はじめる', onPressed: () {})),
         );
 
-        final SemanticsNode node = tester.getSemantics(
-          find.byType(CruxButton),
-        );
+        final SemanticsNode node = tester.getSemantics(find.byType(CruxButton));
         expect(node.label, 'はじめる');
 
         handle.dispose();
@@ -380,9 +378,7 @@ void main() {
     testWidgets('filled: accent background, no border, onAccent text', (
       WidgetTester tester,
     ) async {
-      await tester.pumpWidget(
-        _wrap(CruxButton(label: 'Go', onPressed: () {})),
-      );
+      await tester.pumpWidget(_wrap(CruxButton(label: 'Go', onPressed: () {})));
 
       final Container container = tester.widget<Container>(
         find.byType(Container),
@@ -467,11 +463,7 @@ void main() {
         int calls = 0;
         await tester.pumpWidget(
           _wrap(
-            CruxButton(
-              label: 'はじめる',
-              loading: true,
-              onPressed: () => calls++,
-            ),
+            CruxButton(label: 'はじめる', loading: true, onPressed: () => calls++),
           ),
         );
 
@@ -583,9 +575,7 @@ void main() {
           _wrap(CruxButton(label: 'はじめる', loading: true, onPressed: () {})),
         );
 
-        final SemanticsNode node = tester.getSemantics(
-          find.byType(CruxButton),
-        );
+        final SemanticsNode node = tester.getSemantics(find.byType(CruxButton));
         expect(node.label, 'はじめる');
 
         handle.dispose();

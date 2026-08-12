@@ -49,6 +49,13 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.19.1"
+  crux_ui:
+    dependency: "direct main"
+    description:
+      path: ".."
+      relative: true
+    source: path
+    version: "0.10.0"
   cupertino_icons:
     dependency: "direct main"
     description:
@@ -258,13 +265,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.4.1"
-  crux_ui:
-    dependency: "direct main"
-    description:
-      path: ".."
-      relative: true
-    source: path
-    version: "0.10.0"
   term_glyph:
     dependency: transitive
     description:

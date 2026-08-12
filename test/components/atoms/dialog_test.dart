@@ -140,9 +140,7 @@ void main() {
             child: SizedBox(
               width: 1000,
               child: Center(
-                child: CruxDialogCard(
-                  child: SizedBox(width: 900, height: 40),
-                ),
+                child: CruxDialogCard(child: SizedBox(width: 900, height: 40)),
               ),
             ),
           ),
@@ -641,51 +639,50 @@ void main() {
   group('stays isolated from an ambient MaterialApp\'s "no enclosing Material" '
       'warning text style (H3: Crux\'s look must never depend on, or be '
       'affected by, an ambient Material theme)', () {
-    testWidgets(
-      'content Text inside a card opened via CruxDialog.show renders '
-      'with no text decoration, even under a bare MaterialApp (no '
-      'Scaffold, default ThemeData) -- MaterialApp always installs a '
-      'yellow double-underline DefaultTextStyle at the app root (meant '
-      'to flag Text rendered outside a Material widget) directly above '
-      'the Overlay this card floats in, and only a Scaffold\'s Material '
-      'normally resets it before reaching ordinary screen content',
-      (WidgetTester tester) async {
-        await tester.pumpWidget(
-          MaterialApp(
-            home: Builder(
-              builder: (BuildContext context) {
-                return GestureDetector(
-                  key: const ValueKey('openTrigger'),
-                  behavior: HitTestBehavior.opaque,
-                  onTap: () => CruxDialog.show(
-                    context,
-                    builder: (BuildContext context, VoidCallback close) =>
-                        const Text(
-                          'dialog content',
-                          textDirection: TextDirection.ltr,
-                        ),
-                  ),
-                  child: const SizedBox(width: 44, height: 44),
-                );
-              },
-            ),
+    testWidgets('content Text inside a card opened via CruxDialog.show renders '
+        'with no text decoration, even under a bare MaterialApp (no '
+        'Scaffold, default ThemeData) -- MaterialApp always installs a '
+        'yellow double-underline DefaultTextStyle at the app root (meant '
+        'to flag Text rendered outside a Material widget) directly above '
+        'the Overlay this card floats in, and only a Scaffold\'s Material '
+        'normally resets it before reaching ordinary screen content', (
+      WidgetTester tester,
+    ) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Builder(
+            builder: (BuildContext context) {
+              return GestureDetector(
+                key: const ValueKey('openTrigger'),
+                behavior: HitTestBehavior.opaque,
+                onTap: () => CruxDialog.show(
+                  context,
+                  builder: (BuildContext context, VoidCallback close) =>
+                      const Text(
+                        'dialog content',
+                        textDirection: TextDirection.ltr,
+                      ),
+                ),
+                child: const SizedBox(width: 44, height: 44),
+              );
+            },
           ),
-        );
+        ),
+      );
 
-        await tester.tap(find.byKey(const ValueKey('openTrigger')));
-        await tester.pump();
-        expect(find.byType(CruxDialogCard), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('openTrigger')));
+      await tester.pump();
+      expect(find.byType(CruxDialogCard), findsOneWidget);
 
-        final RichText richText = tester.widget<RichText>(
-          find.descendant(
-            of: find.text('dialog content'),
-            matching: find.byType(RichText),
-          ),
-        );
-        expect(richText.text.style?.decoration, TextDecoration.none);
+      final RichText richText = tester.widget<RichText>(
+        find.descendant(
+          of: find.text('dialog content'),
+          matching: find.byType(RichText),
+        ),
+      );
+      expect(richText.text.style?.decoration, TextDecoration.none);
 
-        await tester.pumpAndSettle();
-      },
-    );
+      await tester.pumpAndSettle();
+    });
   });
 }

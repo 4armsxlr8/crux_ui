@@ -139,9 +139,7 @@ void main() {
         int calls = 0;
         await tester.pumpWidget(
           _wrap(
-            Center(
-              child: CruxSwitch(value: false, onChanged: (_) => calls++),
-            ),
+            Center(child: CruxSwitch(value: false, onChanged: (_) => calls++)),
           ),
         );
 
@@ -537,9 +535,7 @@ void main() {
           _wrap(const CruxSwitch(value: false, onChanged: null)),
         );
 
-        final SemanticsNode node = tester.getSemantics(
-          find.byType(CruxSwitch),
-        );
+        final SemanticsNode node = tester.getSemantics(find.byType(CruxSwitch));
         expect(node.flagsCollection.isToggled, Tristate.isFalse);
         expect(node.flagsCollection.isEnabled, Tristate.isFalse);
 

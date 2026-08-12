@@ -548,10 +548,7 @@ void main() {
       (WidgetTester tester) async {
         await tester.pumpWidget(
           _wrap(
-            CruxTextFormField(
-              label: 'メールアドレス',
-              helperText: 'you@example.com',
-            ),
+            CruxTextFormField(label: 'メールアドレス', helperText: 'you@example.com'),
           ),
         );
 
@@ -819,10 +816,7 @@ void main() {
         expect(_shakeDx(tester), isNotNull);
         expect(_shakeDx(tester), isNot(0.0));
 
-        expect(
-          tester.getSize(find.byType(CruxTextFormField)),
-          fieldSizeBefore,
-        );
+        expect(tester.getSize(find.byType(CruxTextFormField)), fieldSizeBefore);
         expect(tester.getTopLeft(find.byKey(siblingKey)), siblingTopLeftBefore);
       },
     );
@@ -992,10 +986,7 @@ void main() {
           tester.widget<Container>(_boxFinder()).decoration! as ShapeDecoration;
       final RoundedSuperellipseBorder shapeBeforeFocus =
           decorationBeforeFocus.shape as RoundedSuperellipseBorder;
-      expect(
-        shapeBeforeFocus.side,
-        BorderSide(color: CruxColors.light.error),
-      );
+      expect(shapeBeforeFocus.side, BorderSide(color: CruxColors.light.error));
 
       focusNode.requestFocus();
       // See the resting-border focus test above for why two pumps are
@@ -1529,9 +1520,7 @@ void main() {
           ),
         );
 
-        final Size sizeBefore = tester.getSize(
-          find.byType(CruxTextFormField),
-        );
+        final Size sizeBefore = tester.getSize(find.byType(CruxTextFormField));
         final Rect labelRectBefore = tester.getRect(find.text('パスワード'));
         final Rect captionRectBefore = tester.getRect(find.text('8文字以上'));
 
@@ -1699,29 +1688,23 @@ void main() {
       },
     );
 
-    testWidgets(
-      "colors the text-selection drag handles to match Crux's accent "
-      "token, not the default CupertinoTheme fallback (iOS's system blue) "
-      "(cupertino/text_selection.dart's buildHandle paints the handle with "
-      'CupertinoTheme.of(context).selectionHandleColor, so this widget must '
-      'set it explicitly on its own CupertinoTheme wrapper rather than '
-      'leaving it unset)',
-      (WidgetTester tester) async {
-        await tester.pumpWidget(_wrap(CruxTextFormField(label: 'メールアドレス')));
+    testWidgets("colors the text-selection drag handles to match Crux's accent "
+        "token, not the default CupertinoTheme fallback (iOS's system blue) "
+        "(cupertino/text_selection.dart's buildHandle paints the handle with "
+        'CupertinoTheme.of(context).selectionHandleColor, so this widget must '
+        'set it explicitly on its own CupertinoTheme wrapper rather than '
+        'leaving it unset)', (WidgetTester tester) async {
+      await tester.pumpWidget(_wrap(CruxTextFormField(label: 'メールアドレス')));
 
-        final CupertinoTheme cupertinoTheme = tester.widget<CupertinoTheme>(
-          find.ancestor(
-            of: find.byType(CupertinoTextField),
-            matching: find.byType(CupertinoTheme),
-          ),
-        );
+      final CupertinoTheme cupertinoTheme = tester.widget<CupertinoTheme>(
+        find.ancestor(
+          of: find.byType(CupertinoTextField),
+          matching: find.byType(CupertinoTheme),
+        ),
+      );
 
-        expect(
-          cupertinoTheme.data.selectionHandleColor,
-          CruxColors.light.accent,
-        );
-      },
-    );
+      expect(cupertinoTheme.data.selectionHandleColor, CruxColors.light.accent);
+    });
 
     testWidgets(
       "matches the on-screen keyboard's light/dark appearance to Crux's "

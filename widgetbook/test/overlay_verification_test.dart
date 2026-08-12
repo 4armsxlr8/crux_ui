@@ -90,86 +90,82 @@ void main() {
     },
   );
 
-  testWidgets(
-    "CruxDialog content inherits the CruxTheme around WidgetsApp's "
-    '`home` -- even though Overlay.of(context) resolves to WidgetsApp\'s '
-    'own internal Navigator/Overlay, which sits *outside* (above) `home` '
-    'in the tree, CruxDialog.show captures the calling context\'s theme '
-    'at show time and re-provides it inside the overlay entry, so the '
-    "catalog Playground's dialog follows the light/dark toggle (the shape "
-    "widgetbook's real ThemeAddon + appBuilder wrapping produces: "
-    "`Workbench.build` in widgetbook 3.25.0's own source passes the "
-    "ThemeAddon-wrapped use-case content as `appBuilder`'s `child`, which "
-    "becomes `_appBuilder`'s `home`). This test pins that capture: without "
-    'it the dialog would fall back to the light default.',
-    (WidgetTester tester) async {
-      late Brightness dialogBrightness;
-      await tester.pumpWidget(
-        _wrapInWidgetbookShell(
-          Builder(
-            builder: (BuildContext context) {
-              return GestureDetector(
-                onTap: () => CruxDialog.show(
-                  context,
-                  builder: (BuildContext dialogContext, VoidCallback close) {
-                    dialogBrightness = CruxTheme.of(dialogContext).brightness;
-                    return const Text('probe');
-                  },
-                ),
-                child: const Text('open dialog'),
-              );
-            },
-          ),
-          theme: CruxThemeData.dark(),
+  testWidgets("CruxDialog content inherits the CruxTheme around WidgetsApp's "
+      '`home` -- even though Overlay.of(context) resolves to WidgetsApp\'s '
+      'own internal Navigator/Overlay, which sits *outside* (above) `home` '
+      'in the tree, CruxDialog.show captures the calling context\'s theme '
+      'at show time and re-provides it inside the overlay entry, so the '
+      "catalog Playground's dialog follows the light/dark toggle (the shape "
+      "widgetbook's real ThemeAddon + appBuilder wrapping produces: "
+      "`Workbench.build` in widgetbook 3.25.0's own source passes the "
+      "ThemeAddon-wrapped use-case content as `appBuilder`'s `child`, which "
+      "becomes `_appBuilder`'s `home`). This test pins that capture: without "
+      'it the dialog would fall back to the light default.', (
+    WidgetTester tester,
+  ) async {
+    late Brightness dialogBrightness;
+    await tester.pumpWidget(
+      _wrapInWidgetbookShell(
+        Builder(
+          builder: (BuildContext context) {
+            return GestureDetector(
+              onTap: () => CruxDialog.show(
+                context,
+                builder: (BuildContext dialogContext, VoidCallback close) {
+                  dialogBrightness = CruxTheme.of(dialogContext).brightness;
+                  return const Text('probe');
+                },
+              ),
+              child: const Text('open dialog'),
+            );
+          },
         ),
-      );
+        theme: CruxThemeData.dark(),
+      ),
+    );
 
-      await tester.tap(find.text('open dialog'));
-      await tester.pumpAndSettle();
-      expect(tester.takeException(), isNull);
-      expect(find.text('probe'), findsOneWidget);
-      expect(dialogBrightness, Brightness.dark);
-    },
-  );
+    await tester.tap(find.text('open dialog'));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    expect(find.text('probe'), findsOneWidget);
+    expect(dialogBrightness, Brightness.dark);
+  });
 
-  testWidgets(
-    'CruxConfirmDialog.show opens above the widgetbook shell and its '
-    'actions close it',
-    (WidgetTester tester) async {
-      bool confirmed = false;
-      await tester.pumpWidget(
-        _wrapInWidgetbookShell(
-          Builder(
-            builder: (BuildContext context) {
-              return GestureDetector(
-                onTap: () => CruxConfirmDialog.show(
-                  context,
-                  title: '確認',
-                  message: '実行しますか？',
-                  cancelLabel: 'キャンセル',
-                  confirmLabel: '実行',
-                  onConfirm: () => confirmed = true,
-                ),
-                child: const Text('open confirm dialog'),
-              );
-            },
-          ),
+  testWidgets('CruxConfirmDialog.show opens above the widgetbook shell and its '
+      'actions close it', (WidgetTester tester) async {
+    bool confirmed = false;
+    await tester.pumpWidget(
+      _wrapInWidgetbookShell(
+        Builder(
+          builder: (BuildContext context) {
+            return GestureDetector(
+              onTap: () => CruxConfirmDialog.show(
+                context,
+                title: '確認',
+                message: '実行しますか？',
+                cancelLabel: 'キャンセル',
+                confirmLabel: '実行',
+                onConfirm: () => confirmed = true,
+              ),
+              child: const Text('open confirm dialog'),
+            );
+          },
         ),
-      );
+      ),
+    );
 
-      await tester.tap(find.text('open confirm dialog'));
-      await tester.pumpAndSettle();
-      expect(tester.takeException(), isNull);
-      expect(find.text('確認'), findsOneWidget);
-      expect(find.text('実行しますか？'), findsOneWidget);
+    await tester.tap(find.text('open confirm dialog'));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    expect(find.text('確認'), findsOneWidget);
+    expect(find.text('実行しますか？'), findsOneWidget);
 
-      await tester.tap(find.text('実行'));
-      await tester.pumpAndSettle();
-      expect(tester.takeException(), isNull);
-      expect(confirmed, isTrue);
-      expect(find.text('確認'), findsNothing);
-    },
-  );
+    await tester.tap(find.text('実行'));
+    await tester.pumpAndSettle();
+    expect(tester.takeException(), isNull);
+    expect(confirmed, isTrue);
+    expect(find.text('確認'), findsNothing);
+  });
 
   testWidgets('showCruxToast shows a toast above the widgetbook shell', (
     WidgetTester tester,
@@ -208,8 +204,7 @@ void main() {
             child: Builder(
               builder: (BuildContext context) {
                 return GestureDetector(
-                  onTap: () =>
-                      showCruxToast(context, message: 'duplicate me'),
+                  onTap: () => showCruxToast(context, message: 'duplicate me'),
                   child: const Text('show toast'),
                 );
               },

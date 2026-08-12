@@ -114,9 +114,7 @@ void main() {
       WidgetTester tester,
     ) async {
       await tester.pumpWidget(
-        _wrap(
-          CruxIconButton(icon: _dummyIcon, label: '閉じる', onPressed: () {}),
-        ),
+        _wrap(CruxIconButton(icon: _dummyIcon, label: '閉じる', onPressed: () {})),
       );
 
       final Size circleSize = tester.getSize(_circleFinder());
@@ -146,9 +144,7 @@ void main() {
           ),
         );
 
-        final Size tapTargetSize = tester.getSize(
-          find.byType(CruxIconButton),
-        );
+        final Size tapTargetSize = tester.getSize(find.byType(CruxIconButton));
         expect(tapTargetSize.width, 56);
         expect(tapTargetSize.height, 56);
 
@@ -259,9 +255,7 @@ void main() {
       WidgetTester tester,
     ) async {
       await tester.pumpWidget(
-        _wrap(
-          CruxIconButton(icon: _dummyIcon, label: '閉じる', onPressed: () {}),
-        ),
+        _wrap(CruxIconButton(icon: _dummyIcon, label: '閉じる', onPressed: () {})),
       );
 
       expect(
@@ -476,9 +470,7 @@ void main() {
     ) async {
       final SemanticsHandle handle = tester.ensureSemantics();
       await tester.pumpWidget(
-        _wrap(
-          CruxIconButton(icon: _dummyIcon, label: '閉じる', onPressed: () {}),
-        ),
+        _wrap(CruxIconButton(icon: _dummyIcon, label: '閉じる', onPressed: () {})),
       );
 
       final SemanticsNode node = tester.getSemantics(
@@ -497,11 +489,7 @@ void main() {
       final SemanticsHandle handle = tester.ensureSemantics();
       await tester.pumpWidget(
         _wrap(
-          const CruxIconButton(
-            icon: _dummyIcon,
-            label: '閉じる',
-            onPressed: null,
-          ),
+          const CruxIconButton(icon: _dummyIcon, label: '閉じる', onPressed: null),
         ),
       );
 

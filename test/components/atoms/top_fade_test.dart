@@ -197,8 +197,7 @@ void main() {
         // this point would hit the overlay instead of the ListView beneath
         // it, and the drag below would never move the ScrollController.
         final Offset bandPoint =
-            tester.getTopLeft(find.byType(CruxTopFade)) +
-            const Offset(50, 40);
+            tester.getTopLeft(find.byType(CruxTopFade)) + const Offset(50, 40);
         final TestGesture gesture = await tester.startGesture(bandPoint);
         await gesture.moveBy(const Offset(0, -300));
         await tester.pump();

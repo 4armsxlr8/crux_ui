@@ -179,10 +179,7 @@ class _ComposerPlaygroundState extends State<_ComposerPlayground> {
 /// package already uses for "the fill behind an interactive control such as
 /// a text input" (see `colors.dart`'s own doc on that field), which is
 /// exactly [CruxComposer]'s role here.
-Widget _composerBackdrop({
-  required CruxColors colors,
-  required Widget child,
-}) {
+Widget _composerBackdrop({required CruxColors colors, required Widget child}) {
   return DecoratedBox(
     decoration: BoxDecoration(color: colors.controlFill),
     child: child,
@@ -241,8 +238,9 @@ class _ComposerStatesMatrixState extends State<ComposerStatesMatrix> {
   final CruxComposerController _normalController = CruxComposerController(
     text: 'こんにちは',
   );
-  final CruxComposerController _overLimitController =
-      CruxComposerController(text: _overLimitText);
+  final CruxComposerController _overLimitController = CruxComposerController(
+    text: _overLimitText,
+  );
   final CruxComposerController _disabledController = CruxComposerController(
     text: '編集できない値',
   );

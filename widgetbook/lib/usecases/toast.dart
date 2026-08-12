@@ -249,10 +249,7 @@ class ToastStatesMatrix extends StatelessWidget {
               children: <Widget>[
                 CruxToastCard(message: '一番奥のトースト'),
                 SizedBox(height: 10),
-                CruxToastCard(
-                  message: '真ん中のトースト',
-                  leading: _toastLeadingIcon,
-                ),
+                CruxToastCard(message: '真ん中のトースト', leading: _toastLeadingIcon),
                 SizedBox(height: 10),
                 CruxToastCard(message: '一番手前（最新）のトースト'),
               ],

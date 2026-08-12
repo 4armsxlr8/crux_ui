@@ -89,9 +89,7 @@ void main() {
     );
     await tester.enterText(composerField, '今日は涼しかった');
     await tester.pumpAndSettle();
-    await tester.tap(
-      find.widgetWithText(CruxButton, mimosaRecordSubmitLabel),
-    );
+    await tester.tap(find.widgetWithText(CruxButton, mimosaRecordSubmitLabel));
     await tester.pumpAndSettle();
 
     expect(
@@ -131,32 +129,31 @@ void main() {
     expect(dentalDyAfter, lessThan(milkDyAfter));
   });
 
-  testWidgets(
-    'flipping ダークモード on 設定 changes the ambient CruxTheme brightness '
-    'everywhere, including a tab not currently showing',
-    (WidgetTester tester) async {
-      await _loginToHome(tester);
+  testWidgets('flipping ダークモード on 設定 changes the ambient CruxTheme brightness '
+      'everywhere, including a tab not currently showing', (
+    WidgetTester tester,
+  ) async {
+    await _loginToHome(tester);
 
-      final BuildContext homeContextBefore = tester.element(
-        find.byType(TaskListScreen),
-      );
-      expect(CruxTheme.of(homeContextBefore).brightness, Brightness.light);
+    final BuildContext homeContextBefore = tester.element(
+      find.byType(TaskListScreen),
+    );
+    expect(CruxTheme.of(homeContextBefore).brightness, Brightness.light);
 
-      await _tapNavItem(tester, '設定');
-      final Finder darkModeSwitch = find.byType(CruxSwitch);
-      await tester.ensureVisible(darkModeSwitch);
-      await tester.tap(darkModeSwitch);
-      await tester.pumpAndSettle();
-      // MainShell's other tabs stay mounted (Offstage, not disposed) while
-      // 設定 is selected, so CruxTheme's InheritedWidget update already
-      // reached ホーム's Element here -- switching back only makes it
-      // paintable/findable again for this assertion.
-      await _tapNavItem(tester, 'ホーム');
+    await _tapNavItem(tester, '設定');
+    final Finder darkModeSwitch = find.byType(CruxSwitch);
+    await tester.ensureVisible(darkModeSwitch);
+    await tester.tap(darkModeSwitch);
+    await tester.pumpAndSettle();
+    // MainShell's other tabs stay mounted (Offstage, not disposed) while
+    // 設定 is selected, so CruxTheme's InheritedWidget update already
+    // reached ホーム's Element here -- switching back only makes it
+    // paintable/findable again for this assertion.
+    await _tapNavItem(tester, 'ホーム');
 
-      final BuildContext homeContextAfter = tester.element(
-        find.byType(TaskListScreen),
-      );
-      expect(CruxTheme.of(homeContextAfter).brightness, Brightness.dark);
-    },
-  );
+    final BuildContext homeContextAfter = tester.element(
+      find.byType(TaskListScreen),
+    );
+    expect(CruxTheme.of(homeContextAfter).brightness, Brightness.dark);
+  });
 }

@@ -312,9 +312,7 @@ class _CruxSegmentedControlState<T> extends State<CruxSegmentedControl<T>> {
             decoration: ShapeDecoration(
               color: colors.controlFill,
               shape: const RoundedSuperellipseBorder(
-                borderRadius: BorderRadius.all(
-                  Radius.circular(CruxRadii.pill),
-                ),
+                borderRadius: BorderRadius.all(Radius.circular(CruxRadii.pill)),
               ),
             ),
           ),
@@ -379,8 +377,7 @@ class _CruxSegmentButton<T> extends StatefulWidget {
   final bool sheenLtr;
 
   @override
-  State<_CruxSegmentButton<T>> createState() =>
-      _CruxSegmentButtonState<T>();
+  State<_CruxSegmentButton<T>> createState() => _CruxSegmentButtonState<T>();
 }
 
 class _CruxSegmentButtonState<T> extends State<_CruxSegmentButton<T>> {

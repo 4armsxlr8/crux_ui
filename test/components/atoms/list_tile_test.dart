@@ -63,9 +63,7 @@ void main() {
     testWidgets('keeps a minimum height of 44 logical pixels', (
       WidgetTester tester,
     ) async {
-      await tester.pumpWidget(
-        _wrap(CruxListTile(title: 'タイトル', onTap: () {})),
-      );
+      await tester.pumpWidget(_wrap(CruxListTile(title: 'タイトル', onTap: () {})));
 
       final Size size = tester.getSize(find.byType(CruxListTile));
       expect(size.height, greaterThanOrEqualTo(44));
@@ -233,11 +231,7 @@ void main() {
     ) async {
       await tester.pumpWidget(
         _wrap(
-          const CruxListTile(
-            title: 'タイトル',
-            subtitle: 'サブタイトル',
-            trailing: '右',
-          ),
+          const CruxListTile(title: 'タイトル', subtitle: 'サブタイトル', trailing: '右'),
         ),
       );
 
@@ -447,9 +441,7 @@ void main() {
           _wrap(const CruxListTile(title: 'タイトル', trailing: '右'), width: 200),
         );
 
-        final double tileLeft = tester
-            .getTopLeft(find.byType(CruxListTile))
-            .dx;
+        final double tileLeft = tester.getTopLeft(find.byType(CruxListTile)).dx;
         final double tileRight = tester
             .getTopRight(find.byType(CruxListTile))
             .dx;
@@ -476,9 +468,7 @@ void main() {
           ),
         );
 
-        final double tileLeft = tester
-            .getTopLeft(find.byType(CruxListTile))
-            .dx;
+        final double tileLeft = tester.getTopLeft(find.byType(CruxListTile)).dx;
         final double tileRight = tester
             .getTopRight(find.byType(CruxListTile))
             .dx;
@@ -505,9 +495,7 @@ void main() {
           ),
         );
 
-        final double tileLeft = tester
-            .getTopLeft(find.byType(CruxListTile))
-            .dx;
+        final double tileLeft = tester.getTopLeft(find.byType(CruxListTile)).dx;
         final double tileRight = tester
             .getTopRight(find.byType(CruxListTile))
             .dx;
@@ -525,13 +513,9 @@ void main() {
       WidgetTester tester,
     ) async {
       final SemanticsHandle handle = tester.ensureSemantics();
-      await tester.pumpWidget(
-        _wrap(CruxListTile(title: 'タイトル', onTap: () {})),
-      );
+      await tester.pumpWidget(_wrap(CruxListTile(title: 'タイトル', onTap: () {})));
 
-      final SemanticsNode node = tester.getSemantics(
-        find.byType(CruxListTile),
-      );
+      final SemanticsNode node = tester.getSemantics(find.byType(CruxListTile));
       expect(node.flagsCollection.isButton, isTrue);
 
       handle.dispose();
@@ -545,9 +529,7 @@ void main() {
         _wrap(const CruxListTile(title: 'タイトル', onTap: null)),
       );
 
-      final SemanticsNode node = tester.getSemantics(
-        find.byType(CruxListTile),
-      );
+      final SemanticsNode node = tester.getSemantics(find.byType(CruxListTile));
       expect(node.flagsCollection.isButton, isFalse);
 
       handle.dispose();

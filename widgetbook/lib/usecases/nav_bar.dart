@@ -349,9 +349,7 @@ class NavBarStatesMatrix extends StatelessWidget {
                   children: <Widget>[
                     for (final int count in <int>[2, 3, 4, 5])
                       Padding(
-                        padding: const EdgeInsets.only(
-                          bottom: CruxSpacing.s12,
-                        ),
+                        padding: const EdgeInsets.only(bottom: CruxSpacing.s12),
                         child: SizedBox(
                           width: 600,
                           child: CruxNavBar<int>(

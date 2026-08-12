@@ -330,10 +330,7 @@ void main() {
       // than the plan's wording implies) rather than silently forced green;
       // see this task's structured-output notes for the recorded issue.
       expect(
-        _contrastRatio(
-          CruxColors.light.accent,
-          CruxColors.light.controlFill,
-        ),
+        _contrastRatio(CruxColors.light.accent, CruxColors.light.controlFill),
         greaterThanOrEqualTo(2.5),
       );
       expect(

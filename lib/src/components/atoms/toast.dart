@@ -305,17 +305,13 @@ class CruxToastCard extends StatelessWidget {
 /// non-pill pressable shape [CruxIconButton]/`CruxInputBar`'s submit
 /// button use, rather than embedding a full [CruxButton].
 class _CruxToastActionButton extends StatefulWidget {
-  const _CruxToastActionButton({
-    required this.label,
-    required this.onPressed,
-  });
+  const _CruxToastActionButton({required this.label, required this.onPressed});
 
   final String label;
   final VoidCallback onPressed;
 
   @override
-  State<_CruxToastActionButton> createState() =>
-      _CruxToastActionButtonState();
+  State<_CruxToastActionButton> createState() => _CruxToastActionButtonState();
 }
 
 class _CruxToastActionButtonState extends State<_CruxToastActionButton> {
@@ -877,10 +873,7 @@ class _ToastItemState extends State<_ToastItem> {
       leading: widget.entry.leading,
       action: entryAction == null
           ? null
-          : CruxToastAction(
-              label: entryAction.label,
-              onPressed: _handleAction,
-            ),
+          : CruxToastAction(label: entryAction.label, onPressed: _handleAction),
       // See CruxToastCard.onDismiss's own doc: the semantics-only
       // equivalent of this card's swipe-to-dismiss drag gesture.
       onDismiss: widget.onDismiss,

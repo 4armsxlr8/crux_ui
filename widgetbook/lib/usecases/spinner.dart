@@ -198,9 +198,7 @@ class _SpinnerEdgeCases extends StatelessWidget {
             const SizedBox(
               width: 12,
               height: 12,
-              child: ClipRect(
-                child: CruxSpinner(size: CruxSpinnerSize.large),
-              ),
+              child: ClipRect(child: CruxSpinner(size: CruxSpinnerSize.large)),
             ),
             const SizedBox(height: CruxSpacing.s32),
             Text(
