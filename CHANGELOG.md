@@ -1,5 +1,62 @@
 # Changelog
 
+## 0.11.0
+
+**`CruxTypography`'s nine tokens can now be overridden one at a time when the
+theme is built.** The constructor takes an optional `TextStyle` for each of
+`heading`, `subheading`, `title`, `body`, `caption`, `captionStrong`,
+`labelSmall`, `label`, and `navLabel`. Leave them all unset and nothing
+changes: every token resolves exactly as it did in 0.10.0, on both the Apple
+and the Material tier.
+
+An override is merged onto its token's platform default rather than replacing
+it, which makes customisation a two-layer fallback. A token you do not
+override keeps its platform default entirely. A token you do override keeps
+the platform default for every attribute the override leaves unset, so
+`body: TextStyle(fontSize: 15)` changes the size and nothing else — the
+weight, letter spacing, family, and (on Material) the line height and leading
+distribution all survive. The rule is `TextStyle.merge`'s: only the
+attributes the override actually names win.
+
+- Setting `inherit: false` on an override switches the merge off entirely: the
+  style is used verbatim, scale-wide `fontFamily` included. Watch the partial
+  case — a style that turns inheritance off without naming every attribute
+  falls back to the Flutter engine's bare defaults rather than the platform's,
+  losing size, line height, letter spacing, weight, and family alike (an unset
+  size lands at 14 logical pixels, not the token's own). Either spell out every
+  attribute the token needs, or drop `inherit: false`.
+- For any one token the font family is the first of these that is set: the
+  override's own `fontFamily`, then the scale-wide `CruxTypography.fontFamily`,
+  then the platform default.
+- Six properties are off-limits to an override: `color`, `backgroundColor`,
+  `foreground`, `background`, `decorationColor`, and `shadows` — that last one
+  whatever the list holds, since a `Shadow` always carries a color. A debug
+  build catches the violation as soon as any token of that scale is read, with
+  an assertion error naming the offending token; a release build has the
+  asserts stripped and applies the color, so the debug run is where the
+  checking happens. Metrics are all a token holds: text color stays each
+  component's call, made from its own state and the theme's palette.
+- Sizes come with a height budget. Control heights in this kit are fixed and
+  tuned to the default scale, so a control token (`label`, `labelSmall`,
+  `navLabel`) raised much above its default leaves buttons, chips, and segments
+  at the same height and truncates the label instead of growing.
+- `CruxTypography` now implements `==` and `hashCode` (over `fontFamily`,
+  `platform`, and the nine overrides), and `CruxThemeData` delegates to them,
+  so swapping in a theme that differs only in one token's override rebuilds
+  the subtree.
+- Added `CruxTypography.copyWith`, covering `fontFamily`, `platform`, and the
+  nine overrides. A `null` argument means "leave this one alone", so it can add
+  or change an override but never remove one; build a fresh `CruxTypography` to
+  drop an override.
+- On Material, `labelSmall` and `label` still share one default style, yet each
+  one has its own override slot. Patch just one and the pair splits apart on
+  Material too, not only on Apple platforms; give both the same override to
+  keep them matched.
+
+Fixed: `colors.mutedFill` was missing from `CruxThemeData`'s `==` and
+`hashCode`, so swapping in a theme that differed only in that color did not
+rebuild the subtree and the old fill kept being painted.
+
 ## 0.10.0
 
 **Breaking: `CruxTypography` now resolves to the host platform's own type

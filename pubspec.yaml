@@ -6,7 +6,7 @@ description: >-
   CruxComposer, CruxSpinner, CruxIconButton, CruxCheckbox,
   CruxDialog (with CruxConfirmDialog), CruxToast,
   CruxSegmentedControl, CruxSlider, CruxNavBar, CruxTopFade.
-version: 0.10.0
+version: 0.11.0
 
 topics:
   - ui

@@ -103,8 +103,10 @@ class CruxThemeData {
     }
     return other is CruxThemeData &&
         other.brightness == brightness &&
-        other.typography.fontFamily == typography.fontFamily &&
-        other.typography.platform == typography.platform &&
+        // Delegating to the token's own == is the target shape; giving
+        // CruxColors and CruxShadows value equality is a later milestone
+        // (see unknowns/typography-overrides/ledger.md).
+        other.typography == typography &&
         other.colors.background == colors.background &&
         other.colors.surface == colors.surface &&
         other.colors.accent == colors.accent &&
@@ -131,15 +133,14 @@ class CruxThemeData {
         _boxShadowListEquals(other.shadows.xs, shadows.xs);
   }
 
-  // Nested rather than one flat Object.hash call: brightness + fontFamily +
+  // Nested rather than one flat Object.hash call: brightness + typography +
   // 15 color fields + 9 shadow-derived values is 26 arguments, past
   // Object.hash's 20-argument ceiling. The color fields are grouped into
   // their own Object.hash so the outer call stays within the limit.
   @override
   int get hashCode => Object.hash(
     brightness,
-    typography.fontFamily,
-    typography.platform,
+    typography,
     Object.hash(
       colors.background,
       colors.surface,
