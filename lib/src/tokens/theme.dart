@@ -118,6 +118,7 @@ class CruxThemeData {
         other.colors.error == colors.error &&
         other.colors.controlFill == colors.controlFill &&
         other.colors.onAccent == colors.onAccent &&
+        other.colors.mutedFill == colors.mutedFill &&
         other.colors.controlPlate == colors.controlPlate &&
         _boxShadowListEquals(other.shadows.sm, shadows.sm) &&
         _boxShadowListEquals(other.shadows.md, shadows.md) &&
@@ -131,7 +132,7 @@ class CruxThemeData {
   }
 
   // Nested rather than one flat Object.hash call: brightness + fontFamily +
-  // 14 color fields + 9 shadow-derived values is 25 arguments, past
+  // 15 color fields + 9 shadow-derived values is 26 arguments, past
   // Object.hash's 20-argument ceiling. The color fields are grouped into
   // their own Object.hash so the outer call stays within the limit.
   @override
@@ -153,6 +154,7 @@ class CruxThemeData {
       colors.error,
       colors.controlFill,
       colors.onAccent,
+      colors.mutedFill,
       colors.controlPlate,
     ),
     Object.hashAll(shadows.sm),

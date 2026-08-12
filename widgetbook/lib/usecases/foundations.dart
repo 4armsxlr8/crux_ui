@@ -344,7 +344,7 @@ class FoundationsStatesMatrix extends StatelessWidget {
   }
 }
 
-/// A section label styled with [CruxTypography.headline].
+/// A section label styled with [CruxTypography.subheading].
 class _SectionHeading extends StatelessWidget {
   const _SectionHeading(this.label, {required this.colors, required this.type});
 
