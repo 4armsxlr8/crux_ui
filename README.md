@@ -1,7 +1,7 @@
 # Crux UI
 
-Design tokens, a theme layer, and eighteen springy components for
-building a warm, friendly Flutter app.
+Design tokens, a theme layer, and eighteen springy components — for
+Flutter apps that don't look like stock Flutter.
 
 ![status: under development](https://img.shields.io/badge/status-under%20development-orange)
 
@@ -16,19 +16,31 @@ from Crux tokens and components.*
 
 ## Why
 
-Flutter apps default to Material's look, and giving an app a brand of its
-own usually means fighting `ThemeData` overrides widget by widget. Crux
-takes the opposite route: it is a self-contained kit — its own
+Compose a screen from stock Material widgets and it reads as "a Flutter
+app" at a glance — the default type scale, shapes, and motion are that
+recognizable. Chasing one cause of that impression led to
+[cupertino_typography](https://pub.dev/packages/cupertino_typography),
+which fixes the type-scale part on iOS; Crux grew out of the same itch,
+taken wider: components whose look and feel are designed on purpose
+rather than inherited from Material's defaults.
+
+So Crux is a self-contained kit — its own
 color/spacing/typography/radius/shadow tokens, its own `CruxTheme` layer,
 its own widgets — and it **never reads or rewrites Material's `ThemeData`
 at all**. Providing a `CruxTheme` does not change the look of `Material`,
 `Scaffold`, or any other Material widget, and no Material theme can leak
 into a Crux component.
 
-One decision runs through the whole kit: **typography resolves to the host
-platform's own type scale** — Apple's Human Interface Guidelines sizes on
-iOS and macOS, Material 3 elsewhere — so text-bearing components change
-size across platforms by design.
+The example app's palette happens to be warm and cream-colored, but that
+is just one `CruxThemeData`. The kit's real focus is what stays the same
+across themes: springy, carefully tuned motion, and the small details of
+each component — press feedback that fits a component's shape, labels
+that cannot overflow, layouts that do not shift on validation.
+
+One more decision runs through the whole kit: **typography resolves to the
+host platform's own type scale** — Apple's Human Interface Guidelines
+sizes on iOS and macOS, Material 3 elsewhere — so text-bearing components
+change size across platforms by design.
 
 ## Status
 
