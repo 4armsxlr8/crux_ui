@@ -35,3 +35,9 @@ migrate_working_dir/
 
 # Claude Code session artifacts (reports etc.) — not part of the package
 .claude/
+
+# crystallize working files (never publish)
+plans/
+unknowns/
+output/
+skills-lock.json
