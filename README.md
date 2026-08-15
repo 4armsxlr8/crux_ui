@@ -3,6 +3,11 @@
 Design tokens, a theme layer, and eighteen springy components — the crux
 of a warm, friendly Flutter app.
 
+![status: under development](https://img.shields.io/badge/status-under%20development-orange)
+
+> **Under development.** Not yet published to pub.dev; APIs may change
+> until 1.0. Details in [Status](#status).
+
 ![Screens from the example app, built entirely from Crux components](https://raw.githubusercontent.com/4armsxlr8/crux_ui/main/doc/mimosa-screens.png)
 
 *Screens from `example/` — 「ミモザ」, a mock life-organizing app with an AI
