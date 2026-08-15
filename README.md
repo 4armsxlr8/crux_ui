@@ -1,7 +1,7 @@
 # Crux UI
 
-Design tokens, a theme layer, and eighteen springy components — the crux
-of a warm, friendly Flutter app.
+Design tokens, a theme layer, and eighteen springy components for
+building a warm, friendly Flutter app.
 
 ![status: under development](https://img.shields.io/badge/status-under%20development-orange)
 
