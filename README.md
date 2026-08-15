@@ -3,42 +3,92 @@
 Design tokens, a theme layer, and eighteen springy components — the crux
 of a warm, friendly Flutter app.
 
+![Screens from the example app, built entirely from Crux components](https://raw.githubusercontent.com/4armsxlr8/crux_ui/main/doc/mimosa-screens.png)
+
+*Screens from `example/` — 「ミモザ」, a mock life-organizing app with an AI
+companion: login, home, chat, and dark mode. Every visible pixel is painted
+from Crux tokens and components.*
+
+## Why
+
+Flutter apps default to Material's look, and giving an app a brand of its
+own usually means fighting `ThemeData` overrides widget by widget. Crux
+takes the opposite route: it is a self-contained kit — its own
+color/spacing/typography/radius/shadow tokens, its own `CruxTheme` layer,
+its own widgets — and it **never reads or rewrites Material's `ThemeData`
+at all**. Providing a `CruxTheme` does not change the look of `Material`,
+`Scaffold`, or any other Material widget, and no Material theme can leak
+into a Crux component.
+
+One decision runs through the whole kit: **typography resolves to the host
+platform's own type scale** — Apple's Human Interface Guidelines sizes on
+iOS and macOS, Material 3 elsewhere — so text-bearing components change
+size across platforms by design.
+
 ## Status
 
-**Under development.** The design token layer is implemented: colors,
-spacing, typography, radii, and shadows (elevation shadows, a modal scrim,
-and a dark-mode hairline), plus a `CruxTheme` / `CruxThemeData` pair that
-makes them available to a widget subtree. Typography resolves to the host
-platform's own type scale — Apple's Human Interface Guidelines on iOS and
-macOS, Material 3 elsewhere — so text-bearing components change size across
-platforms by design. Seventeen widget atoms are also implemented:
-`CruxButton` (including a `loading` state), `CruxChip`, `CruxCard`,
-`CruxListTile`, `CruxSwitch`, `CruxDivider`, `CruxTextFormField`,
-`CruxInputBar`, `CruxSpinner`, `CruxIconButton`, `CruxCheckbox`,
-`CruxDialog`, `CruxToast`, `CruxSegmentedControl`, `CruxSlider`,
-`CruxNavBar` (a floating bottom navigation bar, with its `CruxNavItem`
-destination type, and its own backdrop-fade band that melts scrolling
-content behind it into the page near the screen's bottom edge), and
-`CruxTopFade` (a progressive fade/blur band for the top edge of scrolling
-content), plus two molecules built from them, `CruxComposer` and
-`CruxConfirmDialog` (the ready-made confirmation layer over `CruxDialog`) —
-eighteen components in total, counting the two dialog layers as one. Other
-widgets (bottom sheets and so on) have not been built yet — for now, the
-rest of a screen is composed from plain Flutter widgets plus Crux's tokens,
-as shown in `example/`.
+**Under development.** Not yet published to pub.dev. The token layer and
+the eighteen components below are implemented; the rest of a screen
+(bottom sheets and so on) is composed from plain Flutter widgets plus
+Crux's tokens, as `example/` shows.
 
-Crux never rewrites Material's `ThemeData`; providing a `CruxTheme` does
-not change the look of `Material`, `Scaffold`, or other Material widgets.
+**Tokens** — colors, spacing, typography (platform-resolved), radii, and
+shadows (elevation shadows, a modal scrim, a dark-mode hairline), provided
+to a subtree by the `CruxTheme` / `CruxThemeData` pair.
 
-`lib/crux_ui.dart` is the single public entry point. Every component this
-package ships is exported from that one file, so apps only ever need a
-single import:
+**Components** — seventeen atoms plus two molecules built from them,
+eighteen in total counting the two dialog layers as one:
 
-```dart
-import 'package:crux_ui/crux_ui.dart';
-```
+| Component | What it is |
+|---|---|
+| `CruxButton` | Pill button. `filled` / `tonal` / `ghost` × `small` / `medium` / `large`, with a `loading` state |
+| `CruxChip` | Filter/tag pill with a `selected` flag |
+| `CruxCard` | Bordered content container; decorative by default, pressable when given `onTap` |
+| `CruxListTile` | List row with `leading` / `title` / `subtitle` / `trailing` |
+| `CruxSwitch` | Pill on/off toggle |
+| `CruxCheckbox` | Checkbox |
+| `CruxDivider` | 1 px separator rule with optional `indent` |
+| `CruxTextFormField` | Single-line, `Form`-integrated text input (a real `FormField<String>`), with an optional password show/hide toggle |
+| `CruxInputBar` | Search / chat input bar |
+| `CruxComposer` | Post-body composer: no surrounding box, fills the screen, multi-line (molecule) |
+| `CruxSpinner` | Loading indicator |
+| `CruxIconButton` | Icon button |
+| `CruxDialog` / `CruxConfirmDialog` | Dialog, and the ready-made confirmation layer over it (molecule) |
+| `CruxToast` | Toast, shown through one app-root `CruxToastHost` |
+| `CruxSegmentedControl` | Segmented control |
+| `CruxSlider` | Slider |
+| `CruxNavBar` | Floating bottom navigation bar with a backdrop-fade band that melts scrolling content into the page edge |
+| `CruxTopFade` | Progressive fade/blur band for the top edge of scrolling content |
 
-### Usage
+## Design decisions
+
+- **One import.** `lib/crux_ui.dart` is the single public entry point;
+  every component is exported from that one file.
+- **Never touches Material.** Crux components read every color and text
+  style from `CruxTheme.of`, and the kit neither reads nor customizes
+  `ThemeData`. `CruxTextFormField` is built on `CupertinoTextField` rather
+  than Material's `TextField` for the same reason — a host app's Material
+  theme has no path into its look.
+- **Platform-resolved type scale.** Nine typography tokens resolve to HIG
+  sizes on iOS/macOS and Material 3 sizes elsewhere, with per-token
+  overrides (merge semantics) and `copyWith` for app-specific tuning.
+- **Controlled widgets.** `CruxSwitch`, `CruxCheckbox`, and friends follow
+  Flutter's own convention: they always reflect `value` and call
+  `onChanged(!value)` rather than mutating themselves. Passing a null
+  callback disables a component.
+- **Press feedback fits the shape.** Width-hugging components
+  (`CruxButton`, `CruxCard`) get a press-spring scale; full-width rows
+  (`CruxListTile`) get a state layer only — a full-width row shrinking on
+  tap reads as an unnatural wobble.
+- **Labels cannot overflow.** Text labels render on a single line with an
+  ellipsis, so no constraint or label length breaks a component.
+- **Tap targets stay 44 px.** `CruxChip`'s visible pill is 36 px tall, but
+  its hit area keeps the 44 logical-pixel minimum.
+- **Nothing shifts on validation.** `CruxTextFormField` always reserves its
+  helper/error caption row, so an error appearing or clearing never moves
+  the layout.
+
+## Usage
 
 ```dart
 import 'package:flutter/widgets.dart';
@@ -70,85 +120,38 @@ void main() {
 }
 ```
 
-`CruxButton` is a pill-shaped button with three variants
-(`CruxButtonVariant.filled` / `tonal` / `ghost`) and three sizes
-(`CruxButtonSize.small` / `medium` / `large`). Pass `onPressed: null` to
-disable it. Its label is a plain `String`, always rendered on a single line
-with an ellipsis, so it can never overflow no matter how narrow its
-constraints or how long the label is.
+<details>
+<summary>Localizing the text selection menu (Paste / Copy) in non-English apps</summary>
 
-`CruxChip` is a pill-shaped filter/tag chip with a `selected` flag. Like
-`CruxButton`, it hugs its label's width, truncates with an ellipsis, and
-keeps a 44 logical pixel tap target even though its visible pill is 36 tall.
-Pass `onTap: null` to disable it.
-
-`CruxCard` is a bordered content container. Unlike `CruxButton`, it does
-**not** hug its content's width — it fills its parent's bounded width like a
-block element. Leave `onTap` unset for a purely decorative container with no
-press feedback, or pass a callback to make the whole card pressable.
-
-`CruxListTile` is a list row with an optional `leading` widget, a required
-`title`, and optional `subtitle`/`trailing` text. It fills its parent's
-width like `CruxCard`, and its only press feedback is a state layer (no
-press-scale, unlike `CruxButton`/`CruxCard` — a full-width row shrinking
-on tap reads as an unnatural wobble).
-
-`CruxSwitch` is a pill-shaped on/off toggle. It is a controlled widget,
-the same convention Flutter's own `Switch` uses: it always reflects `value`
-and calls `onChanged(!value)` on tap rather than mutating itself. Pass
-`onChanged: null` to disable it.
-
-`CruxDivider` is a 1 logical pixel tall `separator`-colored rule that
-fills the width of its bounded parent, with an optional `indent`.
-
-`CruxTextFormField` is a single-line, `Form`-integrated text input field —
-a real `FormField<String>`, so `validator`/`onSaved` and a wrapping `Form`'s
-batched validate/save all work. It is built on `CupertinoTextField` rather
-than Material's `TextField`, so a host app's Material theme can never leak
-into its look. `label` (the field's name) and `placeholder` (a hint at the
-expected format) are separate arguments: `label` always renders in a static
-row above the box, whether or not the field has a value, and `placeholder`
-renders inside the box itself, disappearing once a value is entered. Its
-helper/error caption row below the box is always reserved, so nothing shifts
-as a validation error appears or clears. Pass `enabled: false` to disable
-it, rather than the package's usual null-callback convention — a text field
-is commonly used with only a `controller` and no `onChanged` at all. Pass
-`obscureToggle` (a `CruxObscureToggle`) to add a password show/hide
-button at the box's trailing edge; this package never draws its own
-eye/eye-slash glyph, so `CruxObscureToggle` bundles the icons and the
-screen-reader labels for both states, both supplied by the caller. Leaving
-`obscureToggle` unset renders no toggle at all.
-
-Its selection/copy-paste menu's wording ("Paste", "Copy", ...) has two
-sources, and a non-English app needs to cover both. On iOS 16+, the menu is
-drawn by iOS itself, not Flutter, so its wording follows the **app
-bundle's** declared languages — the `CFBundleLocalizations` array in
-`Info.plist` — see `example/ios/Runner/Info.plist` for a working setup.
-Everywhere else (older iOS, Android, desktop), Flutter draws the menu
-itself and reads its wording from whichever `CupertinoLocalizations` the
-host app supplies, falling back to English if unconfigured. Add the
-`flutter_localizations` package and its
+`CruxTextFormField`'s selection/copy-paste menu wording has two sources,
+and a non-English app needs to cover both. On iOS 16+, the menu is drawn by
+iOS itself, so its wording follows the **app bundle's** declared languages —
+the `CFBundleLocalizations` array in `Info.plist`; see
+`example/ios/Runner/Info.plist` for a working setup. Everywhere else
+(older iOS, Android, desktop), Flutter draws the menu and reads its wording
+from whichever `CupertinoLocalizations` the host app supplies, falling back
+to English if unconfigured — add `flutter_localizations` and its
 `GlobalCupertinoLocalizations.delegate` (with the Material/Widgets
-equivalents and a matching `supportedLocales`) to your `MaterialApp` to fix
-that path — see `example/lib/main.dart` for a working setup. `crux_ui`
-itself never depends on `flutter_localizations`, so this is setup a
-consuming app adds itself rather than something this package could do for
-you.
+equivalents and matching `supportedLocales`) to your app; see
+`example/lib/main.dart`. `crux_ui` itself never depends on
+`flutter_localizations`; this setup belongs to the consuming app.
 
-`example/` is a single mock app, "ミモザとの暮らし" (life with Mimosa, an
-AI companion): a login screen leads into a 4-tab shell (home/tasks,
-Mimosa/chat, household ledger, settings) plus a "きろく" (journal entry)
-post modal opened from home's FAB. See `example/lib/main.dart` for the app
-shell and `example/lib/screens/` for each screen, all built from Crux's
-components in the context of that one app. For the color palette, type
-scale, spacing scale, and radii tokens, and for every atom's full
-Playground/States matrix/Edge cases catalog, run the dev catalog app in
-`widgetbook/` (`cd widgetbook && flutter run -d macos`).
+</details>
 
-## Getting started
+## Example app and component catalog
 
-This package requires the Dart SDK `^3.12.2` and a Flutter SDK that ships a
-Dart version in that range.
+- **`example/`** — 「ミモザとの暮らし」, a single mock app: a login screen
+  into a 4-tab shell (home/tasks, chat, household ledger, settings) plus a
+  journal post modal. See `example/lib/screens/` for each screen, all built
+  from Crux components in the context of one app.
+- **`widgetbook/`** — the dev catalog: every token scale and every atom's
+  full Playground / States matrix / Edge cases pages. Run it with
+  `cd widgetbook && flutter run -d macos`.
+
+## Getting started (development)
+
+Requires the Dart SDK `^3.12.2` and a Flutter SDK shipping a Dart version
+in that range.
 
 ```sh
 flutter pub get
@@ -159,16 +162,10 @@ flutter test
 
 ## Roadmap
 
-`CruxButton`, `CruxChip`, `CruxCard`, `CruxListTile`, `CruxSwitch`,
-`CruxDivider`, and `CruxTextFormField` are the widget atoms shipped so
-far; the rest of the widget set (snackbars and so on) has not been decided
-yet. The remaining text-input use cases are deliberately planned as
-separate widgets rather than options on `CruxTextFormField`, since their
-looks differ too much to share one API: `CruxInputBar` (search and chat,
-which share one look) and `CruxComposer` (a post body — no surrounding
-box, fills the screen, multi-line by default). Neither is built yet. Each
-future component will land here along with its tests and documentation,
-following the same tokens introduced in 0.1.0.
+The eighteen components above are shipped. The rest of the widget set —
+bottom sheets, snackbars, and whatever else earns its place — has not been
+designed yet; each future component lands with its tests and documentation,
+on the same tokens.
 
 ## License
 
