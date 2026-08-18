@@ -1,5 +1,7 @@
 # Crux UI
 
+English | [日本語](README.ja.md)
+
 Design tokens, a theme layer, and eighteen springy components — for
 Flutter apps that don't look like stock Flutter.
 
