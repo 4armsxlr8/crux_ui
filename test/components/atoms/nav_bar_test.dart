@@ -178,6 +178,18 @@ Finder _pillBoxFinder() {
   });
 }
 
+/// Finds the [Transform] that owns the floating pill's whole visual subtree,
+/// distinct from the per-tab and selected-plate transforms below it.
+Finder _pillScaleFinder() {
+  return find
+      .ancestor(of: _pillBoxFinder(), matching: find.byType(Transform))
+      .first;
+}
+
+double _pillScale(WidgetTester tester) {
+  return tester.widget<Transform>(_pillScaleFinder()).transform.entry(0, 0);
+}
+
 /// Finds any actively-skewed [Transform] in a tab's subtree -- the sheen
 /// sweep's skew, the only [Transform] this widget ever builds with a
 /// non-zero (0,1) matrix entry. Empty whenever no sheen is currently
@@ -360,6 +372,46 @@ void main() {
         expect(_plateOpacity(tester, 'A'), 0.0);
         expect(_plateOpacity(tester, 'B'), 0.0);
         expect(_plateOpacity(tester, 'C'), 1.0);
+      },
+    );
+  });
+
+  group('pill press animation', () {
+    testWidgets(
+      'scales the floating pill while a tab is pressed and returns it to '
+      'rest on release',
+      (WidgetTester tester) async {
+        await tester.pumpWidget(
+          _wrap(
+            CruxNavBar<String>(
+              items: _items(),
+              selected: 'a',
+              onChanged: (String _) {},
+            ),
+          ),
+        );
+
+        expect(_pillScale(tester), 1.0);
+        expect(
+          find.ancestor(
+            of: _backdropScrimFinder(),
+            matching: find.byType(Transform),
+          ),
+          findsNothing,
+        );
+
+        final TestGesture gesture = await tester.startGesture(
+          tester.getCenter(find.text('B')),
+        );
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 80));
+
+        expect(_pillScale(tester), lessThan(1.0));
+
+        await gesture.up();
+        await tester.pumpAndSettle();
+
+        expect(_pillScale(tester), closeTo(1.0, 0.001));
       },
     );
   });

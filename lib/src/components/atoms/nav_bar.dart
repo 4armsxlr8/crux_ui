@@ -233,6 +233,11 @@ class CruxNavItem<T> {
 /// tilted and swept in the direction of travel. Nothing ever slides or
 /// translates between items.
 ///
+/// **Press feedback**: while any enabled tab is pressed, the floating pill
+/// itself scale-springs toward [CruxMotion.pressedScaleSubtle]. The pressed
+/// tab keeps its own stronger press scale, while the backdrop-fade band
+/// remains fixed behind the pill.
+///
 /// **Floating shape and safe area**: unlike every other Crux component,
 /// [CruxNavBar] reads [MediaQuery]'s bottom safe-area inset itself
 /// (falling back to zero with no [MediaQuery] ancestor) and bakes its own
@@ -355,6 +360,10 @@ class CruxNavBar<T> extends StatefulWidget {
 class _CruxNavBarState<T> extends State<CruxNavBar<T>> {
   Timer? _sheenDelayTimer;
 
+  /// Values of tabs whose press feedback is currently active. A set keeps the
+  /// pill pressed correctly if two pointers press different tabs at once.
+  final Set<T> _pressedTabValues = <T>{};
+
   /// Each item's own kira-sheen trigger count, keyed by [CruxNavItem.
   /// value]. Never reset once an item has a count, even after the sheen
   /// moves to a different item -- a still-sweeping sheen must be free to
@@ -408,6 +417,15 @@ class _CruxNavBarState<T> extends State<CruxNavBar<T>> {
     widget.onChanged?.call(value);
   }
 
+  void _handleTabPressChanged(T value, bool pressed) {
+    final bool changed = pressed
+        ? _pressedTabValues.add(value)
+        : _pressedTabValues.remove(value);
+    if (changed) {
+      setState(() {});
+    }
+  }
+
   @override
   void dispose() {
     _sheenDelayTimer?.cancel();
@@ -453,47 +471,55 @@ class _CruxNavBarState<T> extends State<CruxNavBar<T>> {
 
         return Padding(
           padding: EdgeInsets.only(bottom: safeAreaBottom + _barBottomOffset),
-          // heightFactor: 1.0 keeps this Center snug to the pill's own
-          // height; a bare Center expands to fill both axes under bounded
-          // constraints, which would inflate this widget's own reported
-          // height to match its host.
-          child: Center(
-            heightFactor: 1.0,
-            child: SizedBox(
-              width: pillWidth,
-              child: DecoratedBox(
-                decoration: ShapeDecoration(
-                  color: colors.surface,
-                  shadows: theme.shadows.sm,
-                  shape: const RoundedSuperellipseBorder(
-                    borderRadius: BorderRadius.all(
-                      Radius.circular(CruxRadii.pill),
+          child: CruxMotion.scale(
+            value: _pressedTabValues.isNotEmpty
+                ? CruxMotion.pressedScaleSubtle
+                : 1.0,
+            // heightFactor: 1.0 keeps this Center snug to the pill's own
+            // height; a bare Center expands to fill both axes under bounded
+            // constraints, which would inflate this widget's own reported
+            // height to match its host. The fixed safe-area padding remains
+            // outside the transform so only the visible pill scales.
+            child: Center(
+              heightFactor: 1.0,
+              child: SizedBox(
+                width: pillWidth,
+                child: DecoratedBox(
+                  decoration: ShapeDecoration(
+                    color: colors.surface,
+                    shadows: theme.shadows.sm,
+                    shape: const RoundedSuperellipseBorder(
+                      borderRadius: BorderRadius.all(
+                        Radius.circular(CruxRadii.pill),
+                      ),
                     ),
                   ),
-                ),
-                child: SizedBox(
-                  height: _barHeight,
-                  child: Padding(
-                    padding: const EdgeInsets.all(_barInnerPadding),
-                    child: Row(
-                      children: <Widget>[
-                        for (final CruxNavItem<T> item in widget.items)
-                          Expanded(
-                            key: ValueKey<T>(item.value),
-                            child: _CruxNavTabButton<T>(
-                              icon: item.icon,
-                              label: item.label,
-                              selected: item.value == widget.selected,
-                              enabled: enabled,
-                              onTap: enabled
-                                  ? () => _handleItemTap(item.value)
-                                  : null,
-                              sheenTrigger:
-                                  _sheenTriggerByValue[item.value] ?? 0,
-                              sheenLtr: _sheenLtrByValue[item.value] ?? true,
+                  child: SizedBox(
+                    height: _barHeight,
+                    child: Padding(
+                      padding: const EdgeInsets.all(_barInnerPadding),
+                      child: Row(
+                        children: <Widget>[
+                          for (final CruxNavItem<T> item in widget.items)
+                            Expanded(
+                              key: ValueKey<T>(item.value),
+                              child: _CruxNavTabButton<T>(
+                                icon: item.icon,
+                                label: item.label,
+                                selected: item.value == widget.selected,
+                                enabled: enabled,
+                                onTap: enabled
+                                    ? () => _handleItemTap(item.value)
+                                    : null,
+                                onPressedChanged: (bool pressed) =>
+                                    _handleTabPressChanged(item.value, pressed),
+                                sheenTrigger:
+                                    _sheenTriggerByValue[item.value] ?? 0,
+                                sheenLtr: _sheenLtrByValue[item.value] ?? true,
+                              ),
                             ),
-                          ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                 ),
@@ -678,6 +704,7 @@ class _CruxNavTabButton<T> extends StatefulWidget {
     required this.selected,
     required this.enabled,
     required this.onTap,
+    required this.onPressedChanged,
     required this.sheenTrigger,
     required this.sheenLtr,
   });
@@ -687,6 +714,9 @@ class _CruxNavTabButton<T> extends StatefulWidget {
   final bool selected;
   final bool enabled;
   final VoidCallback? onTap;
+
+  /// Reports this tab's visually-guaranteed press state to the parent bar.
+  final ValueChanged<bool> onPressedChanged;
 
   /// This item's own running kira-sheen trigger count.
   final int sheenTrigger;
@@ -704,7 +734,10 @@ class _CruxNavTabButtonState<T> extends State<_CruxNavTabButton<T>> {
   // See press_feedback.dart's class doc for the fast-tap bug this guards
   // against.
   late final PressFeedbackController _pressFeedback = PressFeedbackController(
-    onChanged: (bool value) => setState(() => _pressed = value),
+    onChanged: (bool value) {
+      setState(() => _pressed = value);
+      widget.onPressedChanged(value);
+    },
   );
 
   // Only _handleTapDown checks `enabled`, since it is the only handler
