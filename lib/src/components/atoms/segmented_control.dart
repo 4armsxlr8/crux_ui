@@ -184,6 +184,10 @@ class CruxSegment<T> {
 /// [GestureDetector] and painting widgets rather than a Material tab bar or
 /// segmented control, so it never depends on or is affected by an ambient
 /// Material `ThemeData`.
+///
+/// **Press feedback**: while any enabled segment is pressed, the whole
+/// control scale-springs toward [CruxMotion.pressedScaleSubtle]. The
+/// pressed segment keeps its own stronger press scale on top of that.
 class CruxSegmentedControl<T> extends StatefulWidget {
   /// Creates a Crux segmented control.
   const CruxSegmentedControl({
@@ -213,6 +217,11 @@ class CruxSegmentedControl<T> extends StatefulWidget {
 
 class _CruxSegmentedControlState<T> extends State<CruxSegmentedControl<T>> {
   Timer? _sheenDelayTimer;
+
+  /// Values of segments whose press feedback is currently active. A set
+  /// keeps the body pressed correctly if two pointers press different
+  /// segments at once.
+  final Set<T> _pressedSegmentValues = <T>{};
 
   /// Each segment's own kira sheen trigger count, keyed by [CruxSegment
   /// .value]. Absent (`?? 0` at every read site) means never triggered --
@@ -275,6 +284,15 @@ class _CruxSegmentedControlState<T> extends State<CruxSegmentedControl<T>> {
     widget.onChanged?.call(value);
   }
 
+  void _handleSegmentPressChanged(T value, bool pressed) {
+    final bool changed = pressed
+        ? _pressedSegmentValues.add(value)
+        : _pressedSegmentValues.remove(value);
+    if (changed) {
+      setState(() {});
+    }
+  }
+
   @override
   void dispose() {
     _sheenDelayTimer?.cancel();
@@ -298,51 +316,64 @@ class _CruxSegmentedControlState<T> extends State<CruxSegmentedControl<T>> {
     // _minTapTarget's doc.
     return SizedBox(
       height: _minTapTarget,
-      child: Stack(
-        alignment: Alignment.center,
-        children: <Widget>[
-          // The visible pill background -- purely decorative. Fixed at its
-          // own 40-tall size and centered by the Stack inside the taller
-          // 44-tall shell above, leaving a 2px transparent margin above
-          // and below that only the segments' own taller tap targets
-          // reach into.
-          Container(
-            width: double.infinity,
-            height: _controlPadding * 2 + _visibleSegmentHeight,
-            decoration: ShapeDecoration(
-              color: colors.controlFill,
-              shape: const RoundedSuperellipseBorder(
-                borderRadius: BorderRadius.all(Radius.circular(CruxRadii.pill)),
+      // The whole 44-tall shell stays fixed; only the visible body inside
+      // it (pill background + segment row) scale-springs on press -- see
+      // this widget's own "Press feedback" doc.
+      child: CruxMotion.scale(
+        value: _pressedSegmentValues.isNotEmpty
+            ? CruxMotion.pressedScaleSubtle
+            : 1.0,
+        child: Stack(
+          alignment: Alignment.center,
+          children: <Widget>[
+            // The visible pill background -- purely decorative. Fixed at its
+            // own 40-tall size and centered by the Stack inside the taller
+            // 44-tall shell above, leaving a 2px transparent margin above
+            // and below that only the segments' own taller tap targets
+            // reach into.
+            Container(
+              width: double.infinity,
+              height: _controlPadding * 2 + _visibleSegmentHeight,
+              decoration: ShapeDecoration(
+                color: colors.controlFill,
+                shape: const RoundedSuperellipseBorder(
+                  borderRadius: BorderRadius.all(
+                    Radius.circular(CruxRadii.pill),
+                  ),
+                ),
               ),
             ),
-          ),
-          // The interactive row. Horizontal padding matches
-          // _controlPadding so each segment's cell lines up with the pill
-          // beneath it. Not wrapped in anything that forces a tight height
-          // below 44, so each segment's own ConstrainedBox(minHeight: 44)
-          // can still resolve to a real 44.
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: _controlPadding),
-            child: Row(
-              children: <Widget>[
-                for (final CruxSegment<T> segment in widget.segments)
-                  Expanded(
-                    key: ValueKey<T>(segment.value),
-                    child: _CruxSegmentButton<T>(
-                      label: segment.label,
-                      selected: segment.value == widget.selected,
-                      enabled: enabled,
-                      onTap: enabled
-                          ? () => _handleSegmentTap(segment.value)
-                          : null,
-                      sheenTrigger: _sheenTriggerByValue[segment.value] ?? 0,
-                      sheenLtr: _sheenLtrByValue[segment.value] ?? true,
+            // The interactive row. Horizontal padding matches
+            // _controlPadding so each segment's cell lines up with the
+            // pill beneath it. Not wrapped in anything that forces a
+            // tight height below 44, so each segment's own
+            // ConstrainedBox(minHeight: 44) can still resolve to a real
+            // 44.
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: _controlPadding),
+              child: Row(
+                children: <Widget>[
+                  for (final CruxSegment<T> segment in widget.segments)
+                    Expanded(
+                      key: ValueKey<T>(segment.value),
+                      child: _CruxSegmentButton<T>(
+                        label: segment.label,
+                        selected: segment.value == widget.selected,
+                        enabled: enabled,
+                        onTap: enabled
+                            ? () => _handleSegmentTap(segment.value)
+                            : null,
+                        onPressedChanged: (bool pressed) =>
+                            _handleSegmentPressChanged(segment.value, pressed),
+                        sheenTrigger: _sheenTriggerByValue[segment.value] ?? 0,
+                        sheenLtr: _sheenLtrByValue[segment.value] ?? true,
+                      ),
                     ),
-                  ),
-              ],
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -358,6 +389,7 @@ class _CruxSegmentButton<T> extends StatefulWidget {
     required this.selected,
     required this.enabled,
     required this.onTap,
+    required this.onPressedChanged,
     required this.sheenTrigger,
     required this.sheenLtr,
   });
@@ -366,6 +398,10 @@ class _CruxSegmentButton<T> extends StatefulWidget {
   final bool selected;
   final bool enabled;
   final VoidCallback? onTap;
+
+  /// Reports this segment's visually-guaranteed press state to the parent
+  /// control.
+  final ValueChanged<bool> onPressedChanged;
 
   /// This segment's own kira trigger count -- see
   /// [_CruxSegmentedControlState._sheenTriggerByValue].
@@ -387,7 +423,10 @@ class _CruxSegmentButtonState<T> extends State<_CruxSegmentButton<T>> {
   // if a tap's down/up arrive back-to-back (e.g. inside a scroll view) --
   // see press_feedback.dart's class doc.
   late final PressFeedbackController _pressFeedback = PressFeedbackController(
-    onChanged: (bool value) => setState(() => _pressed = value),
+    onChanged: (bool value) {
+      setState(() => _pressed = value);
+      widget.onPressedChanged(value);
+    },
   );
 
   // Only _handleTapDown checks `enabled`, since it's the only handler that

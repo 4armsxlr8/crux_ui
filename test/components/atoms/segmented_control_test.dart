@@ -119,6 +119,19 @@ Finder _sheenSkewFinder(String label) {
 /// rendered height is the whole control's own visible height.
 Finder _pillContainer() => find.byType(Container).first;
 
+/// Finds the [Transform] that owns the whole control's visual subtree,
+/// distinct from the per-segment press-scale and plate-scale transforms
+/// below it.
+Finder _bodyScaleFinder() {
+  return find
+      .ancestor(of: _pillContainer(), matching: find.byType(Transform))
+      .first;
+}
+
+double _bodyScale(WidgetTester tester) {
+  return tester.widget<Transform>(_bodyScaleFinder()).transform.entry(0, 0);
+}
+
 /// Finds a segment's own [GestureDetector] -- the widget whose rendered size
 /// is that segment's real, hit-testable tap region. Once the visible pill is
 /// shorter than the 44px minimum tap target, this is a *different*, taller
@@ -364,6 +377,39 @@ void main() {
       final Size size = tester.getSize(_pillContainer());
       expect(size.height, 40);
     });
+  });
+
+  group('body press animation', () {
+    testWidgets(
+      'scales the whole control while a segment is pressed and returns it '
+      'to rest on release',
+      (WidgetTester tester) async {
+        await tester.pumpWidget(
+          _wrap(
+            CruxSegmentedControl<String>(
+              segments: _segments,
+              selected: 'a',
+              onChanged: (String _) {},
+            ),
+          ),
+        );
+
+        expect(_bodyScale(tester), 1.0);
+
+        final TestGesture gesture = await tester.startGesture(
+          tester.getCenter(find.text('B')),
+        );
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 80));
+
+        expect(_bodyScale(tester), lessThan(1.0));
+
+        await gesture.up();
+        await tester.pumpAndSettle();
+
+        expect(_bodyScale(tester), closeTo(1.0, 0.001));
+      },
+    );
   });
 
   group('selection plate width', () {
