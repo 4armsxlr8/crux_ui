@@ -158,7 +158,7 @@ class CruxSegment<T> {
 /// The selected segment is drawn with no position-changing animation at
 /// all -- unlike a typical sliding-indicator segmented control, nothing
 /// ever translates. Instead, each segment owns its own selection "plate" (a
-/// [CruxColors.controlPlate] pill with [CruxShadows.xs]) that fades and
+/// [CruxColors.controlPlate] pill with [CruxShadows.contact]) that fades and
 /// scale-springs in when its segment becomes selected (`0.8 -> ~1.02 ->
 /// 1.0`, via [CruxMotion.animatedValue]'s `playful` spring) and fades out
 /// when it stops being selected; the label text itself never moves. About
@@ -541,7 +541,7 @@ class _CruxSegmentButtonState<T> extends State<_CruxSegmentButton<T>> {
   }
 
   /// Builds the selection "plate": a [CruxColors.controlPlate] pill with
-  /// [CruxShadows.xs], present for every segment but only ever visible
+  /// [CruxShadows.contact], present for every segment but only ever visible
   /// for the selected one. Opacity is a plain ease-out fade (asymmetric
   /// duration -- [_plateFadeInDuration] appearing, the shorter
   /// [_plateFadeOutDuration] disappearing), while scale always springs
@@ -563,7 +563,7 @@ class _CruxSegmentButtonState<T> extends State<_CruxSegmentButton<T>> {
     final Widget plateBox = DecoratedBox(
       decoration: ShapeDecoration(
         color: theme.colors.controlPlate,
-        shadows: theme.shadows.xs,
+        shadows: theme.shadows.contact,
         shape: const RoundedSuperellipseBorder(
           borderRadius: BorderRadius.all(Radius.circular(CruxRadii.pill)),
         ),

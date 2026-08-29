@@ -122,19 +122,14 @@ class CruxThemeData {
         other.colors.onAccent == colors.onAccent &&
         other.colors.mutedFill == colors.mutedFill &&
         other.colors.controlPlate == colors.controlPlate &&
-        _boxShadowListEquals(other.shadows.sm, shadows.sm) &&
-        _boxShadowListEquals(other.shadows.md, shadows.md) &&
-        _boxShadowListEquals(other.shadows.lg, shadows.lg) &&
+        _boxShadowListEquals(other.shadows.contact, shadows.contact) &&
         other.shadows.scrim == shadows.scrim &&
         other.shadows.hairline == shadows.hairline &&
-        other.shadows.ink == shadows.ink &&
-        _boxShadowListEquals(other.shadows.thumb, shadows.thumb) &&
-        _boxShadowListEquals(other.shadows.thumbLifted, shadows.thumbLifted) &&
-        _boxShadowListEquals(other.shadows.xs, shadows.xs);
+        other.shadows.ink == shadows.ink;
   }
 
   // Nested rather than one flat Object.hash call: brightness + typography +
-  // 15 color fields + 9 shadow-derived values is 26 arguments, past
+  // 15 color fields + 4 shadow-derived values is 21 arguments, past
   // Object.hash's 20-argument ceiling. The color fields are grouped into
   // their own Object.hash so the outer call stays within the limit.
   @override
@@ -158,15 +153,10 @@ class CruxThemeData {
       colors.mutedFill,
       colors.controlPlate,
     ),
-    Object.hashAll(shadows.sm),
-    Object.hashAll(shadows.md),
-    Object.hashAll(shadows.lg),
+    Object.hashAll(shadows.contact),
     shadows.scrim,
     shadows.hairline,
     shadows.ink,
-    Object.hashAll(shadows.thumb),
-    Object.hashAll(shadows.thumbLifted),
-    Object.hashAll(shadows.xs),
   );
 }
 

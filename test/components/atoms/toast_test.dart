@@ -317,7 +317,7 @@ void main() {
 
         expect(shape.side.color, CruxShadows.light.hairline);
         expect(shape.side.width, 1);
-        expect(decoration.shadows, CruxShadows.light.md);
+        expect(decoration.shadows, CruxShadows.light.contact);
       },
     );
 

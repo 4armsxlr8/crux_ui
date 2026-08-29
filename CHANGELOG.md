@@ -1,5 +1,27 @@
 # Changelog
 
+## 0.12.0
+
+**Breaking: `CruxShadows` collapses to a single elevation shadow.** This kit
+no longer uses shadow depth to express hierarchy or "how far something
+floats" — that job belongs to color (`background` / `surface` /
+`controlFill`), the modal `scrim`, and outlines. The six graduated shadow
+fields are gone; every surface that sits above another — the nav bar's
+floating pill, a segmented control's selection plate, a toast card, a
+dialog card, a slider's thumb — now uses the same `contact` shadow: an
+almost imperceptible contact shadow plus a zero-blur, 1px ambient outline
+ring.
+
+Migration:
+
+| Old | New |
+|---|---|
+| `sm` / `md` / `lg` / `xs` / `thumb` / `thumbLifted` | `contact` |
+
+`CruxSlider`'s thumb no longer switches to a heavier shadow while being
+dragged — its existing 1.1x scale-up on drag now carries that feedback on
+its own.
+
 ## 0.11.0
 
 **`CruxTypography`'s nine tokens can now be overridden one at a time when the

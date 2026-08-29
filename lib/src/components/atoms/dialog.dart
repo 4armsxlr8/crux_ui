@@ -33,9 +33,9 @@ const double _entranceEnd = 1.0;
 
 /// The "blank card" Crux UI's dialog layer floats: a [child]-agnostic
 /// surface -- filled with the theme's surface color, clipped to a
-/// superellipse corner, and lifted with [CruxThemeData.shadows]' `lg`
-/// shadow -- with no border in either theme (the scrim draws the card's
-/// edge) and no scrim or open/close animation of its own.
+/// superellipse corner, and lifted with [CruxThemeData.shadows]'
+/// `contact` shadow -- with no border in either theme (the scrim draws
+/// the card's edge) and no scrim or open/close animation of its own.
 ///
 /// This is deliberately renderable entirely on its own, with no [Overlay] or
 /// [CruxDialog.show] call involved -- passing it straight to
@@ -69,7 +69,7 @@ class CruxDialogCard extends StatelessWidget {
         clipBehavior: Clip.antiAlias,
         decoration: ShapeDecoration(
           color: theme.colors.surface,
-          shadows: theme.shadows.lg,
+          shadows: theme.shadows.contact,
           shape: RoundedSuperellipseBorder(
             borderRadius: BorderRadius.circular(CruxRadii.l),
           ),

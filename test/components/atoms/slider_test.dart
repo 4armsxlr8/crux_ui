@@ -358,14 +358,15 @@ void main() {
   });
 
   group('thumb shadow', () {
-    testWidgets('the thumb cap uses CruxShadows.thumb at rest and switches to '
-        'CruxShadows.thumbLifted while dragging, per the confirmed spec\'s '
-        '"つまみ専用の一段濃い輪郭寄り影 ... ドラッグ中はさらに浮く"', (WidgetTester tester) async {
+    testWidgets('the thumb cap uses CruxShadows.contact at rest and stays '
+        'on it while dragging -- drag feedback is carried by scale alone', (
+      WidgetTester tester,
+    ) async {
       await tester.pumpWidget(
         _wrapSized(CruxSlider(value: 50, max: 100, onChanged: (double _) {})),
       );
 
-      expect(_thumbCapShadows(tester), CruxShadows.light.thumb);
+      expect(_thumbCapShadows(tester), CruxShadows.light.contact);
 
       // Mirrors the "value bubble" group's drag pattern above: a plain
       // startGesture+pump with no movement resolves as an ambiguous tap
@@ -381,17 +382,17 @@ void main() {
       await gesture.moveBy(const Offset(20, 0));
       await tester.pump();
 
-      expect(_thumbCapShadows(tester), CruxShadows.light.thumbLifted);
+      expect(_thumbCapShadows(tester), CruxShadows.light.contact);
 
       await gesture.up();
       await tester.pump();
 
-      expect(_thumbCapShadows(tester), CruxShadows.light.thumb);
+      expect(_thumbCapShadows(tester), CruxShadows.light.contact);
     });
 
     testWidgets(
-      'in dark mode, the thumb cap uses CruxShadows.dark.thumb at rest '
-      'and CruxShadows.dark.thumbLifted while dragging',
+      'in dark mode, the thumb cap uses CruxShadows.dark.contact at rest '
+      'and while dragging',
       (WidgetTester tester) async {
         await tester.pumpWidget(
           _wrap(
@@ -409,7 +410,7 @@ void main() {
           ),
         );
 
-        expect(_thumbCapShadows(tester), CruxShadows.dark.thumb);
+        expect(_thumbCapShadows(tester), CruxShadows.dark.contact);
 
         final TestGesture gesture = await tester.startGesture(
           tester.getCenter(find.byType(CruxSlider)),
@@ -418,12 +419,12 @@ void main() {
         await gesture.moveBy(const Offset(20, 0));
         await tester.pump();
 
-        expect(_thumbCapShadows(tester), CruxShadows.dark.thumbLifted);
+        expect(_thumbCapShadows(tester), CruxShadows.dark.contact);
 
         await gesture.up();
         await tester.pump();
 
-        expect(_thumbCapShadows(tester), CruxShadows.dark.thumb);
+        expect(_thumbCapShadows(tester), CruxShadows.dark.contact);
       },
     );
   });
@@ -971,9 +972,9 @@ void main() {
 
   group('disabling mid-drag ends the interaction immediately (codex review '
       'item 3)', () {
-    testWidgets('hides the bubble and drops the lifted thumb shadow as soon as '
-        'onChanged flips to null mid-drag, with no further pointer movement, '
-        'and suppresses onChangeEnd on release', (WidgetTester tester) async {
+    testWidgets('hides the bubble as soon as onChanged flips to null '
+        'mid-drag, with no further pointer movement, and suppresses '
+        'onChangeEnd on release', (WidgetTester tester) async {
       ValueChanged<double>? onChanged = (double _) {};
       int endCalls = 0;
 
@@ -1003,7 +1004,7 @@ void main() {
 
       // Sanity check: dragging actually started.
       expect(tester.widget<Opacity>(_bubbleOpacityFinder()).opacity, 1);
-      expect(_thumbCapShadows(tester), CruxShadows.light.thumbLifted);
+      expect(_thumbCapShadows(tester), CruxShadows.light.contact);
 
       setState(() => onChanged = null);
       await tester.pump();
@@ -1011,7 +1012,7 @@ void main() {
       // No further move event delivered yet -- the interaction must
       // already have ended right here.
       expect(tester.widget<Opacity>(_bubbleOpacityFinder()).opacity, 0);
-      expect(_thumbCapShadows(tester), CruxShadows.light.thumb);
+      expect(_thumbCapShadows(tester), CruxShadows.light.contact);
 
       await gesture.up();
       await tester.pump();

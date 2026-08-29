@@ -52,8 +52,8 @@ the eighteen components below are implemented; the rest of a screen
 Crux's tokens, as `example/` shows.
 
 **Tokens** — colors, spacing, typography (platform-resolved), radii, and
-shadows (elevation shadows, a modal scrim, a dark-mode hairline), provided
-to a subtree by the `CruxTheme` / `CruxThemeData` pair.
+shadows (a single contact shadow, a modal scrim, a dark-mode hairline),
+provided to a subtree by the `CruxTheme` / `CruxThemeData` pair.
 
 **Components** — seventeen atoms plus two molecules built from them,
 eighteen in total counting the two dialog layers as one:

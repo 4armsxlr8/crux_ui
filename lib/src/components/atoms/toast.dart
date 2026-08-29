@@ -178,7 +178,7 @@ class CruxToastAction {
 /// toast) sets it directly on the widget it passes.
 ///
 /// Renders as a [CruxColors.surface] card with [CruxRadii.l] superellipse
-/// corners, [CruxShadows.md]'s shadow, and a 1px border in
+/// corners, [CruxShadows.contact]'s shadow, and a 1px border in
 /// [CruxShadows.hairline] -- painted unconditionally on every theme.
 /// [CruxShadows.hairline] is fully transparent in light and a faint
 /// [CruxColors.textPrimary] wash in dark, so this single, always-on
@@ -247,7 +247,7 @@ class CruxToastCard extends StatelessWidget {
           ),
           decoration: ShapeDecoration(
             color: colors.surface,
-            shadows: theme.shadows.md,
+            shadows: theme.shadows.contact,
             shape: RoundedSuperellipseBorder(
               borderRadius: BorderRadius.circular(CruxRadii.l),
               side: BorderSide(color: theme.shadows.hairline),

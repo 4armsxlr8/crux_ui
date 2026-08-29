@@ -83,11 +83,9 @@ const double _continuousAdjustmentFraction = 0.1;
 /// [CruxColors.surface] (no gradient or bevel), with a center
 /// [CruxColors.accent] grip line flanked by two thinner grip lines.
 /// Because a plain white/surface cap can blend into a light background, it
-/// is additionally lifted with [CruxShadows.thumb] at rest -- a shadow
-/// tier dedicated to exactly this "small elevated control that would
-/// otherwise blend into what's behind it" case, one step more concentrated
-/// than [CruxShadows.sm] -- and springs to the further-lifted
-/// [CruxShadows.thumbLifted] while being dragged. In dark mode it is
+/// is additionally lifted with [CruxShadows.contact], unchanged whether
+/// the thumb is at rest or being dragged -- drag feedback is carried
+/// entirely by the scale-up below, not by the shadow. In dark mode it is
 /// additionally outlined with [CruxShadows.hairline], the same way this
 /// package's other small elevated controls are.
 ///
@@ -602,7 +600,7 @@ class _CruxSliderState extends State<CruxSlider> {
               value: _dragging ? _thumbDraggingScale : 1.0,
               child: _buildThumbCap(
                 colors: colors,
-                capShadow: _dragging ? shadows.thumbLifted : shadows.thumb,
+                capShadow: shadows.contact,
                 hairlineColor: shadows.hairline,
                 gripLineColor: gripLineColor,
                 activeColor: activeColor,

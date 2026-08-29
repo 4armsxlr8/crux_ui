@@ -270,7 +270,7 @@ class CruxNavItem<T> {
 /// **Color mapping**: the pill's own background is [CruxColors.surface];
 /// a selected item's plate is [CruxColors.controlFill] in light,
 /// [CruxColors.controlPlate] in dark, painted with no shadow of its own.
-/// The pill's own outer floating shadow is [CruxShadows.sm]. An item's
+/// The pill's own outer floating shadow is [CruxShadows.contact]. An item's
 /// icon and label color is [CruxColors.textPrimary] while selected,
 /// [CruxColors.textSecondary] while unselected, [CruxColors.muted]
 /// while disabled -- propagated to the caller-supplied [CruxNavItem.icon]
@@ -487,7 +487,7 @@ class _CruxNavBarState<T> extends State<CruxNavBar<T>> {
                 child: DecoratedBox(
                   decoration: ShapeDecoration(
                     color: colors.surface,
-                    shadows: theme.shadows.sm,
+                    shadows: theme.shadows.contact,
                     shape: const RoundedSuperellipseBorder(
                       borderRadius: BorderRadius.all(
                         Radius.circular(CruxRadii.pill),

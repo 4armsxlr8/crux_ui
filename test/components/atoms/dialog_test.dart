@@ -126,7 +126,7 @@ void main() {
 
         expect(decoration.color, theme.colors.surface);
         expect(shape.side, BorderSide.none);
-        expect(decoration.shadows, theme.shadows.lg);
+        expect(decoration.shadows, theme.shadows.contact);
       }
     });
 
