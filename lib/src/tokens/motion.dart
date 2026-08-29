@@ -15,10 +15,10 @@ class CruxMotion {
 
   /// The scale a pressable element animates to while pressed: 1.0 at rest,
   /// [pressedScale] while held down.
-  static const double pressedScale = 0.96;
+  static const double pressedScale = 0.9;
 
   /// A subtler press scale for large-surface pressables (e.g. `CruxCard`),
-  /// where [pressedScale]'s 4% shrink would read as an exaggerated wobble
+  /// where [pressedScale]'s 10% shrink would read as an exaggerated wobble
   /// once applied across a whole card rather than a compact pill. 2% keeps
   /// the same "the surface is responding to touch" cue without it.
   static const double pressedScaleSubtle = 0.98;

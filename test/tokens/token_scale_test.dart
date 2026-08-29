@@ -288,7 +288,7 @@ void main() {
   group('CruxMotion', () {
     test('pressedScaleSubtle is 0.98, distinct from pressedScale', () {
       expect(CruxMotion.pressedScaleSubtle, 0.98);
-      expect(CruxMotion.pressedScale, 0.96);
+      expect(CruxMotion.pressedScale, 0.9);
     });
   });
 }
