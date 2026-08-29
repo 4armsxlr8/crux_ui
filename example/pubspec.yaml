@@ -46,6 +46,8 @@ dependencies:
   crux_ui:
     path: ../
 
+  lucide_icons_flutter: ^3.1.17
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:crux_ui/crux_ui.dart';
+import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 import '../data/mimosa_world.dart';
 import '../state/app_state.dart';
@@ -102,7 +103,7 @@ class _MainShellState extends State<MainShell> {
               items: <CruxNavItem<AppTab>>[
                 const CruxNavItem<AppTab>(
                   value: AppTab.home,
-                  icon: Text('🏠', style: TextStyle(fontSize: 22)),
+                  icon: Icon(LucideIcons.home),
                   label: 'ホーム',
                 ),
                 CruxNavItem<AppTab>(
@@ -115,12 +116,12 @@ class _MainShellState extends State<MainShell> {
                 ),
                 const CruxNavItem<AppTab>(
                   value: AppTab.ledger,
-                  icon: Text('💰', style: TextStyle(fontSize: 22)),
+                  icon: Icon(LucideIcons.calculator),
                   label: '家計簿',
                 ),
                 const CruxNavItem<AppTab>(
                   value: AppTab.settings,
-                  icon: Text('⚙️', style: TextStyle(fontSize: 22)),
+                  icon: Icon(LucideIcons.settings),
                   label: '設定',
                 ),
               ],
@@ -149,7 +150,7 @@ class _ChatTabIcon extends StatelessWidget {
       // natural size) at its top-right corner.
       clipBehavior: Clip.none,
       children: <Widget>[
-        const Text(mimosaAvatarEmoji, style: TextStyle(fontSize: 22)),
+        const Icon(LucideIcons.messageCircleMore),
         if (unreadCount > 0)
           Positioned(
             top: -4,
