@@ -49,8 +49,9 @@ void main() {
   });
 
   group('appearance', () {
-    testWidgets('renders surface background, a 1px separator border, and the '
-        'default CruxRadii.l corner radius', (WidgetTester tester) async {
+    testWidgets('elevated (the default): surface background, the contact '
+        'shadow, a 1px hairline border, and the default CruxRadii.l corner '
+        'radius', (WidgetTester tester) async {
       await tester.pumpWidget(_wrap(const CruxCard(child: Text('x'))));
 
       final Container container = tester.widget<Container>(
@@ -61,12 +62,55 @@ void main() {
       final RoundedSuperellipseBorder shape =
           decoration.shape as RoundedSuperellipseBorder;
       expect(decoration.color, CruxColors.light.surface);
-      expect(shape.side.color, CruxColors.light.separator);
+      expect(decoration.shadows, CruxShadows.light.contact);
+      // The hairline is fully transparent in light, so this border is
+      // invisible here and only shows in dark -- same recipe as
+      // CruxToastCard.
+      expect(shape.side.color, CruxShadows.light.hairline);
       expect(shape.side.width, 1);
       expect(shape.borderRadius, BorderRadius.circular(CruxRadii.l));
+    });
 
-      // No shadow (spec: "影なし").
+    testWidgets('outlined: surface background, a 1px separator border, and '
+        'no shadow', (WidgetTester tester) async {
+      await tester.pumpWidget(
+        _wrap(
+          const CruxCard(variant: CruxCardVariant.outlined, child: Text('x')),
+        ),
+      );
+
+      final Container container = tester.widget<Container>(
+        find.byType(Container),
+      );
+      final ShapeDecoration decoration =
+          container.decoration! as ShapeDecoration;
+      final RoundedSuperellipseBorder shape =
+          decoration.shape as RoundedSuperellipseBorder;
+      expect(decoration.color, CruxColors.light.surface);
       expect(decoration.shadows, anyOf(isNull, isEmpty));
+      expect(shape.side.color, CruxColors.light.separator);
+      expect(shape.side.width, 1);
+    });
+
+    testWidgets('filled: surface background only -- no border, no shadow', (
+      WidgetTester tester,
+    ) async {
+      await tester.pumpWidget(
+        _wrap(
+          const CruxCard(variant: CruxCardVariant.filled, child: Text('x')),
+        ),
+      );
+
+      final Container container = tester.widget<Container>(
+        find.byType(Container),
+      );
+      final ShapeDecoration decoration =
+          container.decoration! as ShapeDecoration;
+      final RoundedSuperellipseBorder shape =
+          decoration.shape as RoundedSuperellipseBorder;
+      expect(decoration.color, CruxColors.light.surface);
+      expect(decoration.shadows, anyOf(isNull, isEmpty));
+      expect(shape.side, BorderSide.none);
     });
 
     testWidgets('clips its child to the card\'s rounded-corner shape via '
@@ -117,7 +161,8 @@ void main() {
       final RoundedSuperellipseBorder shape =
           decoration.shape as RoundedSuperellipseBorder;
       expect(decoration.color, CruxColors.dark.surface);
-      expect(shape.side.color, CruxColors.dark.separator);
+      expect(decoration.shadows, CruxShadows.dark.contact);
+      expect(shape.side.color, CruxShadows.dark.hairline);
     });
   });
 

@@ -31,6 +31,25 @@ border). The public API is unchanged — only the rendered colors move.
   `accentLine` border any more; `accentTint` remains the text-selection
   highlight.
 
+**`CruxCard` gains a `variant`, and its default edge is now a shadow, not
+an outline.** The new `CruxCardVariant` enum picks how the card's edge is
+drawn -- the three-way split Material's `Card` / `Card.filled` /
+`Card.outlined` also make:
+
+| `CruxCardVariant` | Fill | Edge |
+|---|---|---|
+| `elevated` (default) | `surface` | `CruxShadows.contact` + an unconditional 1px `CruxShadows.hairline` border (invisible in light, a hairline outline in dark -- the same recipe as `CruxToastCard`) |
+| `outlined` | `surface` | 1px `separator` outline, no shadow |
+| `filled` | `surface` | nothing -- no border, no shadow |
+
+- The look every `CruxCard` had before this release is exactly
+  `CruxCardVariant.outlined`; pass it to keep it. A card built with no
+  `variant` now renders `elevated`.
+- `filled` has no border at all, so its content sits 1px closer to the
+  card's edge on every side than the other two variants.
+- Padding, radius, `onTap`, the press feedback, and the child clip are
+  unchanged across all three variants.
+
 ## 0.12.0
 
 **Breaking: `CruxShadows` collapses to a single elevation shadow.** This kit

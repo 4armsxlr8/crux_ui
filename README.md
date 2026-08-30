@@ -62,7 +62,7 @@ eighteen in total counting the two dialog layers as one:
 |---|---|
 | `CruxButton` | Pill button. `filled` / `tonal` / `ghost` × `small` / `medium` / `large`, with a `loading` state |
 | `CruxChip` | Filter/tag pill with a `selected` flag |
-| `CruxCard` | Bordered content container; decorative by default, pressable when given `onTap` |
+| `CruxCard` | Content container with an `elevated` (default) / `outlined` / `filled` edge; decorative by default, pressable when given `onTap` |
 | `CruxListTile` | List row with `leading` / `title` / `subtitle` / `trailing` |
 | `CruxSwitch` | Pill on/off toggle |
 | `CruxCheckbox` | Checkbox |

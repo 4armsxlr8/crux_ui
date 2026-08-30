@@ -47,12 +47,19 @@ Widget _buildPlayground(BuildContext context) {
     description: 'Leaving this off renders a purely decorative card.',
     initialValue: true,
   );
+  final CruxCardVariant variant = context.knobs.object.segmented(
+    label: 'Variant',
+    options: CruxCardVariant.values,
+    initialOption: CruxCardVariant.elevated,
+    labelBuilder: (CruxCardVariant v) => v.name,
+  );
 
   return Padding(
     padding: const EdgeInsets.all(CruxSpacing.s24),
     child: CruxCard(
       padding: EdgeInsets.all(padding),
       radius: radius,
+      variant: variant,
       onTap: interactive ? () {} : null,
       child: Text(
         content,
@@ -62,9 +69,9 @@ Widget _buildPlayground(BuildContext context) {
   );
 }
 
-/// The States matrix body: every combination of tappable / non-tappable ×
-/// radius m / l, laid out in a single [Wrap] so all cells are visible at
-/// once regardless of viewport width.
+/// The States matrix body: every [CruxCardVariant] × tappable /
+/// non-tappable × radius m / l, laid out in a single [Wrap] so all cells
+/// are visible at once regardless of viewport width.
 ///
 /// Reads colors and typography only through [CruxTheme.of], so — per
 /// `usecases/CONVENTIONS.md` — it renders correctly with nothing but a
@@ -92,26 +99,33 @@ class CardStatesMatrix extends StatelessWidget {
         spacing: CruxSpacing.s16,
         runSpacing: CruxSpacing.s16,
         children: <Widget>[
-          for (final bool tappable in _tappableOptions)
-            for (final double radius in _radiusOptions)
-              SizedBox(
-                width: 200,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: <Widget>[
-                    Text(
-                      '${tappable ? 'Tappable' : 'Non-tappable'} · radius '
-                      '${radius.toStringAsFixed(0)}',
-                      style: theme.typography.caption.copyWith(
-                        color: theme.colors.textSecondary,
+          for (final CruxCardVariant variant in CruxCardVariant.values)
+            for (final bool tappable in _tappableOptions)
+              for (final double radius in _radiusOptions)
+                SizedBox(
+                  width: 200,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: <Widget>[
+                      Text(
+                        '${variant.name} · '
+                        '${tappable ? 'Tappable' : 'Non-tappable'} · radius '
+                        '${radius.toStringAsFixed(0)}',
+                        style: theme.typography.caption.copyWith(
+                          color: theme.colors.textSecondary,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: CruxSpacing.s8),
-                    _matrixCell(theme, tappable: tappable, radius: radius),
-                  ],
+                      const SizedBox(height: CruxSpacing.s8),
+                      _matrixCell(
+                        theme,
+                        variant: variant,
+                        tappable: tappable,
+                        radius: radius,
+                      ),
+                    ],
+                  ),
                 ),
-              ),
         ],
       ),
     );
@@ -119,10 +133,12 @@ class CardStatesMatrix extends StatelessWidget {
 
   static Widget _matrixCell(
     CruxThemeData theme, {
+    required CruxCardVariant variant,
     required bool tappable,
     required double radius,
   }) {
     return CruxCard(
+      variant: variant,
       radius: radius,
       onTap: tappable ? () {} : null,
       child: Column(
@@ -167,8 +183,8 @@ Widget _buildEdgeCases(BuildContext context) {
       mainAxisSize: MainAxisSize.min,
       children: <Widget>[
         // Nested card inside a zero-padding outer card: the outer card's
-        // border/rounded corners sit flush against its own edge (no
-        // breathing room), and the inner card's own border+radius must
+        // edge/rounded corners sit flush against its own bounds (no
+        // breathing room), and the inner card's own edge+radius must
         // still render cleanly right up against that boundary.
         sectionLabel('入れ子カード + ゼロパディング'),
         const SizedBox(height: CruxSpacing.s8),
@@ -194,7 +210,7 @@ Widget _buildEdgeCases(BuildContext context) {
 
         // A full-bleed, edge-to-edge colored child with zero padding: the
         // one case where the card's own clip is the only thing keeping the
-        // child's square corners from poking out past the rounded border.
+        // child's square corners from poking out past the rounded edge.
         sectionLabel('全面塗りつぶしの子 + ゼロパディングで角丸クリップを確認'),
         const SizedBox(height: CruxSpacing.s8),
         SizedBox(

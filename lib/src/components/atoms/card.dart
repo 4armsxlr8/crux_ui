@@ -6,6 +6,7 @@ import '../../internal/press_feedback.dart';
 import '../../tokens/colors.dart';
 import '../../tokens/motion.dart';
 import '../../tokens/radii.dart';
+import '../../tokens/shadows.dart';
 import '../../tokens/spacing.dart';
 import '../../tokens/theme.dart';
 
@@ -18,8 +19,37 @@ const double _minTapTarget = 44;
 /// value [CruxButton] uses for its non-filled variants.
 const double _pressedOverlayOpacity = 0.08;
 
-/// A bordered, block-level content container: Crux UI's general-purpose
-/// surface atom.
+/// How a [CruxCard] draws its edge against whatever it sits on.
+///
+/// New values may be added in a future minor release; an exhaustive
+/// `switch` over this enum can break when that happens, so prefer a
+/// `default` case (or an equivalent fallback) at call sites that don't need
+/// to special-case every variant.
+enum CruxCardVariant {
+  /// A [CruxColors.surface] fill lifted by [CruxShadows.contact], plus an
+  /// unconditional 1px border in [CruxShadows.hairline]: no visible border
+  /// in light, a hairline outline in dark, with no brightness-specific
+  /// branch (the same recipe as [CruxToastCard]). The default, for a card
+  /// sitting on the page background.
+  elevated,
+
+  /// A [CruxColors.surface] fill with a 1px [CruxColors.separator] outline
+  /// and no shadow. The strongest edge of the three, for a card that must
+  /// read clearly against a busy or tinted backdrop.
+  outlined,
+
+  /// A [CruxColors.surface] fill and nothing else: no border, no shadow.
+  /// For a card inside a dialog, sheet, or other surface where a shadow or
+  /// outline would be noise. Having no border, its content sits 1px closer
+  /// to the card's edge on every side than the other two variants.
+  filled,
+}
+
+/// A block-level content container: Crux UI's general-purpose surface
+/// atom. Its edge is drawn by [variant]: a contact shadow by default
+/// ([CruxCardVariant.elevated]), a 1px outline
+/// ([CruxCardVariant.outlined]), or nothing but the fill
+/// ([CruxCardVariant.filled]).
 ///
 /// ```dart
 /// CruxCard(
@@ -46,11 +76,11 @@ const double _pressedOverlayOpacity = 0.08;
 /// wobble the way it would across a whole card).
 ///
 /// [child] is always clipped to the card's own rounded-corner shape (the
-/// same rounded rect [radius] draws the border along) — this is a
+/// same rounded rect [radius] shapes the card's edge) — this is a
 /// documented behavioral guarantee, not an implementation detail. Without
 /// it, a full-bleed child that paints edge-to-edge (for example a pressed
 /// [CruxListTile]'s state-layer overlay) would paint straight through the
-/// card's rounded corners as a visible square poking out past the border.
+/// card's rounded corners as a visible square poking out past its edge.
 class CruxCard extends StatefulWidget {
   /// Creates a Crux card.
   const CruxCard({
@@ -59,12 +89,13 @@ class CruxCard extends StatefulWidget {
     this.padding = const EdgeInsets.all(CruxSpacing.s16),
     this.onTap,
     this.radius = CruxRadii.l,
+    this.variant = CruxCardVariant.elevated,
   });
 
   /// The card's content.
   final Widget child;
 
-  /// The space between the card's border and [child]. Defaults to
+  /// The space between the card's edge and [child]. Defaults to
   /// [CruxSpacing.s16] on every side.
   final EdgeInsetsGeometry padding;
 
@@ -74,6 +105,9 @@ class CruxCard extends StatefulWidget {
 
   /// The corner radius. Defaults to [CruxRadii.l].
   final double radius;
+
+  /// How the card's edge is drawn. Defaults to [CruxCardVariant.elevated].
+  final CruxCardVariant variant;
 
   @override
   State<CruxCard> createState() => _CruxCardState();
@@ -138,6 +172,16 @@ class _CruxCardState extends State<CruxCard> {
             colors.surface,
           )
         : colors.surface;
+    final CruxShadows shadows = theme.shadows;
+    final List<BoxShadow>? elevation = switch (widget.variant) {
+      CruxCardVariant.elevated => shadows.contact,
+      CruxCardVariant.outlined || CruxCardVariant.filled => null,
+    };
+    final BorderSide side = switch (widget.variant) {
+      CruxCardVariant.elevated => BorderSide(color: shadows.hairline),
+      CruxCardVariant.outlined => BorderSide(color: colors.separator),
+      CruxCardVariant.filled => BorderSide.none,
+    };
 
     final Widget surface = Container(
       // `alignment` (rather than leaving it unset) is what makes this
@@ -152,17 +196,18 @@ class _CruxCardState extends State<CruxCard> {
       // this, Container defaults to Clip.none and never clips at all, so a
       // full-bleed child (e.g. a pressed CruxListTile's state-layer
       // overlay) paints straight through the rounded corners as a visible
-      // square poking out past the border. Container derives the clip path
-      // from `decoration.getClipPath()`, which for a ShapeDecoration
+      // square poking out past the card's edge. Container derives the clip
+      // path from `decoration.getClipPath()`, which for a ShapeDecoration
       // defers to `shape.getOuterPath()` (this same
-      // RoundedSuperellipseBorder), and paints the border on top of the
-      // clip afterward, so the border itself is never clipped away.
+      // RoundedSuperellipseBorder), and paints the decoration itself (fill,
+      // shadow, border) outside that clip, so none of it is clipped away.
       clipBehavior: Clip.antiAlias,
       decoration: ShapeDecoration(
         color: background,
+        shadows: elevation,
         shape: RoundedSuperellipseBorder(
           borderRadius: BorderRadius.circular(widget.radius),
-          side: BorderSide(color: colors.separator),
+          side: side,
         ),
       ),
       child: widget.child,
