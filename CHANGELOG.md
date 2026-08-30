@@ -38,14 +38,15 @@ drawn -- the three-way split Material's `Card` / `Card.filled` /
 
 | `CruxCardVariant` | Fill | Edge |
 |---|---|---|
-| `elevated` (default) | `surface` | `CruxShadows.contact` + an unconditional 1px `CruxShadows.hairline` border (invisible in light, a hairline outline in dark -- the same recipe as `CruxToastCard`) |
+| `elevated` (default) | `surface` | `CruxShadows.contact`, no border |
 | `outlined` | `surface` | 1px `separator` outline, no shadow |
 | `filled` | `surface` | nothing -- no border, no shadow |
 
 - The look every `CruxCard` had before this release is exactly
   `CruxCardVariant.outlined`; pass it to keep it. A card built with no
   `variant` now renders `elevated`.
-- `filled` has no border at all, so its content sits 1px closer to the
+- `outlined` is the only variant with a border, and that 1px border is
+  folded into the card's inset, so its content sits 1px further from the
   card's edge on every side than the other two variants.
 - Padding, radius, `onTap`, the press feedback, and the child clip are
   unchanged across all three variants.

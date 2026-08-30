@@ -445,28 +445,6 @@ void main() {
       );
     });
 
-    test('elevated CruxCard dark edge (hairline over surface) has a '
-        'perceptible non-text contrast against the page background', () {
-      // An elevated CruxCard draws its edge with the contact shadow plus an
-      // unconditional 1px border in CruxShadows.hairline. In light the
-      // hairline is fully transparent by design (the shadow alone carries
-      // the edge, and a blurred shadow has no single color to measure), so
-      // only dark is guarded here. Measured with this test's own WCAG
-      // math: the bare surface sits at ~1.13:1 against background (too
-      // close to read as an edge once the shadow sinks into a dark
-      // backdrop), while the hairline composited over surface reaches
-      // ~1.50:1. The 1.3 floor is a drift guard between those two values,
-      // not a WCAG 1.4.11 claim.
-      const CruxColors colors = CruxColors.dark;
-      const CruxShadows shadows = CruxShadows.dark;
-      final Color edge = _compositeOver(shadows.hairline, colors.surface);
-      expect(
-        _contrastRatio(edge, colors.background),
-        greaterThanOrEqualTo(1.3),
-        reason: 'the dark hairline must keep the card edge readable',
-      );
-    });
-
     testWidgets(
       'filled CruxButton pressed-state background vs onAccent stays at '
       'least 4.5 (light and dark)',

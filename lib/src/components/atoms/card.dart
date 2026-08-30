@@ -26,22 +26,20 @@ const double _pressedOverlayOpacity = 0.08;
 /// `default` case (or an equivalent fallback) at call sites that don't need
 /// to special-case every variant.
 enum CruxCardVariant {
-  /// A [CruxColors.surface] fill lifted by [CruxShadows.contact], plus an
-  /// unconditional 1px border in [CruxShadows.hairline]: no visible border
-  /// in light, a hairline outline in dark, with no brightness-specific
-  /// branch (the same recipe as [CruxToastCard]). The default, for a card
-  /// sitting on the page background.
+  /// A [CruxColors.surface] fill lifted by [CruxShadows.contact], with no
+  /// border. The default, for a card sitting on the page background.
   elevated,
 
   /// A [CruxColors.surface] fill with a 1px [CruxColors.separator] outline
   /// and no shadow. The strongest edge of the three, for a card that must
-  /// read clearly against a busy or tinted backdrop.
+  /// read clearly against a busy or tinted backdrop. The only variant with
+  /// a border, so its content sits 1px further from the card's edge on
+  /// every side than the other two.
   outlined,
 
   /// A [CruxColors.surface] fill and nothing else: no border, no shadow.
   /// For a card inside a dialog, sheet, or other surface where a shadow or
-  /// outline would be noise. Having no border, its content sits 1px closer
-  /// to the card's edge on every side than the other two variants.
+  /// outline would be noise.
   filled,
 }
 
@@ -178,9 +176,8 @@ class _CruxCardState extends State<CruxCard> {
       CruxCardVariant.outlined || CruxCardVariant.filled => null,
     };
     final BorderSide side = switch (widget.variant) {
-      CruxCardVariant.elevated => BorderSide(color: shadows.hairline),
       CruxCardVariant.outlined => BorderSide(color: colors.separator),
-      CruxCardVariant.filled => BorderSide.none,
+      CruxCardVariant.elevated || CruxCardVariant.filled => BorderSide.none,
     };
 
     final Widget surface = Container(

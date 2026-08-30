@@ -50,8 +50,9 @@ void main() {
 
   group('appearance', () {
     testWidgets('elevated (the default): surface background, the contact '
-        'shadow, a 1px hairline border, and the default CruxRadii.l corner '
-        'radius', (WidgetTester tester) async {
+        'shadow, no border, and the default CruxRadii.l corner radius', (
+      WidgetTester tester,
+    ) async {
       await tester.pumpWidget(_wrap(const CruxCard(child: Text('x'))));
 
       final Container container = tester.widget<Container>(
@@ -63,11 +64,7 @@ void main() {
           decoration.shape as RoundedSuperellipseBorder;
       expect(decoration.color, CruxColors.light.surface);
       expect(decoration.shadows, CruxShadows.light.contact);
-      // The hairline is fully transparent in light, so this border is
-      // invisible here and only shows in dark -- same recipe as
-      // CruxToastCard.
-      expect(shape.side.color, CruxShadows.light.hairline);
-      expect(shape.side.width, 1);
+      expect(shape.side, BorderSide.none);
       expect(shape.borderRadius, BorderRadius.circular(CruxRadii.l));
     });
 
@@ -162,7 +159,7 @@ void main() {
           decoration.shape as RoundedSuperellipseBorder;
       expect(decoration.color, CruxColors.dark.surface);
       expect(decoration.shadows, CruxShadows.dark.contact);
-      expect(shape.side.color, CruxShadows.dark.hairline);
+      expect(shape.side, BorderSide.none);
     });
   });
 
