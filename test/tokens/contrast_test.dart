@@ -179,8 +179,11 @@ void main() {
       );
     });
 
-    test('light CruxChip selected-state border (accentLine) has at least '
-        '3.0 non-text contrast (WCAG 1.4.11) against background/surface', () {
+    test('light accentLine outline has at least 3.0 non-text contrast '
+        '(WCAG 1.4.11) against background/surface', () {
+      // accentLine is the token whose contract is "an accented outline that
+      // can identify a state on its own" (see its doc in colors.dart), so
+      // it is pinned against both backdrops a bordered control can sit on.
       const CruxColors c = CruxColors.light;
       final Color onBackground = _compositeOver(c.accentLine, c.background);
       final Color onSurface = _compositeOver(c.accentLine, c.surface);
@@ -191,8 +194,8 @@ void main() {
       expect(_contrastRatio(onSurface, c.surface), greaterThanOrEqualTo(3.0));
     });
 
-    test('dark CruxChip selected-state border (accentLine) has at least '
-        '3.0 non-text contrast (WCAG 1.4.11) against background/surface', () {
+    test('dark accentLine outline has at least 3.0 non-text contrast '
+        '(WCAG 1.4.11) against background/surface', () {
       const CruxColors c = CruxColors.dark;
       final Color onBackground = _compositeOver(c.accentLine, c.background);
       final Color onSurface = _compositeOver(c.accentLine, c.surface);
@@ -363,6 +366,45 @@ void main() {
       }
     });
 
+    test('textPrimary vs the mutedFill wash over the page background is at '
+        'least 4.5 (light and dark)', () {
+      // A tonal CruxButton, an unselected CruxChip, and a neutral
+      // CruxIconButton all paint textPrimary content on a mutedFill pill
+      // that sits on the page background. mutedFill is translucent in both
+      // palettes (and textPrimary is opaque), so composite the wash over
+      // background first, in paint order, before measuring the label
+      // against it.
+      for (final CruxColors c in <CruxColors>[
+        CruxColors.light,
+        CruxColors.dark,
+      ]) {
+        final Color pill = _compositeOver(c.mutedFill, c.background);
+        final Color label = _compositeOver(c.textPrimary, pill);
+        expect(_contrastRatio(label, pill), greaterThanOrEqualTo(4.5));
+      }
+    });
+
+    test('disabled CruxChip label (muted) vs its mutedFill pill over the '
+        'page background has at least 3.0 non-text contrast (light and '
+        'dark)', () {
+      // The disabled chip is a muted label on a mutedFill pill on the page
+      // background -- the same treatment as a disabled CruxIconButton. Like
+      // the disabled CruxButton guard above, this is a drift guard rather
+      // than an accessibility requirement (WCAG 1.4.11 excludes inactive
+      // components): a palette swap must not let the pairing sink below
+      // usable contrast unnoticed. Both mutedFill and (in dark) muted are
+      // translucent, so composite in paint order: the pill over the page,
+      // then the label over the pill.
+      for (final CruxColors c in <CruxColors>[
+        CruxColors.light,
+        CruxColors.dark,
+      ]) {
+        final Color pill = _compositeOver(c.mutedFill, c.background);
+        final Color label = _compositeOver(c.muted, pill);
+        expect(_contrastRatio(label, pill), greaterThanOrEqualTo(3.0));
+      }
+    });
+
     test('CruxSegmentedControl selected-plate fill (controlPlate) has a '
         'perceptible non-text contrast against the track it sits on '
         '(controlFill), light and dark', () {
@@ -432,6 +474,56 @@ void main() {
 
           final TestGesture gesture = await tester.startGesture(
             tester.getCenter(find.byType(CruxButton)),
+          );
+          await tester.pump();
+
+          final Container container = tester.widget<Container>(
+            find.byType(Container),
+          );
+          final ShapeDecoration decoration =
+              container.decoration! as ShapeDecoration;
+          final Color pressedBackground = decoration.color!;
+
+          await gesture.up();
+          await tester.pumpAndSettle();
+
+          return _contrastRatio(theme.colors.onAccent, pressedBackground);
+        }
+
+        expect(
+          await pressedContrast(CruxThemeData.light()),
+          greaterThanOrEqualTo(4.5),
+        );
+        expect(
+          await pressedContrast(CruxThemeData.dark()),
+          greaterThanOrEqualTo(4.5),
+        );
+      },
+    );
+
+    testWidgets(
+      'selected CruxChip pressed-state background vs onAccent stays at '
+      'least 4.5 (light and dark)',
+      (WidgetTester tester) async {
+        // A selected chip is CruxButton's filled treatment (accent fill,
+        // onAccent label), so it inherits the same hazard the test above
+        // guards: its pressed state layer moves the accent fill toward
+        // textPrimary, which is onAccent's own value in both palettes. Read
+        // the rendered pressed background off a real CruxChip so a drift in
+        // the chip's own state-layer treatment is caught here.
+        Future<double> pressedContrast(CruxThemeData theme) async {
+          await tester.pumpWidget(
+            Directionality(
+              textDirection: TextDirection.ltr,
+              child: CruxTheme(
+                data: theme,
+                child: CruxChip(label: 'Go', selected: true, onTap: () {}),
+              ),
+            ),
+          );
+
+          final TestGesture gesture = await tester.startGesture(
+            tester.getCenter(find.byType(CruxChip)),
           );
           await tester.pump();
 

@@ -51,8 +51,8 @@ void main() {
             container.decoration! as ShapeDecoration;
         final RoundedSuperellipseBorder shape =
             decoration.shape as RoundedSuperellipseBorder;
-        expect(decoration.color, CruxColors.light.surface);
-        expect(shape.side.color, CruxColors.light.separator);
+        expect(decoration.color, CruxColors.light.mutedFill);
+        expect(shape.side, BorderSide.none);
 
         final Text text = tester.widget<Text>(find.text('すべて'));
         expect(text.style?.color, CruxColors.light.muted);
@@ -216,7 +216,7 @@ void main() {
             (tester.widget<Container>(find.byType(Container)).decoration!
                     as ShapeDecoration)
                 .color!;
-        expect(restBackground, CruxColors.light.surface);
+        expect(restBackground, CruxColors.light.mutedFill);
 
         final TestGesture gesture = await tester.startGesture(
           tester.getCenter(find.byType(CruxChip)),
@@ -228,7 +228,7 @@ void main() {
                     as ShapeDecoration)
                 .color!;
         // The state layer must visibly change the background away from the
-        // flat rest-state surface color, and must not simply be transparent
+        // rest-state mutedFill wash, and must not simply be transparent
         // (i.e. it actually blends something on top).
         expect(pressedBackground, isNot(restBackground));
 
@@ -292,8 +292,13 @@ void main() {
   });
 
   group('state color resolution', () {
-    testWidgets('unselected+enabled: surface background, separator border, '
-        'textSecondary text', (WidgetTester tester) async {
+    // These pin CruxChip's parity with its sibling atoms: an unselected chip
+    // is CruxIconButton's neutral tone (mutedFill / textPrimary, no border),
+    // a selected chip is CruxButton's filled variant (accent / onAccent, no
+    // border), and a disabled chip is CruxIconButton's disabled treatment
+    // (mutedFill / muted, no border) whatever `selected` says.
+    testWidgets('unselected+enabled: mutedFill background, no border, '
+        'textPrimary text', (WidgetTester tester) async {
       await tester.pumpWidget(_wrap(CruxChip(label: 'すべて', onTap: () {})));
 
       final Container container = tester.widget<Container>(
@@ -303,15 +308,15 @@ void main() {
           container.decoration! as ShapeDecoration;
       final RoundedSuperellipseBorder shape =
           decoration.shape as RoundedSuperellipseBorder;
-      expect(decoration.color, CruxColors.light.surface);
-      expect(shape.side.color, CruxColors.light.separator);
+      expect(decoration.color, CruxColors.light.mutedFill);
+      expect(shape.side, BorderSide.none);
 
       final Text text = tester.widget<Text>(find.text('すべて'));
-      expect(text.style?.color, CruxColors.light.textSecondary);
+      expect(text.style?.color, CruxColors.light.textPrimary);
     });
 
-    testWidgets('selected+enabled: accentTint background, accentLine border, '
-        'textPrimary text', (WidgetTester tester) async {
+    testWidgets('selected+enabled: accent background, no border, '
+        'onAccent text', (WidgetTester tester) async {
       await tester.pumpWidget(
         _wrap(CruxChip(label: 'すべて', selected: true, onTap: () {})),
       );
@@ -323,15 +328,15 @@ void main() {
           container.decoration! as ShapeDecoration;
       final RoundedSuperellipseBorder shape =
           decoration.shape as RoundedSuperellipseBorder;
-      expect(decoration.color, CruxColors.light.accentTint);
-      expect(shape.side.color, CruxColors.light.accentLine);
+      expect(decoration.color, CruxColors.light.accent);
+      expect(shape.side, BorderSide.none);
 
       final Text text = tester.widget<Text>(find.text('すべて'));
-      expect(text.style?.color, CruxColors.light.textPrimary);
+      expect(text.style?.color, CruxColors.light.onAccent);
     });
 
-    testWidgets('disabled (onTap null), even if selected: surface background, '
-        'separator border, muted text', (WidgetTester tester) async {
+    testWidgets('disabled (onTap null), even if selected: mutedFill '
+        'background, no border, muted text', (WidgetTester tester) async {
       await tester.pumpWidget(
         _wrap(const CruxChip(label: 'すべて', selected: true, onTap: null)),
       );
@@ -343,8 +348,8 @@ void main() {
           container.decoration! as ShapeDecoration;
       final RoundedSuperellipseBorder shape =
           decoration.shape as RoundedSuperellipseBorder;
-      expect(decoration.color, CruxColors.light.surface);
-      expect(shape.side.color, CruxColors.light.separator);
+      expect(decoration.color, CruxColors.light.mutedFill);
+      expect(shape.side, BorderSide.none);
 
       final Text text = tester.widget<Text>(find.text('すべて'));
       expect(text.style?.color, CruxColors.light.muted);

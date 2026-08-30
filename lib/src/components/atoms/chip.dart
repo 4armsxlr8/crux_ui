@@ -1,6 +1,7 @@
 import 'package:flutter/widgets.dart';
 
 import '../../internal/press_feedback.dart';
+import '../../internal/state_layer.dart';
 import '../../tokens/colors.dart';
 import '../../tokens/motion.dart';
 import '../../tokens/radii.dart';
@@ -16,13 +17,6 @@ const double _minTapTarget = 44;
 /// The visible height of a [CruxChip]'s pill, independent of its 44px tap
 /// target.
 const double _visibleHeight = 36;
-
-/// The opacity of the state layer laid over a pressed [CruxChip]'s
-/// background: [CruxColors.textPrimary] at 8%, the same value
-/// [CruxButton] uses for its non-filled variants. Unlike the button, a
-/// chip has no filled/onAccent variant whose contrast this could threaten,
-/// so the same 8% applies to every chip state.
-const double _pressedOverlayOpacity = 0.08;
 
 /// A pill-shaped, optionally-selectable filter/tag chip.
 ///
@@ -53,15 +47,19 @@ const double _pressedOverlayOpacity = 0.08;
 /// that [CruxChip] does not have. Reach for [CruxChip] when it's a
 /// filter (zero, one, or many active tags).
 ///
-/// Three states determine the chip's colors, in priority order:
+/// Three states determine the chip's colors, in priority order. Each one
+/// is borrowed from a sibling atom rather than being a look of the chip's
+/// own, and none of them draws a border:
 ///
-///  * disabled ([onTap] is `null`): [CruxColors.surface] background,
-///    [CruxColors.separator] border, [CruxColors.muted] text —
-///    regardless of [selected].
-///  * enabled and [selected]: [CruxColors.accentTint] background,
-///    [CruxColors.accentLine] border, [CruxColors.textPrimary] text.
-///  * enabled and not [selected]: [CruxColors.surface] background,
-///    [CruxColors.separator] border, [CruxColors.textSecondary] text.
+///  * disabled ([onTap] is `null`): [CruxColors.mutedFill] background,
+///    [CruxColors.muted] text — regardless of [selected]; the same
+///    treatment as a disabled [CruxIconButton].
+///  * enabled and [selected]: [CruxColors.accent] background,
+///    [CruxColors.onAccent] text — the same treatment as a
+///    [CruxButtonVariant.filled] [CruxButton].
+///  * enabled and not [selected]: [CruxColors.mutedFill] background,
+///    [CruxColors.textPrimary] text — the same treatment as a neutral-tone
+///    [CruxIconButton].
 ///
 /// Pressing an enabled chip shows two combined cues, both driven by
 /// [CruxMotion]: the pill scales down to [CruxMotion.pressedScale] and
@@ -143,11 +141,6 @@ class _CruxChipState extends State<CruxChip> {
       enabled: enabled,
       pressed: _pressed,
     );
-    final Color borderColor = _resolveBorderColor(
-      colors: colors,
-      selected: widget.selected,
-      enabled: enabled,
-    );
     final Color textColor = _resolveTextColor(
       colors: colors,
       selected: widget.selected,
@@ -189,11 +182,10 @@ class _CruxChipState extends State<CruxChip> {
                 ),
                 decoration: ShapeDecoration(
                   color: background,
-                  shape: RoundedSuperellipseBorder(
-                    borderRadius: const BorderRadius.all(
+                  shape: const RoundedSuperellipseBorder(
+                    borderRadius: BorderRadius.all(
                       Radius.circular(CruxRadii.pill),
                     ),
-                    side: BorderSide(color: borderColor),
                   ),
                 ),
                 alignment: Alignment.center,
@@ -214,38 +206,19 @@ class _CruxChipState extends State<CruxChip> {
 }
 
 /// Resolves the chip's rest-state background, then layers the pressed-state
-/// overlay (matching [CruxButton]'s treatment) on top when [pressed] is
-/// true.
+/// overlay (shared with [CruxButton]) on top when [pressed] is true.
 Color _resolveBackground({
   required CruxColors colors,
   required bool selected,
   required bool enabled,
   required bool pressed,
 }) {
-  final Color base = !enabled
-      ? colors.surface
-      : (selected ? colors.accentTint : colors.surface);
+  final Color base = enabled && selected ? colors.accent : colors.mutedFill;
 
   if (!enabled || !pressed) {
     return base;
   }
-
-  final Color overlay = colors.textPrimary.withValues(
-    alpha: _pressedOverlayOpacity,
-  );
-  return Color.alphaBlend(overlay, base);
-}
-
-/// Resolves the chip's border color.
-Color _resolveBorderColor({
-  required CruxColors colors,
-  required bool selected,
-  required bool enabled,
-}) {
-  if (!enabled) {
-    return colors.separator;
-  }
-  return selected ? colors.accentLine : colors.separator;
+  return pressedStateLayer(colors: colors, base: base);
 }
 
 /// Resolves the chip's label color.
@@ -257,5 +230,5 @@ Color _resolveTextColor({
   if (!enabled) {
     return colors.muted;
   }
-  return selected ? colors.textPrimary : colors.textSecondary;
+  return selected ? colors.onAccent : colors.textPrimary;
 }

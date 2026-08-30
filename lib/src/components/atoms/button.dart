@@ -1,6 +1,7 @@
 import 'package:flutter/widgets.dart';
 
 import '../../internal/press_feedback.dart';
+import '../../internal/state_layer.dart';
 import '../../tokens/colors.dart';
 import '../../tokens/motion.dart';
 import '../../tokens/spacing.dart';
@@ -11,24 +12,6 @@ import 'spinner.dart';
 /// visual [CruxButtonSize]: 44 logical pixels, matching the common
 /// iOS/Material accessibility guidance for a comfortably tappable target.
 const double _minTapTarget = 44;
-
-/// The opacity of the state layer laid over a pressed [CruxButton]'s
-/// background: [CruxColors.textPrimary] at 8%, which reads as darkening
-/// in light mode and lightening in dark mode without a second,
-/// brightness-specific token.
-const double _pressedOverlayOpacity = 0.08;
-
-/// The pressed-state overlay opacity for [CruxButtonVariant.filled]
-/// specifically, lower than [_pressedOverlayOpacity].
-///
-/// [CruxColors.onAccent] (the filled variant's label color) and the
-/// overlay color ([CruxColors.textPrimary]) are the exact same value in
-/// both palettes, so any overlay alpha moves the pressed background
-/// directly toward the label color and can only shrink their contrast,
-/// never grow it. The shared 8% overlay would drop filled's
-/// onAccent-vs-background contrast to 4.353:1 -- under the 4.5:1 AA floor
-/// for normal-size text; 5% keeps it at 4.549:1 (light) / 5.163:1 (dark).
-const double _pressedOverlayOpacityFilled = 0.05;
 
 /// The background/emphasis treatment a [CruxButton] renders with.
 ///
@@ -41,9 +24,9 @@ enum CruxButtonVariant {
   /// The highest-emphasis variant, for a screen's primary action.
   filled,
 
-  /// An [CruxColors.accentTint]-filled pill with an
-  /// [CruxColors.accentLine] border and [CruxColors.textPrimary] text.
-  /// Medium emphasis.
+  /// A [CruxColors.mutedFill]-filled pill with [CruxColors.textPrimary]
+  /// text and no border -- the same treatment as a neutral-tone
+  /// [CruxIconButton]. Medium emphasis.
   tonal,
 
   /// No fill and no border, just [CruxColors.textPrimary] text. The
@@ -210,10 +193,6 @@ class _CruxButtonState extends State<CruxButton> {
       enabled: hasOnPressed,
       pressed: _pressed,
     );
-    final BorderSide side =
-        hasOnPressed && widget.variant == CruxButtonVariant.tonal
-        ? BorderSide(color: colors.accentLine)
-        : BorderSide.none;
     // Also doubles as the loading spinner's color: this is exactly the
     // label's own foreground color for whichever variant/enabled state is
     // showing, so reusing it keeps the spinner visually consistent with the
@@ -279,9 +258,8 @@ class _CruxButtonState extends State<CruxButton> {
                 ),
                 decoration: ShapeDecoration(
                   color: background,
-                  shape: RoundedSuperellipseBorder(
-                    borderRadius: const BorderRadius.all(Radius.circular(999)),
-                    side: side,
+                  shape: const RoundedSuperellipseBorder(
+                    borderRadius: BorderRadius.all(Radius.circular(999)),
                   ),
                 ),
                 alignment: Alignment.center,
@@ -345,7 +323,8 @@ class _CruxButtonState extends State<CruxButton> {
 }
 
 /// Resolves the pill's background for [variant]/[enabled], layering the
-/// pressed-state overlay on top when [pressed] is true.
+/// pressed-state overlay on top when [pressed] is true. `null` means no
+/// fill at all (ghost at rest).
 Color? _resolveBackground({
   required CruxColors colors,
   required CruxButtonVariant variant,
@@ -356,25 +335,14 @@ Color? _resolveBackground({
       ? (variant == CruxButtonVariant.ghost ? null : colors.separator)
       : switch (variant) {
           CruxButtonVariant.filled => colors.accent,
-          CruxButtonVariant.tonal => colors.accentTint,
+          CruxButtonVariant.tonal => colors.mutedFill,
           CruxButtonVariant.ghost => null,
         };
 
   if (!enabled || !pressed) {
     return base;
   }
-
-  final double overlayOpacity = variant == CruxButtonVariant.filled
-      ? _pressedOverlayOpacityFilled
-      : _pressedOverlayOpacity;
-  final Color overlay = colors.textPrimary.withValues(alpha: overlayOpacity);
-
-  // ghost has no `base` to blend onto (it renders no fill at rest), so its
-  // pressed background is just the overlay color at its own alpha.
-  if (base == null) {
-    return overlay;
-  }
-  return Color.alphaBlend(overlay, base);
+  return pressedStateLayer(colors: colors, base: base);
 }
 
 /// Resolves the label color for [variant]/[enabled].
