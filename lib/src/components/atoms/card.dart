@@ -27,7 +27,8 @@ const double _pressedOverlayOpacity = 0.08;
 /// to special-case every variant.
 enum CruxCardVariant {
   /// A [CruxColors.surface] fill lifted by [CruxShadows.contact], with no
-  /// border. The default, for a card sitting on the page background.
+  /// border. For a card on the page background that needs more lift
+  /// than the fill difference alone gives it.
   elevated,
 
   /// A [CruxColors.surface] fill with a 1px [CruxColors.separator] outline
@@ -38,16 +39,17 @@ enum CruxCardVariant {
   outlined,
 
   /// A [CruxColors.surface] fill and nothing else: no border, no shadow.
-  /// For a card inside a dialog, sheet, or other surface where a shadow or
-  /// outline would be noise.
+  /// The default -- the card reads as a surface by its fill alone; reach
+  /// for the other two when that fill difference is not enough (a busy or
+  /// tinted backdrop, or a card that needs to sit visibly above the page).
   filled,
 }
 
 /// A block-level content container: Crux UI's general-purpose surface
-/// atom. Its edge is drawn by [variant]: a contact shadow by default
-/// ([CruxCardVariant.elevated]), a 1px outline
-/// ([CruxCardVariant.outlined]), or nothing but the fill
-/// ([CruxCardVariant.filled]).
+/// atom. Its edge is drawn by [variant]: nothing but the fill by default
+/// ([CruxCardVariant.filled]), a contact shadow
+/// ([CruxCardVariant.elevated]), or a 1px outline
+/// ([CruxCardVariant.outlined]).
 ///
 /// ```dart
 /// CruxCard(
@@ -87,7 +89,7 @@ class CruxCard extends StatefulWidget {
     this.padding = const EdgeInsets.all(CruxSpacing.s16),
     this.onTap,
     this.radius = CruxRadii.l,
-    this.variant = CruxCardVariant.elevated,
+    this.variant = CruxCardVariant.filled,
   });
 
   /// The card's content.
@@ -104,7 +106,7 @@ class CruxCard extends StatefulWidget {
   /// The corner radius. Defaults to [CruxRadii.l].
   final double radius;
 
-  /// How the card's edge is drawn. Defaults to [CruxCardVariant.elevated].
+  /// How the card's edge is drawn. Defaults to [CruxCardVariant.filled].
   final CruxCardVariant variant;
 
   @override

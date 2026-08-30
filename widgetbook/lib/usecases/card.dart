@@ -50,7 +50,7 @@ Widget _buildPlayground(BuildContext context) {
   final CruxCardVariant variant = context.knobs.object.segmented(
     label: 'Variant',
     options: CruxCardVariant.values,
-    initialOption: CruxCardVariant.elevated,
+    initialOption: CruxCardVariant.filled,
     labelBuilder: (CruxCardVariant v) => v.name,
   );
 

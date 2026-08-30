@@ -49,8 +49,8 @@ void main() {
   });
 
   group('appearance', () {
-    testWidgets('elevated (the default): surface background, the contact '
-        'shadow, no border, and the default CruxRadii.l corner radius', (
+    testWidgets('filled (the default): surface background, no shadow, no '
+        'border, and the default CruxRadii.l corner radius', (
       WidgetTester tester,
     ) async {
       await tester.pumpWidget(_wrap(const CruxCard(child: Text('x'))));
@@ -63,9 +63,29 @@ void main() {
       final RoundedSuperellipseBorder shape =
           decoration.shape as RoundedSuperellipseBorder;
       expect(decoration.color, CruxColors.light.surface);
-      expect(decoration.shadows, CruxShadows.light.contact);
+      expect(decoration.shadows, anyOf(isNull, isEmpty));
       expect(shape.side, BorderSide.none);
       expect(shape.borderRadius, BorderRadius.circular(CruxRadii.l));
+    });
+
+    testWidgets('elevated: surface background, the contact shadow, and no '
+        'border', (WidgetTester tester) async {
+      await tester.pumpWidget(
+        _wrap(
+          const CruxCard(variant: CruxCardVariant.elevated, child: Text('x')),
+        ),
+      );
+
+      final Container container = tester.widget<Container>(
+        find.byType(Container),
+      );
+      final ShapeDecoration decoration =
+          container.decoration! as ShapeDecoration;
+      final RoundedSuperellipseBorder shape =
+          decoration.shape as RoundedSuperellipseBorder;
+      expect(decoration.color, CruxColors.light.surface);
+      expect(decoration.shadows, CruxShadows.light.contact);
+      expect(shape.side, BorderSide.none);
     });
 
     testWidgets('outlined: surface background, a 1px separator border, and '
@@ -87,27 +107,6 @@ void main() {
       expect(decoration.shadows, anyOf(isNull, isEmpty));
       expect(shape.side.color, CruxColors.light.separator);
       expect(shape.side.width, 1);
-    });
-
-    testWidgets('filled: surface background only -- no border, no shadow', (
-      WidgetTester tester,
-    ) async {
-      await tester.pumpWidget(
-        _wrap(
-          const CruxCard(variant: CruxCardVariant.filled, child: Text('x')),
-        ),
-      );
-
-      final Container container = tester.widget<Container>(
-        find.byType(Container),
-      );
-      final ShapeDecoration decoration =
-          container.decoration! as ShapeDecoration;
-      final RoundedSuperellipseBorder shape =
-          decoration.shape as RoundedSuperellipseBorder;
-      expect(decoration.color, CruxColors.light.surface);
-      expect(decoration.shadows, anyOf(isNull, isEmpty));
-      expect(shape.side, BorderSide.none);
     });
 
     testWidgets('clips its child to the card\'s rounded-corner shape via '
@@ -140,13 +139,37 @@ void main() {
       expect(shape.borderRadius, BorderRadius.circular(CruxRadii.m));
     });
 
-    testWidgets('resolves colors from the ambient CruxTheme (dark)', (
-      WidgetTester tester,
-    ) async {
+    testWidgets(
+      'filled (the default) resolves colors from the ambient CruxTheme (dark)',
+      (WidgetTester tester) async {
+        await tester.pumpWidget(
+          CruxTheme(
+            data: CruxThemeData.dark(),
+            child: _wrap(const CruxCard(child: Text('x'))),
+          ),
+        );
+
+        final Container container = tester.widget<Container>(
+          find.byType(Container),
+        );
+        final ShapeDecoration decoration =
+            container.decoration! as ShapeDecoration;
+        final RoundedSuperellipseBorder shape =
+            decoration.shape as RoundedSuperellipseBorder;
+        expect(decoration.color, CruxColors.dark.surface);
+        expect(decoration.shadows, anyOf(isNull, isEmpty));
+        expect(shape.side, BorderSide.none);
+      },
+    );
+
+    testWidgets('elevated resolves the dark contact shadow from the ambient '
+        'CruxTheme', (WidgetTester tester) async {
       await tester.pumpWidget(
         CruxTheme(
           data: CruxThemeData.dark(),
-          child: _wrap(const CruxCard(child: Text('x'))),
+          child: _wrap(
+            const CruxCard(variant: CruxCardVariant.elevated, child: Text('x')),
+          ),
         ),
       );
 
