@@ -1,5 +1,36 @@
 # Changelog
 
+## Unreleased
+
+**`CruxButton`'s tonal variant and every `CruxChip` state now borrow their
+colors from a sibling atom instead of carrying looks of their own.** The
+shared low-emphasis look is `CruxIconButton`'s neutral tone (a `mutedFill`
+pill, `textPrimary` content, no border); the shared high-emphasis look is
+`CruxButton`'s filled variant (an `accent` pill, `onAccent` content, no
+border). The public API is unchanged — only the rendered colors move.
+
+| State | Before | After |
+|---|---|---|
+| `CruxButton` tonal | `accentTint` fill, `accentLine` border, `textPrimary` text | `mutedFill` fill, no border, `textPrimary` text (= `CruxIconButtonTone.neutral`) |
+| `CruxChip` not selected | `surface` fill, `separator` border, `textSecondary` text | `mutedFill` fill, no border, `textPrimary` text (= `CruxIconButtonTone.neutral`) |
+| `CruxChip` selected | `accentTint` fill, `accentLine` border, `textPrimary` text | `accent` fill, no border, `onAccent` text (= `CruxButtonVariant.filled`) |
+| `CruxChip` disabled | `surface` fill, `separator` border, `muted` text | `mutedFill` fill, no border, `muted` text (= a disabled `CruxIconButton`) |
+
+- No `CruxChip` state draws a border any more.
+- The pressed state layer is now resolved by one shared internal helper for
+  both atoms: `textPrimary` at 8% over any fill, dropping to 5% over an
+  `accent` fill so the `onAccent` label keeps its 4.5:1 AA contrast while
+  pressed. That 5% rule used to belong to `CruxButton`'s filled variant
+  alone; a selected `CruxChip` now gets it too, and
+  `test/tokens/contrast_test.dart` reads the pressed background off a real
+  chip to guard it.
+- `CruxButton`'s disabled state (`separator` fill, `muted` text) and its
+  filled and ghost variants are unchanged, as is `CruxIconButton`.
+- `CruxColors.accentTint` and `CruxColors.accentLine` keep their names,
+  values, and contrast guarantees. No shipped component draws an
+  `accentLine` border any more; `accentTint` remains the text-selection
+  highlight.
+
 ## 0.12.0
 
 **Breaking: `CruxShadows` collapses to a single elevation shadow.** This kit

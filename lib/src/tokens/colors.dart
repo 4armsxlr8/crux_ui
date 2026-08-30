@@ -81,21 +81,20 @@ class CruxColors {
   final Color accent;
 
   /// A low-opacity tint of [accent], for subtle fills behind accented
-  /// content (for example a selected chip's background). This is a
-  /// decorative wash only: because [accent]'s own hue is close in luminance
-  /// to [background] (even fully opaque, it falls short of a 3:1 contrast
-  /// ratio in the light palette), no opacity of this tint alone can meet
-  /// WCAG 1.4.11's 3:1 non-text contrast floor — [accentLine] is the token
-  /// that carries that responsibility for state-identifying visual features
-  /// such as a selected chip's outline.
+  /// content (for example the highlight painted over selected text in a
+  /// [CruxTextFormField]). This is a decorative wash only: because
+  /// [accent]'s own hue is close in luminance to [background] (even fully
+  /// opaque, it falls short of a 3:1 contrast ratio in the light palette),
+  /// no opacity of this tint alone can meet WCAG 1.4.11's 3:1 non-text
+  /// contrast floor — [accentLine] is the token that carries that
+  /// responsibility for state-identifying visual features.
   final Color accentTint;
 
   /// An accented, opaque outline color for borders that must double as a
-  /// state-identifying visual feature (for example a selected [CruxChip]'s
-  /// border) — solid rather than a translucent tint of [accent], so it
-  /// clears WCAG 1.4.11's 3:1 non-text contrast floor against both
-  /// [background] and [surface] in each palette (verified in
-  /// `test/contrast_test.dart`).
+  /// state-identifying visual feature — solid rather than a translucent
+  /// tint of [accent], so it clears WCAG 1.4.11's 3:1 non-text contrast
+  /// floor against both [background] and [surface] in each palette
+  /// (verified in `test/tokens/contrast_test.dart`).
   final Color accentLine;
 
   /// The color of primary, high-emphasis text.
@@ -135,11 +134,14 @@ class CruxColors {
   /// normal text.
   final Color onAccent;
 
-  /// The fill painted behind an inactive affordance that sits *on top of*
-  /// another filled surface — for example `CruxInputBar`'s disabled
-  /// submit circle, which is drawn inside a [controlFill]-filled box.
+  /// The shared low-emphasis fill: the pill or circle behind a neutral-tone
+  /// `CruxIconButton`, a tonal `CruxButton`, and an unselected `CruxChip`,
+  /// and the fill of an inactive affordance that sits *on top of* another
+  /// filled surface — for example `CruxInputBar`'s disabled submit circle,
+  /// which is drawn inside a [controlFill]-filled box, or a disabled
+  /// `CruxChip`.
   ///
-  /// This token exists because [separator] cannot play that role there:
+  /// This token exists because [separator] cannot play the nested role:
   /// [separator] and [controlFill] are nearly the same color in both
   /// palettes (measured ~1.03:1 in light), so a separator-filled circle
   /// inside a controlFill box simply vanishes. That is fine for
@@ -148,11 +150,11 @@ class CruxColors {
   ///
   /// The value is a translucent wash of [textPrimary]'s hue rather than an
   /// opaque gray, the same "darkens in light mode, lightens in dark mode
-  /// without a second brightness-specific token" trick `CruxButton`'s
-  /// pressed overlay uses — and because it is translucent, it reads
-  /// correctly over [controlFill], [background], or [surface] alike.
-  /// Composite it over whatever it actually sits on before measuring
-  /// contrast against it (see `test/contrast_test.dart`).
+  /// without a second brightness-specific token" trick the pressed-state
+  /// overlay uses — and because it is translucent, it reads correctly over
+  /// [controlFill], [background], or [surface] alike. Composite it over
+  /// whatever it actually sits on before measuring contrast against it
+  /// (see `test/tokens/contrast_test.dart`).
   final Color mutedFill;
 
   /// The fill for a filled control's own selected/lifted inner plate --

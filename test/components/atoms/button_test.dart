@@ -394,33 +394,32 @@ void main() {
       expect(text.style?.color, CruxColors.light.onAccent);
     });
 
-    testWidgets(
-      'tonal: accentTint background, accentLine border, textPrimary text',
-      (WidgetTester tester) async {
-        await tester.pumpWidget(
-          _wrap(
-            CruxButton(
-              label: 'Go',
-              variant: CruxButtonVariant.tonal,
-              onPressed: () {},
-            ),
+    testWidgets('tonal: mutedFill background, no border, textPrimary text', (
+      WidgetTester tester,
+    ) async {
+      await tester.pumpWidget(
+        _wrap(
+          CruxButton(
+            label: 'Go',
+            variant: CruxButtonVariant.tonal,
+            onPressed: () {},
           ),
-        );
+        ),
+      );
 
-        final Container container = tester.widget<Container>(
-          find.byType(Container),
-        );
-        final ShapeDecoration decoration =
-            container.decoration! as ShapeDecoration;
-        final RoundedSuperellipseBorder shape =
-            decoration.shape as RoundedSuperellipseBorder;
-        expect(decoration.color, CruxColors.light.accentTint);
-        expect(shape.side.color, CruxColors.light.accentLine);
+      final Container container = tester.widget<Container>(
+        find.byType(Container),
+      );
+      final ShapeDecoration decoration =
+          container.decoration! as ShapeDecoration;
+      final RoundedSuperellipseBorder shape =
+          decoration.shape as RoundedSuperellipseBorder;
+      expect(decoration.color, CruxColors.light.mutedFill);
+      expect(shape.side, BorderSide.none);
 
-        final Text text = tester.widget<Text>(find.text('Go'));
-        expect(text.style?.color, CruxColors.light.textPrimary);
-      },
-    );
+      final Text text = tester.widget<Text>(find.text('Go'));
+      expect(text.style?.color, CruxColors.light.textPrimary);
+    });
 
     testWidgets('ghost: no fill, no border, textPrimary text', (
       WidgetTester tester,

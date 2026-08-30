@@ -1,0 +1,59 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  FLUTTER_VERSION: "3.44.6"
+
+jobs:
+  package:
+    name: analyze / format / test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+      - run: flutter pub get
+      # example/ and widgetbook/ sit inside the analyzed tree, so their
+      # dependencies must be resolved before `flutter analyze` at the root.
+      - run: flutter pub get
+        working-directory: example
+      - run: flutter pub get
+        working-directory: widgetbook
+      - run: flutter analyze
+      - run: dart format --output=none --set-exit-if-changed .
+      - run: flutter test
+
+  widgetbook:
+    name: widgetbook tests + goldens (macOS)
+    runs-on: macos-latest
+    defaults:
+      run:
+        working-directory: widgetbook
+    steps:
+      - uses: actions/checkout@v7
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          cache: true
+      - run: flutter pub get
+      - run: flutter test
+      # Flutter writes the golden diffs (masterImage / testImage / isolatedDiff)
+      # here on a golden mismatch; keep them so a failure can be inspected.
+      - uses: actions/upload-artifact@v7
+        if: failure()
+        with:
+          name: widgetbook-golden-failures
+          path: widgetbook/test/failures
+          if-no-files-found: ignore
