@@ -143,6 +143,24 @@ const double _backdropBlurLayerDecayCurveStrength = 1.6;
 /// [CruxNavBar.backdropBlurSigma]'s default, `8`.
 const double _defaultBackdropBlurSigma = 8;
 
+/// The floating pill's light-theme surface tint opacity.
+const double _lightPillSurfaceTintAlpha = 0.56;
+
+/// The floating pill's dark-theme surface tint opacity.
+const double _darkPillSurfaceTintAlpha = 0.70;
+
+/// The floating pill's light-theme backdrop blur sigma.
+const double _lightPillBlurSigma = 6;
+
+/// The floating pill's dark-theme backdrop blur sigma.
+const double _darkPillBlurSigma = 8;
+
+/// The selected tab plate's light-theme opacity.
+const double _lightSelectedPlateAlpha = 0.9;
+
+/// The selected tab plate's dark-theme opacity.
+const double _darkSelectedPlateAlpha = 0.8;
+
 const Duration _plateFadeInDuration = Duration(milliseconds: 200);
 
 const Duration _plateFadeOutDuration = Duration(milliseconds: 140);
@@ -267,11 +285,14 @@ class CruxNavItem<T> {
 /// this widget's own full, edge-to-edge width regardless of how compact
 /// the pill itself gets.
 ///
-/// **Color mapping**: the pill's own background is [CruxColors.surface];
-/// a selected item's plate is [CruxColors.controlFill] in light,
-/// [CruxColors.controlPlate] in dark, painted with no shadow of its own.
-/// The pill's own outer floating shadow is [CruxShadows.contact]. An item's
-/// icon and label color is [CruxColors.textPrimary] while selected,
+/// **Color mapping**: the pill is frosted glass: an always-on backdrop blur
+/// under a [CruxColors.surface] tint (56% opacity and sigma `6` in light,
+/// 70% opacity and sigma `8` in dark). A selected item's plate is
+/// [CruxColors.controlFill] in light, [CruxColors.controlPlate] in dark,
+/// painted at 90% opacity in light and 80% in dark, with no shadow of its
+/// own. The pill's own
+/// outer floating shadow is [CruxShadows.contact]. An item's icon and label
+/// color is [CruxColors.textPrimary] while selected,
 /// [CruxColors.textSecondary] while unselected, [CruxColors.muted]
 /// while disabled -- propagated to the caller-supplied [CruxNavItem.icon]
 /// via an ambient [IconThemeData]/[DefaultTextStyle].
@@ -292,10 +313,11 @@ class CruxNavItem<T> {
 /// top edge -- except this band paints its own [CruxColors.background]
 /// scrim rather than masking a child, since [CruxNavBar] has no child of
 /// its own to mask. Set [backdropBlurSigma] to `0` to keep the scrim but
-/// skip building any [BackdropFilter] at all, or set [backdropFade] to
-/// `false` to skip the entire band, scrim included. The whole band is
-/// wrapped in [IgnorePointer]: it never intercepts a tap or scroll gesture
-/// meant for whatever sits behind it.
+/// skip the band's [BackdropFilter] layers; the pill's own frosted-glass
+/// filter remains enabled. Set [backdropFade] to `false` to skip the entire
+/// band, scrim included; the pill remains frosted. The whole band is wrapped
+/// in [IgnorePointer]: it never intercepts a tap or scroll gesture meant for
+/// whatever sits behind it.
 ///
 /// Because the scrim is a flat [CruxColors.background] wash rather than
 /// a true blur-through of whatever is actually behind it, this backdrop
@@ -347,10 +369,10 @@ class CruxNavBar<T> extends StatefulWidget {
 
   /// The backdrop-fade band's blur strength, passed straight through to
   /// [ImageFilter.blur] as a sigma. Defaults to `8`, matching
-  /// [CruxTopFade]'s own default. Set to `0` to skip every
-  /// [BackdropFilter] layer while keeping the scrim -- see this class's own
-  /// "Backdrop fade" doc. Has no effect at all when [backdropFade] is
-  /// `false`.
+  /// [CruxTopFade]'s own default. Set to `0` to skip the band's
+  /// [BackdropFilter] layers while keeping the scrim -- the pill's own
+  /// frosted-glass filter is unaffected. This has no effect at all when
+  /// [backdropFade] is `false`.
   final double backdropBlurSigma;
 
   @override
@@ -442,7 +464,16 @@ class _CruxNavBarState<T> extends State<CruxNavBar<T>> {
     final CruxThemeData theme = CruxTheme.of(context);
     final CruxColors colors = theme.colors;
     final bool enabled = _enabled;
-
+    final bool isLightTheme = theme.brightness == Brightness.light;
+    final double pillSurfaceTintAlpha = isLightTheme
+        ? _lightPillSurfaceTintAlpha
+        : _darkPillSurfaceTintAlpha;
+    final double pillBlurSigma = isLightTheme
+        ? _lightPillBlurSigma
+        : _darkPillBlurSigma;
+    const RoundedSuperellipseBorder pillShape = RoundedSuperellipseBorder(
+      borderRadius: BorderRadius.all(Radius.circular(CruxRadii.pill)),
+    );
     // The "maybe" family, not the asserting `MediaQuery.paddingOf`, so
     // this widget still lays out with no MediaQuery ancestor at all.
     final double safeAreaBottom =
@@ -486,40 +517,61 @@ class _CruxNavBarState<T> extends State<CruxNavBar<T>> {
                 width: pillWidth,
                 child: DecoratedBox(
                   decoration: ShapeDecoration(
-                    color: colors.surface,
                     shadows: theme.shadows.contact,
-                    shape: const RoundedSuperellipseBorder(
-                      borderRadius: BorderRadius.all(
-                        Radius.circular(CruxRadii.pill),
-                      ),
-                    ),
+                    shape: pillShape,
                   ),
                   child: SizedBox(
                     height: _barHeight,
-                    child: Padding(
-                      padding: const EdgeInsets.all(_barInnerPadding),
-                      child: Row(
-                        children: <Widget>[
-                          for (final CruxNavItem<T> item in widget.items)
-                            Expanded(
-                              key: ValueKey<T>(item.value),
-                              child: _CruxNavTabButton<T>(
-                                icon: item.icon,
-                                label: item.label,
-                                selected: item.value == widget.selected,
-                                enabled: enabled,
-                                onTap: enabled
-                                    ? () => _handleItemTap(item.value)
-                                    : null,
-                                onPressedChanged: (bool pressed) =>
-                                    _handleTabPressChanged(item.value, pressed),
-                                sheenTrigger:
-                                    _sheenTriggerByValue[item.value] ?? 0,
-                                sheenLtr: _sheenLtrByValue[item.value] ?? true,
+                    child: Stack(
+                      clipBehavior: Clip.none,
+                      children: <Widget>[
+                        Positioned.fill(
+                          child: ClipPath(
+                            clipper: ShapeBorderClipper(shape: pillShape),
+                            child: BackdropFilter(
+                              filter: ImageFilter.blur(
+                                sigmaX: pillBlurSigma,
+                                sigmaY: pillBlurSigma,
+                              ),
+                              child: ColoredBox(
+                                color: colors.surface.withValues(
+                                  alpha: pillSurfaceTintAlpha,
+                                ),
+                                child: const SizedBox.expand(),
                               ),
                             ),
-                        ],
-                      ),
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.all(_barInnerPadding),
+                          child: Row(
+                            children: <Widget>[
+                              for (final CruxNavItem<T> item in widget.items)
+                                Expanded(
+                                  key: ValueKey<T>(item.value),
+                                  child: _CruxNavTabButton<T>(
+                                    icon: item.icon,
+                                    label: item.label,
+                                    selected: item.value == widget.selected,
+                                    enabled: enabled,
+                                    onTap: enabled
+                                        ? () => _handleItemTap(item.value)
+                                        : null,
+                                    onPressedChanged: (bool pressed) =>
+                                        _handleTabPressChanged(
+                                          item.value,
+                                          pressed,
+                                        ),
+                                    sheenTrigger:
+                                        _sheenTriggerByValue[item.value] ?? 0,
+                                    sheenLtr:
+                                        _sheenLtrByValue[item.value] ?? true,
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
@@ -1033,17 +1085,22 @@ Color _sheenPeakColor(CruxThemeData theme) {
       : theme.colors.textPrimary;
 }
 
-/// The selection plate's fill color, split by brightness: [CruxColors
-/// .controlFill] in light, [CruxColors.controlPlate] in dark. In light,
-/// [CruxColors.controlPlate] is defined identical to [CruxColors
-/// .surface] -- the same color as this pill's own background -- so using
-/// it there would leave a selected plate indistinguishable except by
-/// shadow. In dark, [CruxColors.controlFill] sits too close to
-/// [CruxColors.surface] (~1.05:1, see that token's own doc in
-/// `colors.dart`) to serve the same purpose, so dark keeps [controlPlate]
-/// instead.
+/// The selection plate's fill color, split by brightness and rendered at
+/// [_lightSelectedPlateAlpha] in light and [_darkSelectedPlateAlpha] in
+/// dark: [CruxColors.controlFill] in light, [CruxColors.controlPlate] in
+/// dark. In light, [CruxColors.controlPlate] is defined identical to
+/// [CruxColors.surface] -- the same color as this pill's own tint -- so
+/// using it there would leave a selected plate indistinguishable. In dark,
+/// [CruxColors.controlFill] sits too close to [CruxColors.surface] (~1.05:1,
+/// see that token's own doc in `colors.dart`) to serve the same purpose, so
+/// dark keeps [controlPlate] instead.
 Color _plateColor(CruxThemeData theme) {
-  return theme.brightness == Brightness.light
+  final bool isLightTheme = theme.brightness == Brightness.light;
+  final Color baseColor = isLightTheme
       ? theme.colors.controlFill
       : theme.colors.controlPlate;
+  final double alpha = isLightTheme
+      ? _lightSelectedPlateAlpha
+      : _darkSelectedPlateAlpha;
+  return baseColor.withValues(alpha: alpha);
 }

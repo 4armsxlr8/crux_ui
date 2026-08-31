@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+**`CruxNavBar`'s floating pill now uses theme-specific frosted glass.** The
+pill always applies its own backdrop blur and translucent surface tint;
+selected plates retain their existing theme
+colors at 90% opacity in light and 80% in dark. The public API is unchanged,
+and the existing 160px
+backdrop-fade band remains independently controlled by `backdropFade` and
+`backdropBlurSigma` (those settings do not disable the pill filter).
+Clear-aperture/B is not included.
+
 **`CruxButton`'s tonal variant and every `CruxChip` state now borrow their
 colors from a sibling atom instead of carrying looks of their own.** The
 shared low-emphasis look is `CruxIconButton`'s neutral tone (a `mutedFill`

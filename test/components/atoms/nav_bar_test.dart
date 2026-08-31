@@ -9,7 +9,9 @@
 // measurement after a real-device comparison; see the "compact width" group
 // below), and the selected tab's bold label weight (also a 2026-08-07
 // decision; see the "selected label weight" group below).
-import 'dart:ui' show Tristate;
+import 'dart:typed_data' show ByteData;
+import 'dart:ui' as ui;
+import 'dart:ui' show ImageFilter, Tristate;
 
 import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
@@ -178,6 +180,82 @@ Finder _pillBoxFinder() {
   });
 }
 
+/// Finds the floating pill's own frosted-glass [BackdropFilter], excluding
+/// the progressive backdrop-fade filters that live outside the pill.
+Finder _pillBackdropFilterFinder() {
+  return find.descendant(
+    of: _pillBoxFinder(),
+    matching: find.byType(BackdropFilter),
+  );
+}
+
+/// Finds the floating pill's surface tint [ColoredBox].
+Finder _pillTintFinder() {
+  return find.descendant(
+    of: _pillBoxFinder(),
+    matching: find.byType(ColoredBox),
+  );
+}
+
+/// Verifies that the floating pill and its descendants do not paint an
+/// explicit rounded-superellipse outline.
+void _expectFrostedPillHasNoOutline(WidgetTester tester) {
+  final DecoratedBox pillBox = tester.widget<DecoratedBox>(_pillBoxFinder());
+  final ShapeDecoration pillDecoration = pillBox.decoration as ShapeDecoration;
+  final RoundedSuperellipseBorder pillShape =
+      pillDecoration.shape as RoundedSuperellipseBorder;
+  final Finder explicitSideFinder = find.descendant(
+    of: _pillBoxFinder(),
+    matching: find.byWidgetPredicate((Widget widget) {
+      if (widget is! DecoratedBox || widget.decoration is! ShapeDecoration) {
+        return false;
+      }
+      final ShapeDecoration decoration = widget.decoration as ShapeDecoration;
+      final ShapeBorder shape = decoration.shape;
+      return shape is RoundedSuperellipseBorder &&
+          shape.side.style != BorderStyle.none;
+    }),
+  );
+
+  expect(pillShape.side.style, BorderStyle.none);
+  expect(explicitSideFinder, findsNothing);
+}
+
+/// Pumps a themed bar and verifies its frosted-pill tint, blur, and outline
+/// contract.
+Future<void> _expectFrostedPillContract(
+  WidgetTester tester, {
+  required CruxThemeData theme,
+  required Color expectedTint,
+  required double expectedBlurSigma,
+}) async {
+  await tester.pumpWidget(
+    CruxTheme(
+      data: theme,
+      child: _wrap(
+        CruxNavBar<String>(
+          items: _items(),
+          selected: 'b',
+          onChanged: (String _) {},
+        ),
+      ),
+    ),
+  );
+  await tester.pumpAndSettle();
+
+  final ColoredBox tintBox = tester.widget<ColoredBox>(_pillTintFinder());
+  final BackdropFilter pillFilter = tester.widget<BackdropFilter>(
+    _pillBackdropFilterFinder(),
+  );
+
+  expect(tintBox.color, expectedTint);
+  expect(
+    pillFilter.filter,
+    ImageFilter.blur(sigmaX: expectedBlurSigma, sigmaY: expectedBlurSigma),
+  );
+  _expectFrostedPillHasNoOutline(tester);
+}
+
 /// Finds the [Transform] that owns the floating pill's whole visual subtree,
 /// distinct from the per-tab and selected-plate transforms below it.
 Finder _pillScaleFinder() {
@@ -229,6 +307,20 @@ Future<void> _pumpSampling(
     elapsedMs += stepMs;
     sample();
   }
+}
+
+class _HighContrastBackgroundPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    canvas.drawColor(const Color(0xFFFFFFFF), ui.BlendMode.src);
+    canvas.drawRect(
+      const Rect.fromLTWH(80, 0, 1, 400),
+      Paint()..color = const Color(0xFF000000),
+    );
+  }
+
+  @override
+  bool shouldRepaint(_HighContrastBackgroundPainter oldDelegate) => false;
 }
 
 void main() {
@@ -448,9 +540,9 @@ void main() {
 
   group('selection plate color', () {
     testWidgets(
-      'fills the plate with CruxColors.light.controlFill in the light '
-      'theme -- 2026-08-06 user request to make the light plate read as a '
-      'gray pill instead of relying on the shadow alone',
+      'fills the plate with CruxColors.light.controlFill at 90% alpha in the '
+      'light theme -- 2026-08-06 user request to make the light plate read '
+      'as a gray pill instead of relying on the shadow alone',
       (WidgetTester tester) async {
         await tester.pumpWidget(
           CruxTheme(
@@ -471,13 +563,16 @@ void main() {
         );
         final ShapeDecoration decoration =
             plateBox.decoration as ShapeDecoration;
-        expect(decoration.color, CruxColors.light.controlFill);
+        expect(
+          decoration.color,
+          CruxColors.light.controlFill.withValues(alpha: 0.9),
+        );
       },
     );
 
     testWidgets(
-      'keeps filling the plate with CruxColors.dark.controlPlate in the '
-      'dark theme -- unchanged by the 2026-08-06 light-only request',
+      'keeps filling the plate with CruxColors.dark.controlPlate at 80% alpha '
+      'in the dark theme -- unchanged by the 2026-08-06 light-only request',
       (WidgetTester tester) async {
         await tester.pumpWidget(
           CruxTheme(
@@ -498,7 +593,81 @@ void main() {
         );
         final ShapeDecoration decoration =
             plateBox.decoration as ShapeDecoration;
-        expect(decoration.color, CruxColors.dark.controlPlate);
+        expect(
+          decoration.color,
+          CruxColors.dark.controlPlate.withValues(alpha: 0.8),
+        );
+      },
+    );
+  });
+
+  group('frosted pill contract', () {
+    testWidgets(
+      'light theme exposes the approved tint and blur values without an '
+      'explicit outline',
+      (WidgetTester tester) async {
+        await _expectFrostedPillContract(
+          tester,
+          theme: CruxThemeData.light(),
+          expectedTint: CruxColors.light.surface.withValues(alpha: 0.56),
+          expectedBlurSigma: 6,
+        );
+      },
+    );
+
+    testWidgets(
+      'dark theme exposes the approved tint and blur values without an '
+      'explicit outline',
+      (WidgetTester tester) async {
+        await _expectFrostedPillContract(
+          tester,
+          theme: CruxThemeData.dark(),
+          expectedTint: CruxColors.dark.surface.withValues(alpha: 0.70),
+          expectedBlurSigma: 8,
+        );
+      },
+    );
+  });
+
+  group('pill clip boundary', () {
+    testWidgets(
+      'clips only the frosted background, not caller-supplied icon content',
+      (WidgetTester tester) async {
+        const Key callerIconKey = ValueKey<String>('caller-icon');
+        await tester.pumpWidget(
+          _wrap(
+            CruxNavBar<String>(
+              items: <CruxNavItem<String>>[
+                const CruxNavItem<String>(
+                  value: 'a',
+                  icon: SizedBox(key: callerIconKey, child: Text('custom')),
+                  label: 'A',
+                ),
+                CruxNavItem<String>(value: 'b', icon: _icon('💬'), label: 'B'),
+              ],
+              selected: 'a',
+              onChanged: (String _) {},
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        final Finder pillClip = find.ancestor(
+          of: _pillBackdropFilterFinder(),
+          matching: find.byType(ClipPath),
+        );
+        expect(pillClip, findsOneWidget);
+        expect(
+          tester.widget<ClipPath>(pillClip).clipper,
+          isA<ShapeBorderClipper>(),
+        );
+        expect(
+          find.ancestor(
+            of: find.byKey(callerIconKey),
+            matching: find.byType(ClipPath),
+          ),
+          findsNothing,
+        );
       },
     );
   });
@@ -846,8 +1015,8 @@ void main() {
 
   group('backdrop fade', () {
     testWidgets(
-      'by default draws a background-colored scrim plus the documented '
-      '6-layer blur stack behind the pill',
+      'by default draws a background-colored scrim plus six band blur '
+      'layers and the pill\'s own frosted filter',
       (WidgetTester tester) async {
         await tester.pumpWidget(
           _wrap(
@@ -863,12 +1032,58 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(_backdropScrimFinder().evaluate(), isNotEmpty);
-        expect(find.byType(BackdropFilter).evaluate().length, 6);
+        expect(find.byType(BackdropFilter).evaluate().length, 7);
       },
     );
 
     testWidgets(
-      'backdropFade: false draws neither the scrim nor any blur layer',
+      'backdrop blur stays inside its 160px band instead of affecting the '
+      'ancestor clip',
+      (WidgetTester tester) async {
+        await tester.pumpWidget(
+          _wrap(
+            CruxNavBar<String>(
+              items: _items(),
+              selected: 'a',
+              onChanged: (String _) {},
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        final Iterable<Element> allFilters =
+            find.byType(BackdropFilter).evaluate();
+        final Set<Element> pillFilters =
+            _pillBackdropFilterFinder().evaluate().toSet();
+        final Iterable<Element> bandFilters =
+            allFilters.where((Element filter) => !pillFilters.contains(filter));
+
+        expect(allFilters, hasLength(7));
+        expect(pillFilters, hasLength(1));
+        expect(bandFilters, hasLength(6));
+
+        final Finder bandClip = find.descendant(
+          of: find.byType(CruxNavBar<String>),
+          matching: find.byType(ClipRect),
+        );
+        expect(bandClip, findsOneWidget);
+        final Set<Element> clippedFilters = find
+            .descendant(of: bandClip, matching: find.byType(BackdropFilter))
+            .evaluate()
+            .toSet();
+        expect(clippedFilters, equals(bandFilters.toSet()));
+
+        for (final Element filter in bandFilters) {
+          expect(
+            filter.findAncestorWidgetOfExactType<ClipPath>(),
+            isNull,
+          );
+        }
+      },
+    );
+
+    testWidgets(
+      'backdropFade: false draws no band or scrim but keeps the pill filter',
       (WidgetTester tester) async {
         await tester.pumpWidget(
           _wrap(
@@ -885,12 +1100,13 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(_backdropScrimFinder().evaluate(), isEmpty);
-        expect(find.byType(BackdropFilter).evaluate(), isEmpty);
+        expect(find.byType(BackdropFilter).evaluate().length, 1);
       },
     );
 
     testWidgets(
-      'backdropBlurSigma: 0 keeps the scrim but skips every blur layer',
+      'backdropBlurSigma: 0 keeps the scrim and pill filter but skips band '
+      'blur layers',
       (WidgetTester tester) async {
         await tester.pumpWidget(
           _wrap(
@@ -907,7 +1123,7 @@ void main() {
         await tester.pumpAndSettle();
 
         expect(_backdropScrimFinder().evaluate(), isNotEmpty);
-        expect(find.byType(BackdropFilter).evaluate(), isEmpty);
+        expect(find.byType(BackdropFilter).evaluate().length, 1);
       },
     );
 
@@ -959,6 +1175,64 @@ void main() {
         await tester.pump();
 
         expect(contentTaps, 1);
+      },
+    );
+
+    testWidgets(
+      'confines the backdrop blur to the band when an ancestor provides the '
+      'preview clip',
+      (WidgetTester tester) async {
+        const Key sceneKey = ValueKey<String>('nav-bar-preview-scene');
+
+        await tester.pumpWidget(
+          _wrap(
+            SizedBox(
+              width: 360,
+              height: 400,
+              child: ClipRect(
+                child: RepaintBoundary(
+                  key: sceneKey,
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: <Widget>[
+                      CustomPaint(painter: _HighContrastBackgroundPainter()),
+                      Align(
+                        alignment: Alignment.bottomCenter,
+                        child: CruxNavBar<String>(
+                          items: _items(),
+                          selected: 'a',
+                          onChanged: (String _) {},
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        final RenderRepaintBoundary boundary =
+            tester.renderObject<RenderRepaintBoundary>(
+              find.byKey(sceneKey),
+            );
+        final ui.Image image = await boundary.toImage(pixelRatio: 1);
+        addTearDown(image.dispose);
+        final ByteData? pixels = await image.toByteData(
+          format: ui.ImageByteFormat.rawRgba,
+        );
+        expect(pixels, isNotNull);
+
+        // This black stripe is above the 160px backdrop band. A missing
+        // local ClipRect lets the band filters blur it through the ancestor
+        // preview clip, turning the known black pixel gray.
+        const int stripeX = 80;
+        const int pointY = 40;
+        final int pixelOffset = (pointY * image.width + stripeX) * 4;
+        expect(pixels!.getUint8(pixelOffset), 0);
+        expect(pixels.getUint8(pixelOffset + 1), 0);
+        expect(pixels.getUint8(pixelOffset + 2), 0);
       },
     );
   });
