@@ -626,20 +626,23 @@ class _CruxNavBarState<T> extends State<CruxNavBar<T>> {
       child: SizedBox(
         width: double.infinity,
         height: _backdropBandHeight,
-        child: Stack(
-          fit: StackFit.expand,
-          children: <Widget>[
-            if (backdropBlurSigma > 0)
-              for (int i = 0; i < _backdropBlurLayerCount; i++)
-                _BackdropBlurLayer(
-                  sigma:
-                      backdropBlurSigma * _backdropBlurLayerRadiusFractions[i],
-                  decayFraction: _backdropBlurLayerDecayFractions[i],
-                ),
-            DecoratedBox(
-              decoration: _buildBackdropScrimDecoration(theme.colors),
-            ),
-          ],
+        child: ClipRect(
+          child: Stack(
+            fit: StackFit.expand,
+            children: <Widget>[
+              if (backdropBlurSigma > 0)
+                for (int i = 0; i < _backdropBlurLayerCount; i++)
+                  _BackdropBlurLayer(
+                    sigma:
+                        backdropBlurSigma *
+                        _backdropBlurLayerRadiusFractions[i],
+                    decayFraction: _backdropBlurLayerDecayFractions[i],
+                  ),
+              DecoratedBox(
+                decoration: _buildBackdropScrimDecoration(theme.colors),
+              ),
+            ],
+          ),
         ),
       ),
     );
