@@ -11,7 +11,7 @@
 // decision; see the "selected label weight" group below).
 import 'dart:ui' show ImageFilter, Tristate;
 
-import 'package:flutter/rendering.dart';
+import 'package:flutter/semantics.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:crux_ui/crux_ui.dart';
@@ -1017,6 +1017,81 @@ void main() {
 
         expect(_backdropScrimFinder().evaluate(), isNotEmpty);
         expect(find.byType(BackdropFilter).evaluate().length, 7);
+      },
+    );
+
+    testWidgets(
+      'backdrop blur stays inside its 160px band instead of affecting the '
+      'ancestor clip',
+      (WidgetTester tester) async {
+        const Key previewClipKey = ValueKey<String>('nav-bar-preview-clip');
+
+        await tester.pumpWidget(
+          _wrap(
+            Center(
+              child: SizedBox(
+                width: 360,
+                height: 400,
+                child: ClipRect(
+                  key: previewClipKey,
+                  child: Stack(
+                    alignment: Alignment.bottomCenter,
+                    children: <Widget>[
+                      const Positioned.fill(
+                        child: ColoredBox(color: Color(0xFFFFFFFF)),
+                      ),
+                      CruxNavBar<String>(
+                        items: _items(),
+                        selected: 'a',
+                        onChanged: (String _) {},
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        final Rect previewClipRect = tester.getRect(find.byKey(previewClipKey));
+        final Rect navBarRect = tester.getRect(find.byType(CruxNavBar<String>));
+
+        final Iterable<Element> allFilters = find
+            .byType(BackdropFilter)
+            .evaluate();
+        final Set<Element> pillFilters = _pillBackdropFilterFinder()
+            .evaluate()
+            .toSet();
+        final Iterable<Element> bandFilters = allFilters.where(
+          (Element filter) => !pillFilters.contains(filter),
+        );
+
+        expect(allFilters, hasLength(7));
+        expect(pillFilters, hasLength(1));
+        expect(bandFilters, hasLength(6));
+
+        final Finder bandClip = find.descendant(
+          of: find.byType(CruxNavBar<String>),
+          matching: find.byType(ClipRect),
+        );
+        expect(bandClip, findsOneWidget);
+        final Rect bandRect = tester.getRect(bandClip);
+        expect(previewClipRect.size, const Size(360, 400));
+        expect(navBarRect.size, const Size(360, 160));
+        expect(bandRect.size, const Size(360, 160));
+        expect(bandRect, equals(navBarRect));
+        expect(bandRect, isNot(equals(previewClipRect)));
+
+        final Set<Element> clippedFilters = find
+            .descendant(of: bandClip, matching: find.byType(BackdropFilter))
+            .evaluate()
+            .toSet();
+        expect(clippedFilters, equals(bandFilters.toSet()));
+
+        for (final Element filter in bandFilters) {
+          expect(filter.findAncestorWidgetOfExactType<ClipPath>(), isNull);
+        }
       },
     );
 
